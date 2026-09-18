@@ -45,7 +45,7 @@ export function WeddingProvider({ children }) {
   };
 
   // Fetch all guests once from server (no filtering on server so local filtering is 0ms instant)
-  const fetchAllGuests = useCallback(async () => {
+  const fetchAllGuests = useCallback(async (silent = false) => {
     try {
       const res = await guestApi.getAll();
       if (res.success) {
@@ -53,7 +53,9 @@ export function WeddingProvider({ children }) {
       }
     } catch (err) {
       console.error('Error fetching guests:', err);
-      showToast(err.message, 'error');
+      if (!silent) {
+        showToast(err.message, 'error');
+      }
     }
   }, []);
 
@@ -86,7 +88,7 @@ export function WeddingProvider({ children }) {
     } else {
       setIsRefreshing(true);
     }
-    await Promise.all([fetchAllGuests(), fetchFamilies(), fetchStats()]);
+    await Promise.all([fetchAllGuests(!isInitial), fetchFamilies(), fetchStats()]);
     if (isInitial) {
       setLoading(false);
     } else {
@@ -95,7 +97,32 @@ export function WeddingProvider({ children }) {
   }, [fetchAllGuests, fetchFamilies, fetchStats]);
 
   useEffect(() => {
+    // Carga inicial
     refreshAll(true);
+
+    // Sincronización automática entre dispositivos (PC <-> Celular)
+    // Se actualiza en silencio cuando el usuario vuelve a enfocar la ventana/pestaña
+    const handleFocusOrVisible = () => {
+      if (!document.hidden) {
+        refreshAll(false);
+      }
+    };
+
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
+
+    // Sondeo inteligente en vivo (cada 6 segundos, únicamente si la pestaña está visible)
+    const intervalId = setInterval(() => {
+      if (!document.hidden) {
+        refreshAll(false);
+      }
+    }, 6000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
+      clearInterval(intervalId);
+    };
   }, [refreshAll]);
 
   // Instant in-memory filtering: 0ms lag, silky smooth 60fps typing
