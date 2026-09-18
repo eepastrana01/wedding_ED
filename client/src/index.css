@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FAF8F5;
+    color: #2D3748;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1, h2, h3, h4, .font-editorial {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F4EFEB;
+}
+::-webkit-scrollbar-thumb {
+  background: #D5C9BC;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #BFAEA0;
+}
+
+/* Subtle luxury glow and animation */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(235, 229, 216, 0.8);
+}
+
+.gold-border {
+  border-color: #C5A880;
+}
+
+/* Safe area for mobile bottom bar */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1.5rem);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Fast tap response */
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* Print styles for Cards/Envelope list */
+@media print {
+  header, nav, .md\\:hidden, button, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .print-area {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
