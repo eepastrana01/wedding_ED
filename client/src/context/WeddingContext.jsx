@@ -179,8 +179,10 @@ export function WeddingProvider({ children }) {
     // 2. Individual / Couple cards (guests with no family_id)
     const soloGuests = guests.filter((g) => !g.family_id);
     const individualCards = soloGuests.map((guest) => {
-      const hasPartner = Boolean(guest.partner_name && guest.partner_name.trim());
-      const seats = hasPartner ? Math.max(2, guest.confirmed_seats || 2) : (guest.confirmed_seats || 1);
+      const INVALID_PARTNERS = ['novio', 'novia', 'comun', 'común', 'general', 'ninguno', 'ninguna', 'no', 'sin pareja'];
+      const rawPartner = (guest.partner_name || '').trim();
+      const hasPartner = Boolean(rawPartner && !INVALID_PARTNERS.includes(rawPartner.toLowerCase()));
+      const seats = hasPartner ? Math.max(2, parseInt(guest.confirmed_seats, 10) || 2) : (parseInt(guest.confirmed_seats, 10) || 1);
 
       let salutation = guest.name;
       if (hasPartner) {
@@ -192,7 +194,7 @@ export function WeddingProvider({ children }) {
         type: hasPartner ? 'couple' : 'individual',
         guestId: guest.id,
         title: guest.name,
-        partner_name: guest.partner_name,
+        partner_name: hasPartner ? guest.partner_name : null,
         salutation,
         seats,
         membersCount: hasPartner ? 2 : 1,

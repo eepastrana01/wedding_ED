@@ -56,6 +56,7 @@ export async function runMigrations() {
       { name: 'phone', type: 'VARCHAR(50)' },
       { name: 'table_assigned', type: 'VARCHAR(100)' },
       { name: 'invitation_delivered', type: 'BOOLEAN DEFAULT FALSE' },
+      { name: 'side', type: 'VARCHAR(50)' },
       { name: 'created_at', type: 'TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP' },
       { name: 'updated_at', type: 'TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP' },
     ];
@@ -73,6 +74,17 @@ export async function runMigrations() {
         END $$;
       `);
     }
+
+    // 3b. Sanitizar partner_name: Si contiene "Novio", "Novia", "Comun" guardar en "side" y vaciar partner_name
+    await client.query(`
+      UPDATE guests 
+      SET side = partner_name 
+      WHERE side IS NULL AND LOWER(TRIM(partner_name)) IN ('novio', 'novia', 'comun', 'común');
+
+      UPDATE guests 
+      SET partner_name = NULL 
+      WHERE LOWER(TRIM(partner_name)) IN ('novio', 'novia', 'comun', 'común');
+    `);
 
     // 4. Quitar restricciones NOT NULL en columnas heredadas si existen
     const legacyColumns = ['nombre', 'pareja', 'tipo', 'grupo_relacion', 'tipo_invitado', 'prioridad', 'invitation_id'];

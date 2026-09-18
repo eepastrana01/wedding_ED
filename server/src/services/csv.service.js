@@ -31,6 +31,7 @@ export const csvService = {
         let priority = defaultPriority;
         let phone = '';
         let notes = '';
+        let side = null;
 
         for (const [key, value] of Object.entries(row)) {
           const normKey = this.normalizeHeader(key);
@@ -39,7 +40,11 @@ export const csvService = {
           if (normKey === 'nombre' || normKey === 'name') {
             name = val;
           } else if (normKey === 'pareja' || normKey === 'partner' || normKey === 'parejanombre') {
-            partnerName = val;
+            if (['novio', 'novia', 'comun', 'común', 'ambos'].includes(val.toLowerCase())) {
+              side = val;
+            } else {
+              partnerName = val;
+            }
           } else if (normKey === 'type' || normKey === 'tipo' || normKey === 'categoriainvitado') {
             type = val || 'Adulto';
           } else if (normKey === 'gruporelacion' || normKey === 'grupo' || normKey === 'relacion' || normKey === 'lado') {
@@ -52,6 +57,8 @@ export const csvService = {
             phone = val;
           } else if (normKey === 'notas' || normKey === 'notes' || normKey === 'comentarios') {
             notes = val;
+          } else if (normKey === 'lado' || normKey === 'afinidad') {
+            side = val;
           }
         }
 
@@ -100,8 +107,8 @@ export const csvService = {
         const insertGuestQuery = `
           INSERT INTO guests (
             family_id, name, partner_name, type, group_relation, 
-            guest_type, priority, status, confirmed_seats, notes, phone, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', 1, $8, $9, CURRENT_TIMESTAMP)
+            guest_type, priority, status, confirmed_seats, notes, phone, side, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', 1, $8, $9, $10, CURRENT_TIMESTAMP)
           RETURNING *
         `;
         const guestRes = await client.query(insertGuestQuery, [
@@ -113,7 +120,8 @@ export const csvService = {
           guestType || 'Titular',
           priority || 'A',
           notes || null,
-          phone || null
+          phone || null,
+          side || null
         ]);
 
         importedGuests.push(guestRes.rows[0]);
