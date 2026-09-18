@@ -161,7 +161,7 @@ export function GuestFilters({ onNewGuest, totalCount = 0 }) {
             onChange={handleGroupFilter}
             className="w-full px-2.5 py-2 sm:py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-700 text-base sm:text-xs focus:ring-1 focus:ring-wedding-accent bg-white"
           >
-            <option value="all">👥 Todo Grupo / Relación</option>
+            <option value="all">Todo Grupo / Relación</option>
             {DEFAULT_GROUPS.map((g) => (
               <option key={g} value={g}>{g}</option>
             ))}
@@ -175,7 +175,7 @@ export function GuestFilters({ onNewGuest, totalCount = 0 }) {
             onChange={handlePriorityFilter}
             className="w-full px-2.5 py-2 sm:py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-700 text-base sm:text-xs focus:ring-1 focus:ring-wedding-accent bg-white"
           >
-            <option value="all">⭐ Todas las Prioridades</option>
+            <option value="all">Todas las Prioridades</option>
             <option value="A">Prioridad A (Principal)</option>
             <option value="B">Prioridad B (Amigos/Segundos)</option>
             <option value="C">Prioridad C (Extras)</option>
@@ -189,7 +189,7 @@ export function GuestFilters({ onNewGuest, totalCount = 0 }) {
             onChange={handleFamilyFilter}
             className="w-full px-2.5 py-2 sm:py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-700 text-base sm:text-xs focus:ring-1 focus:ring-wedding-accent bg-white"
           >
-            <option value="">🏠 Todas las Familias</option>
+            <option value="">Todas las Familias</option>
             <option value="none">Sin Familia (Individuales)</option>
             {families.map((f) => (
               <option key={f.id} value={f.id}>{f.name}</option>

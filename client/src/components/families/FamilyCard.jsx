@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useWedding } from '../../context/WeddingContext';
 import { StatusToggleButtons } from '../common/StatusBadge';
 import { PriorityBadge } from '../common/PriorityBadge';
-import { Users, CheckCheck, XCircle, Clock, ChevronDown, ChevronUp, MessageCircle, Phone, Edit2, Trash2, Heart, MailCheck } from 'lucide-react';
+import { Users, CheckCheck, XCircle, Clock, ChevronDown, ChevronUp, MessageCircle, Phone, Edit2, Trash2, Heart, MailCheck, FileText, Utensils } from 'lucide-react';
 import { generateWhatsAppMessage, openWhatsApp } from '../../utils/whatsapp';
 
 export function FamilyCard({ family, onEdit, onDelete }) {
@@ -73,9 +73,10 @@ export function FamilyCard({ family, onEdit, onDelete }) {
             </div>
 
             {family.notes && (
-              <p className="text-xs text-stone-500 mt-2 italic">
-                📝 {family.notes}
-              </p>
+              <div className="flex items-start gap-1 text-xs text-stone-500 mt-2 italic">
+                <FileText size={13} className="shrink-0 mt-0.5 text-stone-400" />
+                <span>{family.notes}</span>
+              </div>
             )}
           </div>
 
@@ -184,9 +185,10 @@ export function FamilyCard({ family, onEdit, onDelete }) {
                     )}
 
                     {member.dietary_notes && (
-                      <p className="text-[11px] text-amber-800 mt-0.5">
-                        🍽️ {member.dietary_notes}
-                      </p>
+                      <div className="flex items-center gap-1 text-[11px] text-amber-800 mt-0.5">
+                        <Utensils size={11} className="shrink-0 text-amber-700" />
+                        <span>{member.dietary_notes}</span>
+                      </div>
                     )}
                   </div>
 

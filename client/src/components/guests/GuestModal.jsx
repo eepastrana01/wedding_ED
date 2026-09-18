@@ -252,9 +252,9 @@ export function GuestModal({ isOpen, onClose, guestToEdit = null, onSaved }) {
               onChange={handleChange}
               className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-wedding-accent focus:border-wedding-accent text-base sm:text-sm bg-white"
             >
-              <option value="pending">⏳ Pendiente</option>
-              <option value="confirmed">✅ Confirmado (Asiste)</option>
-              <option value="declined">❌ No Asiste</option>
+              <option value="pending">Pendiente</option>
+              <option value="confirmed">Confirmado (Asiste)</option>
+              <option value="declined">No Asiste</option>
             </select>
           </div>
 

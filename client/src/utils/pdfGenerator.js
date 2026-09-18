@@ -121,7 +121,7 @@ export function generateInvitationCardsPDF(cards, summary = {}) {
     const pases = `${card.seats || 1} ${card.seats === 1 ? 'pase' : 'pases'}`;
     const integrantes = (card.members || []).map((m) => m.name).join(', ') || '-';
     const telefono = card.phone || '-';
-    const entregado = card.delivered ? '[✓] Entregada' : '[  ] Por entregar';
+    const entregado = card.delivered ? 'Entregada' : 'Por entregar';
 
     return [num, rotulacion, tipo, pases, integrantes, telefono, entregado];
   });

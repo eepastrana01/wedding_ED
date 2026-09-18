@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StatusBadge, StatusToggleButtons } from '../common/StatusBadge';
 import { PriorityBadge, GroupBadge } from '../common/PriorityBadge';
 import { useWedding } from '../../context/WeddingContext';
-import { Phone, MessageCircle, Heart, MoreVertical, Edit2, Trash2, Users, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Phone, MessageCircle, Heart, MoreVertical, Edit2, Trash2, Users, AlertCircle, ChevronDown, ChevronUp, Ticket } from 'lucide-react';
 import { generateWhatsAppMessage, openWhatsApp } from '../../utils/whatsapp';
 
 export function GuestCardMobile({ guest, onEdit, onDelete }) {
@@ -62,8 +62,9 @@ export function GuestCardMobile({ guest, onEdit, onDelete }) {
                   <span>{guest.family_name}</span>
                 </div>
               )}
-              <span className="text-[11px] font-bold text-stone-600 bg-stone-100 px-2 py-0.2 rounded-md">
-                🎟️ {guest.confirmed_seats || 1} {guest.confirmed_seats === 1 ? 'pase' : 'pases'}
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md">
+                <Ticket size={11} className="text-stone-500 shrink-0" />
+                <span>{guest.confirmed_seats || 1} {guest.confirmed_seats === 1 ? 'pase' : 'pases'}</span>
               </span>
             </div>
           </div>

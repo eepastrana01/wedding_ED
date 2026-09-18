@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useWedding } from '../../context/WeddingContext';
-import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown } from 'lucide-react';
+import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown, Ticket, FileText } from 'lucide-react';
 import { openWhatsApp } from '../../utils/whatsapp';
 import { generateInvitationCardsPDF } from '../../utils/pdfGenerator';
 
@@ -61,7 +61,7 @@ export function CardsView() {
       return;
     }
 
-    const message = `¡Hola ${card.title}! Con mucha alegría les compartimos que ya tenemos lista su tarjeta de invitación para nuestra boda. Tienen asignados ${card.seats} ${card.seats === 1 ? 'pase' : 'pases'}. ¡Nos encantará contar con su presencia! ✨💍`;
+    const message = `¡Hola ${card.title}! Con mucha alegría les compartimos que ya tenemos lista su tarjeta de invitación para nuestra boda. Tienen asignados ${card.seats} ${card.seats === 1 ? 'pase' : 'pases'}. ¡Nos encantará contar con su presencia!`;
     openWhatsApp(card.phone, message);
   };
 
@@ -316,8 +316,9 @@ export function CardsView() {
                   </span>
 
                   {/* Badges de Pases Requeridos */}
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-wedding-accentLight text-wedding-primaryDark border border-wedding-accent/40 shadow-2xs">
-                    🎟️ {card.seats} {card.seats === 1 ? 'Pase' : 'Pases'}
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-wedding-accentLight text-wedding-primaryDark border border-wedding-accent/40 shadow-2xs">
+                    <Ticket size={13} className="text-wedding-primary shrink-0" />
+                    <span>{card.seats} {card.seats === 1 ? 'Pase' : 'Pases'}</span>
                   </span>
                 </div>
 
@@ -355,9 +356,10 @@ export function CardsView() {
                 </div>
 
                 {card.notes && (
-                  <p className="text-[11px] text-stone-500 italic bg-amber-50/50 p-2 rounded-lg border border-amber-200/50">
-                    📝 {card.notes}
-                  </p>
+                  <div className="flex items-start gap-1 text-[11px] text-stone-600 italic bg-amber-50/60 p-2 rounded-lg border border-amber-200/50">
+                    <FileText size={12} className="text-amber-700/80 shrink-0 mt-0.5" />
+                    <span>{card.notes}</span>
+                  </div>
                 )}
 
               </div>
@@ -376,7 +378,7 @@ export function CardsView() {
                   }`}
                 >
                   <CheckCircle2 size={15} className={card.delivered ? 'text-white' : 'text-stone-400'} />
-                  <span>{card.delivered ? 'Entregada ✅' : 'Por Entregar'}</span>
+                  <span>{card.delivered ? 'Entregada' : 'Por Entregar'}</span>
                 </button>
 
                 {/* WhatsApp button */}
@@ -438,7 +440,7 @@ export function CardsView() {
                 <td className="border p-2 text-center font-bold">{c.seats}</td>
                 <td className="border p-2">{c.members.map((m) => m.name).join(', ')}</td>
                 <td className="border p-2">{c.phone || '-'}</td>
-                <td className="border p-2 text-center">{c.delivered ? '[✓]' : '[  ]'}</td>
+                <td className="border p-2 text-center">{c.delivered ? 'Entregada' : 'Pendiente'}</td>
               </tr>
             ))}
           </tbody>
