@@ -1,26 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import morgan from 'morgan';
-import dotenv from 'dotenv';
+import app from './app.js';
 import { initDatabase } from './config/database.js';
-import apiRouter from './routes/index.js';
-import { errorHandler } from './middlewares/errorHandler.js';
 
-dotenv.config();
-
-const app = express();
 const PORT = process.env.PORT || 5000;
-
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(morgan('dev'));
-
-// Main API routes
-app.use('/api', apiRouter);
-
-// Global error handler
-app.use(errorHandler);
 
 async function startServer() {
   try {
@@ -34,4 +15,9 @@ async function startServer() {
   }
 }
 
-startServer();
+// Start standalone server if run directly (local development)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
