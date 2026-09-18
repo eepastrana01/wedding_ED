@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useWedding } from '../../context/WeddingContext';
-import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter } from 'lucide-react';
+import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown } from 'lucide-react';
 import { openWhatsApp } from '../../utils/whatsapp';
+import { generateInvitationCardsPDF } from '../../utils/pdfGenerator';
 
 export function CardsView() {
-  const { invitationCards, toggleDeliveryStatus, loading } = useWedding();
+  const { invitationCards, toggleDeliveryStatus, showToast } = useWedding();
   const [filterType, setFilterType] = useState('all'); // 'all', 'family', 'individual', 'pending', 'delivered'
   const [search, setSearch] = useState('');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const { all = [], summary = {} } = invitationCards || {};
 
@@ -35,6 +37,19 @@ export function CardsView() {
       return true;
     });
   }, [all, search, filterType]);
+
+  const handleDownloadPdf = () => {
+    try {
+      setIsGeneratingPdf(true);
+      generateInvitationCardsPDF(all, summary);
+      showToast('PDF tamaño Carta generado y descargado correctamente');
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      showToast('Error al generar PDF', 'error');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   const handlePrint = () => {
     window.print();
@@ -69,15 +84,26 @@ export function CardsView() {
           </p>
         </div>
 
-        {/* Print / Export Button */}
-        <button
-          onClick={handlePrint}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs sm:text-sm font-semibold transition-colors border border-stone-200 active:scale-95 no-print shrink-0"
-          title="Imprimir lista limpia para el rotulador de sobres o imprenta"
-        >
-          <Printer size={16} />
-          <span>Imprimir Lista para Sobres</span>
-        </button>
+        {/* Action Buttons: PDF Download (Carta) + Print */}
+        <div className="flex items-center gap-2 no-print shrink-0">
+          <button
+            onClick={handleDownloadPdf}
+            disabled={isGeneratingPdf || all.length === 0}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-wedding-primary hover:bg-wedding-primaryLight text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-all duration-150 active:scale-95 disabled:opacity-50"
+            title="Descargar documento PDF oficial tamaño Carta para calígrafo o imprenta"
+          >
+            <FileDown size={17} />
+            <span>{isGeneratingPdf ? 'Generando PDF...' : 'Descargar PDF (Carta)'}</span>
+          </button>
+
+          <button
+            onClick={handlePrint}
+            className="inline-flex items-center justify-center p-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition-colors border border-stone-200 active:scale-95"
+            title="Imprimir directamente desde el navegador"
+          >
+            <Printer size={17} />
+          </button>
+        </div>
       </div>
 
       {/* KPI Stats Grid */}
