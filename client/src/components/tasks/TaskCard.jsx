@@ -45,17 +45,17 @@ export function TaskCard({ task, onEdit, onDelete, onToggleTask, onToggleSubtask
   // Color de badge por responsable
   const getAssignedBadge = (assigned) => {
     const norm = (assigned || '').toLowerCase();
-    if (norm.includes('novio') || norm.includes('enrique')) {
+    if (norm.includes('novio') || norm.includes('edis')) {
       return {
         bg: 'bg-blue-50 text-blue-800 border-blue-200/70',
-        label: 'Enrique',
+        label: 'Edis',
         icon: User,
       };
     }
-    if (norm.includes('novia') || norm.includes('denia')) {
+    if (norm.includes('novia') || norm.includes('dania')) {
       return {
         bg: 'bg-rose-50 text-rose-800 border-rose-200/70',
-        label: 'Denia',
+        label: 'Dania',
         icon: User,
       };
     }

@@ -164,8 +164,8 @@ export function TaskModal({ isOpen, onClose, taskToEdit, onSave }) {
               className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-wedding-accent focus:border-wedding-accent text-base sm:text-sm bg-white"
             >
               <option value="Juntos">Juntos (Ambos)</option>
-              <option value="Novio">Novio (Enrique)</option>
-              <option value="Novia">Novia (Denia)</option>
+              <option value="Novio">Novio (Edis)</option>
+              <option value="Novia">Novia (Dania)</option>
             </select>
           </div>
 

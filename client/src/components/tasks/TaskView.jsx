@@ -59,8 +59,8 @@ export function TaskView() {
       // Filtro de responsable
       if (assignedFilter !== 'all') {
         const taskAssigned = (task.assigned_to || '').toLowerCase();
-        if (assignedFilter === 'Novio' && !taskAssigned.includes('novio') && !taskAssigned.includes('enrique')) return false;
-        if (assignedFilter === 'Novia' && !taskAssigned.includes('novia') && !taskAssigned.includes('denia')) return false;
+        if (assignedFilter === 'Novio' && !taskAssigned.includes('novio') && !taskAssigned.includes('edis')) return false;
+        if (assignedFilter === 'Novia' && !taskAssigned.includes('novia') && !taskAssigned.includes('dania')) return false;
         if (assignedFilter === 'Juntos' && !taskAssigned.includes('juntos')) return false;
       }
 
@@ -277,8 +277,8 @@ export function TaskView() {
             >
               <option value="all">Todos los Responsables</option>
               <option value="Juntos">Juntos (Ambos)</option>
-              <option value="Novio">Enrique (Novio)</option>
-              <option value="Novia">Denia (Novia)</option>
+              <option value="Novio">Edis (Novio)</option>
+              <option value="Novia">Dania (Novia)</option>
             </select>
 
             {/* Categoría */}

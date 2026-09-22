@@ -269,7 +269,7 @@ export const taskService = {
         subtasks: [
           { id: 'an-1', title: 'Definir presupuesto para las alianzas', completed: false },
           { id: 'an-2', title: 'Visitar joyerías y seleccionar el modelo', completed: false },
-          { id: 'an-3', title: 'Confirmar tallas de Enrique y Denia', completed: false },
+          { id: 'an-3', title: 'Confirmar tallas de Edis y Dania', completed: false },
           { id: 'an-4', title: 'Mandar a grabar fecha y nombres en el interior', completed: false },
         ]
       },
