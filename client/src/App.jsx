@@ -9,9 +9,10 @@ import { TaskView } from './components/tasks/TaskView';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { CsvUploader } from './components/importer/CsvUploader';
 import { Toast } from './components/common/Toast';
+import { ChangelogModal } from './components/common/ChangelogModal';
 
 function WeddingAppContent() {
-  const { activeTab } = useWedding();
+  const { activeTab, isChangelogOpen, closeChangelog } = useWedding();
 
   return (
     <div className="min-h-screen flex flex-col bg-wedding-bg">
@@ -28,6 +29,7 @@ function WeddingAppContent() {
 
       <MobileBottomNav />
       <Toast />
+      <ChangelogModal isOpen={isChangelogOpen} onClose={closeChangelog} />
     </div>
   );
 }

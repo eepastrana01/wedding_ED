@@ -3,7 +3,7 @@ import { useWedding } from '../../context/WeddingContext';
 import { Users, Home, Mail, BarChart3, UploadCloud, Heart, Sparkles, ListTodo } from 'lucide-react';
 
 export function Navbar() {
-  const { activeTab, setActiveTab, stats, invitationCards, taskMetrics } = useWedding();
+  const { activeTab, setActiveTab, stats, invitationCards, taskMetrics, openChangelog } = useWedding();
 
   const navItems = [
     { id: 'guests', label: 'Invitados', icon: Users, count: stats?.overview?.total_guests },
@@ -76,8 +76,23 @@ export function Navbar() {
             })}
           </nav>
 
-          {/* Quick Metrics Pill in Header */}
+          {/* Quick Metrics & Changelog in Header */}
           <div className="flex items-center gap-2">
+            {/* Botón Novedades / Changelog llamativo con pulso */}
+            <button
+              type="button"
+              onClick={openChangelog}
+              className="relative flex items-center gap-1.5 bg-gradient-to-r from-amber-50 to-amber-100/90 hover:from-amber-100 hover:to-amber-200 text-amber-900 border border-amber-300/80 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-bold shadow-xs hover:shadow-sm transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer"
+              title="Ver novedades y actualizaciones de la boda"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <Sparkles size={13} className="text-amber-700 shrink-0" />
+              <span className="tracking-wide">Novedades</span>
+            </button>
+
             {stats && (
               <div className="flex items-center gap-1.5 sm:gap-2 bg-emerald-50 border border-emerald-200/80 px-2.5 sm:px-3.5 py-1.5 rounded-full shadow-2xs">
                 <Sparkles size={13} className="text-emerald-700 shrink-0" />

@@ -26,6 +26,14 @@ export function WeddingProvider({ children }) {
     family_id: '',
   });
 
+  // Changelog modal (Novedades)
+  const [isChangelogOpen, setIsChangelogOpen] = useState(() => {
+    return localStorage.getItem('wedding_changelog_auto_open') !== 'false';
+  });
+
+  const openChangelog = useCallback(() => setIsChangelogOpen(true), []);
+  const closeChangelog = useCallback(() => setIsChangelogOpen(false), []);
+
   const showToast = (message, type = 'success') => {
     setToastMessage({ message, type, id: Date.now() });
     setTimeout(() => {
@@ -579,6 +587,10 @@ export function WeddingProvider({ children }) {
         toggleTaskStatus,
         toggleSubtask,
         loadPresetTasks,
+        isChangelogOpen,
+        setIsChangelogOpen,
+        openChangelog,
+        closeChangelog,
         showToast,
         toastMessage,
         setToastMessage,
