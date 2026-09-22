@@ -10,7 +10,7 @@ import {
   CheckSquare, 
   CheckCircle2, 
   Clock, 
-  DollarSign, 
+  Coins, 
   ListTodo, 
   Filter,
   User,
@@ -186,17 +186,17 @@ export function TaskView() {
           <p className="text-[10px] sm:text-xs text-amber-700/80 mt-0.5">Actividades en curso</p>
         </div>
 
-        {/* Presupuesto / Gastos */}
+        {/* Presupuesto / Gastos en Lempiras */}
         <div className="col-span-2 sm:col-span-2 lg:col-span-1 bg-white rounded-2xl border border-wedding-border p-3.5 sm:p-4 shadow-card">
           <div className="flex items-center justify-between text-stone-500 text-xs">
             <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Control de Gastos</span>
-            <DollarSign size={16} className="text-emerald-700" />
+            <Coins size={16} className="text-emerald-700" />
           </div>
           <p className="font-editorial text-xl sm:text-2xl font-bold text-stone-900 mt-1.5">
-            L. {taskMetrics.actualCost.toLocaleString()}
+            L. {taskMetrics.actualCost.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5">
-            Estimado: L. {taskMetrics.estimatedCost.toLocaleString()}
+            Estimado: L. {taskMetrics.estimatedCost.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
 

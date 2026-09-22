@@ -12,7 +12,7 @@ import {
   User, 
   Users, 
   Tag, 
-  DollarSign, 
+  Coins, 
   CheckSquare, 
   Square,
   Sparkles
@@ -149,12 +149,14 @@ export function TaskCard({ task, onEdit, onDelete, onToggleTask, onToggleSubtask
                   </span>
                 )}
 
-                {/* Costo (si existe) */}
+                {/* Costo en Lempiras */}
                 {(task.estimated_cost > 0 || task.actual_cost > 0) && (
-                  <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                    <DollarSign size={11} className="text-emerald-600 shrink-0" />
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                    <Coins size={12} className="text-emerald-700 shrink-0" />
                     <span>
-                      {task.actual_cost > 0 ? `L. ${task.actual_cost}` : `Est: L. ${task.estimated_cost}`}
+                      {task.actual_cost > 0 
+                        ? `L. ${Number(task.actual_cost).toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+                        : `Est: L. ${Number(task.estimated_cost).toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     </span>
                   </span>
                 )}

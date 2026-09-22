@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
-import { Plus, Trash2, Tag, User, Users, Calendar, DollarSign, FileText, CheckSquare } from 'lucide-react';
+import { Plus, Trash2, Tag, User, Users, Calendar, Coins, FileText, CheckSquare } from 'lucide-react';
 
 export const TASK_CATEGORIES = [
   'General',
@@ -209,32 +209,38 @@ export function TaskModal({ isOpen, onClose, taskToEdit, onSave }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">
-              Costo Estimado / Presupuesto (L.)
+              Presupuesto Estimado (Lempiras)
             </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              value={estimatedCost}
-              onChange={(e) => setEstimatedCost(e.target.value)}
-              className="w-full px-3.5 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-wedding-accent text-base sm:text-sm"
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs font-bold">L.</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={estimatedCost}
+                onChange={(e) => setEstimatedCost(e.target.value)}
+                className="w-full pl-8 pr-3.5 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-wedding-accent text-base sm:text-sm"
+              />
+            </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">
-              Costo Real Pagado (L.)
+              Costo Real Pagado (Lempiras)
             </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              value={actualCost}
-              onChange={(e) => setActualCost(e.target.value)}
-              className="w-full px-3.5 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-wedding-accent text-base sm:text-sm"
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs font-bold">L.</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={actualCost}
+                onChange={(e) => setActualCost(e.target.value)}
+                className="w-full pl-8 pr-3.5 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-wedding-accent text-base sm:text-sm"
+              />
+            </div>
           </div>
         </div>
 
