@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { guestApi } from '../services/guestApi';
 import { familyApi } from '../services/familyApi';
 import { statsApi } from '../services/statsApi';
+import { taskApi } from '../services/taskApi';
 
 const WeddingContext = createContext();
 
@@ -10,6 +11,7 @@ export function WeddingProvider({ children }) {
   const [activeTab, setActiveTab] = useState('guests');
   const [guests, setGuests] = useState([]);
   const [families, setFamilies] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -81,6 +83,20 @@ export function WeddingProvider({ children }) {
     }
   }, []);
 
+  const fetchTasks = useCallback(async (silent = false) => {
+    try {
+      const res = await taskApi.getAll();
+      if (res.success) {
+        setTasks(res.data);
+      }
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+      if (!silent) {
+        showToast(err.message, 'error');
+      }
+    }
+  }, []);
+
   // Silent refresh in background that does NOT flash full loading spinners or reset scroll
   const refreshAll = useCallback(async (isInitial = false) => {
     if (isInitial) {
@@ -88,13 +104,18 @@ export function WeddingProvider({ children }) {
     } else {
       setIsRefreshing(true);
     }
-    await Promise.all([fetchAllGuests(!isInitial), fetchFamilies(), fetchStats()]);
+    await Promise.all([
+      fetchAllGuests(!isInitial), 
+      fetchFamilies(), 
+      fetchStats(),
+      fetchTasks(!isInitial)
+    ]);
     if (isInitial) {
       setLoading(false);
     } else {
       setIsRefreshing(false);
     }
-  }, [fetchAllGuests, fetchFamilies, fetchStats]);
+  }, [fetchAllGuests, fetchFamilies, fetchStats, fetchTasks]);
 
   useEffect(() => {
     // Carga inicial
@@ -392,6 +413,142 @@ export function WeddingProvider({ children }) {
     }
   };
 
+  // Task Metrics & Calculation
+  const taskMetrics = useMemo(() => {
+    const total = tasks.length;
+    const completed = tasks.filter((t) => t.status === 'completed').length;
+    const pending = total - completed;
+    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const estimatedCost = tasks.reduce((acc, t) => acc + (parseFloat(t.estimated_cost) || 0), 0);
+    const actualCost = tasks.reduce((acc, t) => acc + (parseFloat(t.actual_cost) || 0), 0);
+
+    return {
+      total,
+      completed,
+      pending,
+      progress,
+      estimatedCost,
+      actualCost,
+    };
+  }, [tasks]);
+
+  const createTask = async (data) => {
+    try {
+      const res = await taskApi.create(data);
+      if (res.success) {
+        setTasks((prev) => [res.data, ...prev]);
+        showToast('Tarea agregada con éxito');
+        return res.data;
+      }
+    } catch (err) {
+      showToast(err.message || 'Error al crear tarea', 'error');
+      throw err;
+    }
+  };
+
+  const updateTask = async (id, data) => {
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t)));
+    try {
+      const res = await taskApi.update(id, data);
+      if (res.success) {
+        setTasks((prev) => prev.map((t) => (t.id === id ? res.data : t)));
+        showToast('Tarea actualizada');
+        return res.data;
+      }
+    } catch (err) {
+      fetchTasks(true);
+      showToast(err.message || 'Error al actualizar tarea', 'error');
+      throw err;
+    }
+  };
+
+  const deleteTask = async (id) => {
+    const backup = [...tasks];
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    try {
+      await taskApi.delete(id);
+      showToast('Tarea eliminada');
+    } catch (err) {
+      setTasks(backup);
+      showToast(err.message || 'Error al eliminar tarea', 'error');
+      throw err;
+    }
+  };
+
+  const toggleTaskStatus = async (id) => {
+    const current = tasks.find((t) => t.id === id);
+    if (!current) return;
+    const newStatus = current.status === 'completed' ? 'pending' : 'completed';
+
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === id) {
+          const updatedSubtasks = newStatus === 'completed'
+            ? (t.subtasks || []).map((st) => ({ ...st, completed: true }))
+            : t.subtasks;
+          return { ...t, status: newStatus, subtasks: updatedSubtasks };
+        }
+        return t;
+      })
+    );
+
+    if (newStatus === 'completed') {
+      triggerCelebration();
+    }
+
+    try {
+      const res = await taskApi.toggleStatus(id, newStatus);
+      if (res.success) {
+        setTasks((prev) => prev.map((t) => (t.id === id ? res.data : t)));
+      }
+    } catch (err) {
+      fetchTasks(true);
+      showToast('Error al actualizar estado de la tarea', 'error');
+    }
+  };
+
+  const toggleSubtask = async (taskId, subtaskId) => {
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === taskId) {
+          const updatedSubtasks = (t.subtasks || []).map((st) =>
+            st.id === subtaskId ? { ...st, completed: !st.completed } : st
+          );
+          const allCompleted = updatedSubtasks.length > 0 && updatedSubtasks.every((st) => st.completed);
+          const newStatus = allCompleted ? 'completed' : t.status === 'completed' ? 'pending' : t.status;
+          return { ...t, subtasks: updatedSubtasks, status: newStatus };
+        }
+        return t;
+      })
+    );
+
+    try {
+      const res = await taskApi.toggleSubtask(taskId, subtaskId);
+      if (res.success) {
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? res.data : t)));
+        if (res.data.status === 'completed') {
+          triggerCelebration();
+        }
+      }
+    } catch (err) {
+      fetchTasks(true);
+      showToast('Error al actualizar subtarea', 'error');
+    }
+  };
+
+  const loadPresetTasks = async () => {
+    try {
+      const res = await taskApi.loadPresets();
+      if (res.success) {
+        setTasks((prev) => [...res.data, ...prev]);
+        showToast(res.message || 'Tareas sugeridas agregadas');
+        triggerCelebration();
+      }
+    } catch (err) {
+      showToast(err.message || 'Error al cargar tareas esenciales', 'error');
+    }
+  };
+
   return (
     <WeddingContext.Provider
       value={{
@@ -401,6 +558,8 @@ export function WeddingProvider({ children }) {
         filteredGuests,
         families,
         invitationCards,
+        tasks,
+        taskMetrics,
         stats,
         loading,
         isRefreshing,
@@ -409,10 +568,17 @@ export function WeddingProvider({ children }) {
         fetchAllGuests,
         fetchFamilies,
         fetchStats,
+        fetchTasks,
         refreshAll,
         setGuestStatus,
         setFamilyStatus,
         toggleDeliveryStatus,
+        createTask,
+        updateTask,
+        deleteTask,
+        toggleTaskStatus,
+        toggleSubtask,
+        loadPresetTasks,
         showToast,
         toastMessage,
         setToastMessage,

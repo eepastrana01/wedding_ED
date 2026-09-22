@@ -5,6 +5,7 @@ import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { GuestView } from './components/guests/GuestView';
 import { FamilyView } from './components/families/FamilyView';
 import { CardsView } from './components/cards/CardsView';
+import { TaskView } from './components/tasks/TaskView';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { CsvUploader } from './components/importer/CsvUploader';
 import { Toast } from './components/common/Toast';
@@ -20,6 +21,7 @@ function WeddingAppContent() {
         {activeTab === 'guests' && <GuestView />}
         {activeTab === 'families' && <FamilyView />}
         {activeTab === 'cards' && <CardsView />}
+        {activeTab === 'tasks' && <TaskView />}
         {activeTab === 'dashboard' && <DashboardView />}
         {activeTab === 'importer' && <CsvUploader />}
       </main>

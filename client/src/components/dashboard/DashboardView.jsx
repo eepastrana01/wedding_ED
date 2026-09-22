@@ -1,10 +1,10 @@
 import React from 'react';
 import { useWedding } from '../../context/WeddingContext';
-import { CheckCircle2, Clock, XCircle, Users, Home, TrendingUp, Sparkles, Download, Heart } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Users, Home, TrendingUp, Sparkles, Download, Heart, UploadCloud } from 'lucide-react';
 import Papa from 'papaparse';
 
 export function DashboardView() {
-  const { stats, guests, loading } = useWedding();
+  const { stats, guests, loading, setActiveTab } = useWedding();
 
   const overview = stats?.overview || {};
   const totalGuests = overview.total_guests || 0;
@@ -60,13 +60,22 @@ export function DashboardView() {
           </p>
         </div>
 
-        <button
-          onClick={handleExportCsv}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs sm:text-sm font-semibold transition-colors border border-stone-200"
-        >
-          <Download size={16} />
-          <span>Exportar Lista a CSV</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setActiveTab('importer')}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs sm:text-sm font-semibold transition-colors border border-stone-200"
+          >
+            <UploadCloud size={15} />
+            <span>Importar CSV</span>
+          </button>
+          <button
+            onClick={handleExportCsv}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-wedding-primary hover:bg-wedding-primaryLight text-white rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-xs"
+          >
+            <Download size={15} />
+            <span>Exportar Lista</span>
+          </button>
+        </div>
       </div>
 
       {/* Primary KPI Cards Grid */}

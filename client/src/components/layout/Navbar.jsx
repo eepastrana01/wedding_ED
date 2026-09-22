@@ -1,14 +1,15 @@
 import React from 'react';
 import { useWedding } from '../../context/WeddingContext';
-import { Users, Home, Mail, BarChart3, UploadCloud, Heart, Sparkles } from 'lucide-react';
+import { Users, Home, Mail, BarChart3, UploadCloud, Heart, Sparkles, ListTodo } from 'lucide-react';
 
 export function Navbar() {
-  const { activeTab, setActiveTab, stats, invitationCards } = useWedding();
+  const { activeTab, setActiveTab, stats, invitationCards, taskMetrics } = useWedding();
 
   const navItems = [
     { id: 'guests', label: 'Invitados', icon: Users, count: stats?.overview?.total_guests },
     { id: 'families', label: 'Familias', icon: Home, count: stats?.overview?.total_families },
     { id: 'cards', label: 'Tarjetas', icon: Mail, count: invitationCards?.summary?.totalCards },
+    { id: 'tasks', label: 'Tareas', icon: ListTodo, count: taskMetrics?.pending },
     { id: 'dashboard', label: 'Métricas & Aforo', icon: BarChart3 },
     { id: 'importer', label: 'Importar CSV', icon: UploadCloud },
   ];

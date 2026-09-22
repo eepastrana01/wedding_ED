@@ -102,12 +102,35 @@ export async function runMigrations() {
       `);
     }
 
-    // 5. Crear índices
+    // 5. Crear tabla tasks si no existe
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        category VARCHAR(100) DEFAULT 'General',
+        assigned_to VARCHAR(100) DEFAULT 'Juntos',
+        priority VARCHAR(20) DEFAULT 'media',
+        status VARCHAR(50) DEFAULT 'pending',
+        due_date DATE,
+        estimated_cost NUMERIC(10, 2) DEFAULT 0,
+        actual_cost NUMERIC(10, 2) DEFAULT 0,
+        subtasks JSONB DEFAULT '[]'::jsonb,
+        position INTEGER DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 6. Crear índices
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_guests_family_id ON guests(family_id);
       CREATE INDEX IF NOT EXISTS idx_guests_status ON guests(status);
       CREATE INDEX IF NOT EXISTS idx_guests_priority ON guests(priority);
       CREATE INDEX IF NOT EXISTS idx_guests_group_relation ON guests(group_relation);
+      CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+      CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to);
+      CREATE INDEX IF NOT EXISTS idx_tasks_category ON tasks(category);
     `);
 
     console.log('✅ Migraciones completadas exitosamente en Neon PostgreSQL.');
