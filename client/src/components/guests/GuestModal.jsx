@@ -62,6 +62,22 @@ export function GuestModal({ isOpen, onClose, guestToEdit = null, onSaved }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleFamilyChange = (e) => {
+    const famId = e.target.value;
+    setFormData((prev) => {
+      const next = { ...prev, family_id: famId };
+      if (!famId) {
+        next.type = 'Individual';
+      } else {
+        const selectedFam = families.find((f) => String(f.id) === String(famId));
+        if (selectedFam) {
+          next.type = selectedFam.name;
+        }
+      }
+      return next;
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
@@ -71,9 +87,24 @@ export function GuestModal({ isOpen, onClose, guestToEdit = null, onSaved }) {
 
     setLoading(true);
     try {
+      const isIndividual = !formData.family_id;
+      const targetFamily = !isIndividual 
+        ? families.find((f) => String(f.id) === String(formData.family_id)) 
+        : null;
+
+      let finalType = formData.type;
+      if (isIndividual) {
+        if (!finalType || finalType.toLowerCase().startsWith('fami') || finalType.toLowerCase().startsWith('fani')) {
+          finalType = 'Individual';
+        }
+      } else if (targetFamily && (finalType === 'Individual' || finalType.toLowerCase().startsWith('fami'))) {
+        finalType = targetFamily.name;
+      }
+
       const payload = {
         ...formData,
         family_id: formData.family_id ? parseInt(formData.family_id, 10) : null,
+        type: finalType || (isIndividual ? 'Individual' : 'Familiar'),
         confirmed_seats: parseInt(formData.confirmed_seats, 10) || 1,
       };
 
@@ -189,10 +220,10 @@ export function GuestModal({ isOpen, onClose, guestToEdit = null, onSaved }) {
             </select>
           </div>
 
-          {/* Type (Adulto / Niño) */}
+          {/* Type / Modalidad */}
           <div>
             <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">
-              Tipo de Asistente (Type)
+              Tipo / Modalidad
             </label>
             <select
               name="type"
@@ -200,9 +231,13 @@ export function GuestModal({ isOpen, onClose, guestToEdit = null, onSaved }) {
               onChange={handleChange}
               className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-wedding-accent focus:border-wedding-accent text-base sm:text-sm bg-white"
             >
+              <option value="Individual">Individual</option>
               {AGE_TYPES.map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
+              {formData.type && !['Individual', ...AGE_TYPES].includes(formData.type) && (
+                <option value={formData.type}>{formData.type}</option>
+              )}
             </select>
           </div>
 
@@ -231,7 +266,7 @@ export function GuestModal({ isOpen, onClose, guestToEdit = null, onSaved }) {
             <select
               name="family_id"
               value={formData.family_id}
-              onChange={handleChange}
+              onChange={handleFamilyChange}
               className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-wedding-accent focus:border-wedding-accent text-base sm:text-sm bg-white"
             >
               <option value="">-- Sin Familia Asignada (Individual) --</option>

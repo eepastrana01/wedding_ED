@@ -109,59 +109,45 @@ export const guestService = {
   },
 
   async updateGuest(id, data) {
-    const {
-      family_id,
-      name,
-      partner_name,
-      type,
-      group_relation,
-      guest_type,
-      priority,
-      status,
-      confirmed_seats,
-      dietary_notes,
-      notes,
-      phone,
-      table_assigned
-    } = data;
+    const fields = [];
+    const values = [];
+    let paramIndex = 1;
+
+    const allowedFields = [
+      'family_id', 'name', 'partner_name', 'type', 'group_relation',
+      'guest_type', 'priority', 'status', 'confirmed_seats',
+      'dietary_notes', 'notes', 'phone', 'table_assigned', 'side'
+    ];
+
+    for (const key of allowedFields) {
+      if (data[key] !== undefined) {
+        fields.push(`${key} = $${paramIndex++}`);
+        if (key === 'family_id') {
+          values.push(data[key] ? parseInt(data[key], 10) : null);
+        } else if (key === 'confirmed_seats') {
+          values.push(parseInt(data[key], 10) || 1);
+        } else {
+          values.push(data[key]);
+        }
+      }
+    }
+
+    if (fields.length === 0) {
+      return this.getGuestById(id);
+    }
+
+    fields.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
 
     const query = `
-      UPDATE guests SET
-        family_id = COALESCE($1, family_id),
-        name = COALESCE($2, name),
-        partner_name = $3,
-        type = COALESCE($4, type),
-        group_relation = $5,
-        guest_type = COALESCE($6, guest_type),
-        priority = COALESCE($7, priority),
-        status = COALESCE($8, status),
-        confirmed_seats = COALESCE($9, confirmed_seats),
-        dietary_notes = $10,
-        notes = $11,
-        phone = $12,
-        table_assigned = $13,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $14
+      UPDATE guests 
+      SET ${fields.join(', ')}
+      WHERE id = $${paramIndex}
       RETURNING *
     `;
-    const values = [
-      family_id !== undefined ? (family_id || null) : undefined,
-      name,
-      partner_name !== undefined ? partner_name : null,
-      type,
-      group_relation !== undefined ? group_relation : null,
-      guest_type,
-      priority,
-      status,
-      confirmed_seats,
-      dietary_notes !== undefined ? dietary_notes : null,
-      notes !== undefined ? notes : null,
-      phone !== undefined ? phone : null,
-      table_assigned !== undefined ? table_assigned : null,
-      id
-    ];
-    const result = await pool.query(query, values);
-    return result.rows[0];
+
+    await pool.query(query, values);
+    return this.getGuestById(id);
   },
 
   async updateStatus(id, status) {
