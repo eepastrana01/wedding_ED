@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { MONOTYPE_CORSIVA_BASE64 } from './monotypeCorsivaBase64';
 
 /**
  * Genera y descarga un PDF profesional tamaño Carta con la lista de rotulación de sobres y tarjetas
@@ -210,6 +211,16 @@ export function generateDirectLabelsPDF(cards, options = {}) {
     format: 'letter'
   });
 
+  // Incrustar fuente auténtica Monotype Corsiva en el PDF
+  let hasCorsiva = false;
+  try {
+    doc.addFileToVFS('MonotypeCorsiva.ttf', MONOTYPE_CORSIVA_BASE64);
+    doc.addFont('MonotypeCorsiva.ttf', 'MonotypeCorsiva', 'normal');
+    hasCorsiva = true;
+  } catch (err) {
+    console.warn('Error al incrustar Monotype Corsiva en jsPDF:', err);
+  }
+
   const pageWidth = doc.internal.pageSize.getWidth();   // 215.9 mm
   const pageHeight = doc.internal.pageSize.getHeight(); // 279.4 mm
   const goldColor = [197, 168, 128]; // #C5A880
@@ -359,7 +370,11 @@ export function generateDirectLabelsPDF(cards, options = {}) {
         labelText = labelText.replace(/^Familia\s+/i, '').replace(/^Famia\s+/i, '').replace(/^Fanilia\s+/i, '');
       }
 
-      doc.setFont('times', 'italic');
+      if (hasCorsiva) {
+        doc.setFont('MonotypeCorsiva', 'normal');
+      } else {
+        doc.setFont('times', 'italic');
+      }
       doc.setFontSize(fontSizePt);
       doc.setTextColor(darkColor[0], darkColor[1], darkColor[2]);
 

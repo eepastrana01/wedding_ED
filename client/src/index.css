@@ -64,6 +64,14 @@ button, a, input, select, textarea {
 }
 
 /* Monotype Corsiva font utility with elegant web fallbacks */
+@font-face {
+  font-family: 'Monotype Corsiva';
+  src: local('Monotype Corsiva'), local('MonotypeCorsiva'), url('/fonts/MTCORSVA.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 .font-corsiva {
   font-family: 'Monotype Corsiva', 'MonotypeCorsiva', 'Alex Brush', 'Great Vibes', 'Playfair Display', cursive, serif;
 }
