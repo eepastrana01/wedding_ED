@@ -3,26 +3,27 @@ import {
   X, 
   Printer, 
   Tag, 
-  Sliders, 
   Scissors, 
-  Users, 
-  User, 
   CheckCircle2, 
-  Sparkles, 
-  FileText,
+  FileDown,
   Copy,
-  Info
+  Info,
+  FileCheck
 } from 'lucide-react';
+import { generateDirectLabelsPDF } from '../../utils/pdfGenerator';
 
 export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
   // Configuración de visualización e impresión
   const [layoutFormat, setLayoutFormat] = useState('10'); // '10' (2x5), '8' (2x4), '14' (2x7)
   const [fontSize, setFontSize] = useState('md'); // 'sm', 'md', 'lg'
-  const [styleTheme, setStyleTheme] = useState('clean'); // 'clean', 'frame', 'monogram'
+  const [styleTheme, setStyleTheme] = useState('frame'); // 'frame' (Marco Fino Elegante por defecto), 'clean', 'monogram'
   const [showCutLines, setShowCutLines] = useState(true);
   const [showSeats, setShowSeats] = useState(false);
+  const [includeFamilyWord, setIncludeFamilyWord] = useState(true);
+  const [includeInstructionsPage, setIncludeInstructionsPage] = useState(false);
   const [filterType, setFilterType] = useState('all'); // 'all', 'family', 'individual'
   const [copied, setCopied] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   // Filtrado de tarjetas a imprimir
   const filteredCards = useMemo(() => {
@@ -71,12 +72,41 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
     }
   };
 
+  // Obtener texto procesado según toggle de palabra Familia
+  const getLabelTitle = (card) => {
+    let title = card.salutation || card.title;
+    if (!includeFamilyWord && card.type === 'family') {
+      title = title.replace(/^Familia\s+/i, '').replace(/^Famia\s+/i, '').replace(/^Fanilia\s+/i, '');
+    }
+    return title;
+  };
+
   const handlePrint = () => {
     window.print();
   };
 
+  const handleDirectPdfDownload = () => {
+    try {
+      setIsGeneratingPdf(true);
+      generateDirectLabelsPDF(filteredCards, {
+        layoutFormat,
+        styleTheme,
+        showCutLines,
+        showSeats,
+        includeFamilyWord,
+        includeInstructionsPage,
+        fontSize,
+      });
+    } catch (err) {
+      console.error('Error al generar PDF directo:', err);
+      alert('Hubo un error al generar el PDF de etiquetas.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   const handleCopyNames = () => {
-    const textList = filteredCards.map((c) => c.salutation || c.title).join('\n');
+    const textList = filteredCards.map((c) => getLabelTitle(c)).join('\n');
     navigator.clipboard.writeText(textList);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -101,14 +131,14 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-editorial text-lg sm:text-xl font-bold text-stone-900 leading-tight">
-                      Etiquetas de Sobres para Invitaciones
+                      Etiquetas de Sobres en Monotype Corsiva
                     </h3>
-                    <span className="hidden sm:inline text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300/80">
-                      Monotype Corsiva
+                    <span className="hidden sm:inline text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300/80">
+                      Fondo Blanco Puro
                     </span>
                   </div>
                   <p className="text-xs text-stone-500">
-                    {filteredCards.length} etiquetas • {pages.length} {pages.length === 1 ? 'hoja Carta' : 'hojas Carta'} listas para imprimir
+                    {filteredCards.length} etiquetas • {pages.length} {pages.length === 1 ? 'hoja Carta' : 'hojas Carta'}
                   </p>
                 </div>
               </div>
@@ -161,7 +191,7 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
                 className="px-3 py-1.5 rounded-xl border border-stone-300 text-xs font-semibold bg-white text-stone-800 focus:ring-2 focus:ring-wedding-accent"
                 title="Cantidad de etiquetas por hoja Carta"
               >
-                <option value="10">10 por hoja (2x5 - Estándar 98x48mm)</option>
+                <option value="10">10 por hoja (2x5 - Estándar Avery 5163)</option>
                 <option value="8">8 por hoja (2x4 - Amplia 98x62mm)</option>
                 <option value="14">14 por hoja (2x7 - Compacta 98x36mm)</option>
               </select>
@@ -185,13 +215,23 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
                 className="px-3 py-1.5 rounded-xl border border-stone-300 text-xs font-semibold bg-white text-stone-800 focus:ring-2 focus:ring-wedding-accent"
                 title="Diseño del recuadro de etiqueta"
               >
-                <option value="clean">Estilo Puro (Solo Nombre)</option>
                 <option value="frame">Con Marco Fino Elegante</option>
+                <option value="clean">Estilo Puro (Sin Marco)</option>
                 <option value="monogram">Con Monograma E & D</option>
               </select>
 
-              {/* Checkboxes de Guías y Pases */}
-              <div className="flex items-center gap-3 text-xs text-stone-700 bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-200">
+              {/* Checkboxes de Configuración */}
+              <div className="flex items-center flex-wrap gap-3 text-xs text-stone-700 bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-200">
+                <label className="flex items-center gap-1.5 cursor-pointer select-none" title="Incluir u omitir la palabra 'Familia' en el rótulo">
+                  <input
+                    type="checkbox"
+                    checked={includeFamilyWord}
+                    onChange={(e) => setIncludeFamilyWord(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-wedding-primary focus:ring-wedding-accent border-stone-300"
+                  />
+                  <span>Prefijo "Familia"</span>
+                </label>
+
                 <label className="flex items-center gap-1.5 cursor-pointer select-none">
                   <input
                     type="checkbox"
@@ -211,16 +251,37 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
                   />
                   <span>Mostrar pases</span>
                 </label>
+
+                <label className="flex items-center gap-1.5 cursor-pointer select-none" title="Incluir hoja de portada con instrucciones técnicas al inicio del PDF">
+                  <input
+                    type="checkbox"
+                    checked={includeInstructionsPage}
+                    onChange={(e) => setIncludeInstructionsPage(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-wedding-primary focus:ring-wedding-accent border-stone-300"
+                  />
+                  <span>Hoja de Instrucciones en PDF</span>
+                </label>
               </div>
 
-              {/* Botón Imprimir Todo (Principal) */}
+              {/* Botón Guardar PDF Directo (NUEVO) */}
+              <button
+                onClick={handleDirectPdfDownload}
+                disabled={isGeneratingPdf || filteredCards.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-700 hover:to-amber-900 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                title="Generar y descargar el archivo PDF directo listo para imprimir en tamaño Carta con fondo blanco puro"
+              >
+                <FileDown size={16} />
+                <span>{isGeneratingPdf ? 'Generando PDF...' : 'Guardar PDF Directo (Carta)'}</span>
+              </button>
+
+              {/* Botón Imprimir (Nativo Ctrl + P) */}
               <button
                 onClick={handlePrint}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-wedding-primary hover:bg-wedding-primaryLight text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                title="Abrir cuadro de impresión para imprimir directamente o Guardar como PDF"
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs sm:text-sm font-semibold border border-stone-300 transition-all active:scale-95 cursor-pointer"
+                title="Abrir cuadro de diálogo de la impresora de la computadora"
               >
                 <Printer size={16} />
-                <span>Imprimir / Guardar PDF</span>
+                <span className="hidden sm:inline">Imprimir (Ctrl + P)</span>
               </button>
 
               {/* Copiar lista */}
@@ -245,17 +306,19 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
           </div>
         </div>
 
-        {/* Tip Informativo para Impresión */}
-        <div className="bg-amber-50/80 border-t border-amber-200/60 px-4 sm:px-6 py-2 text-xs text-amber-900 flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-1.5">
-            <Info size={14} className="shrink-0 text-amber-700" />
+        {/* Panel Informativo de Parámetros de Impresión */}
+        <div className="bg-amber-50/90 border-t border-amber-200/70 px-4 sm:px-6 py-2.5 text-xs text-amber-950 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Info size={15} className="shrink-0 text-amber-700" />
             <span>
-              <strong>Consejo de impresión:</strong> En la ventana de tu impresora (Ctrl + P), asegúrate de que el tamaño de papel sea <strong>Carta (Letter)</strong> y la escala al <strong>100%</strong> (Ajustar a página desactivado). Puedes imprimir sobre hojas adhesivas de etiquetas o papel bond/opalina para recortar.
+              <strong>Parámetros garantizados:</strong> Tamaño <strong>Carta (Letter: 215.9 × 279.4 mm)</strong> • Márgenes perimetrales de <strong>10 mm</strong> • Fondo <strong>Blanco Puro (100% sin tinta de fondo)</strong>. En tu impresora, selecciona escala <strong>100% (Tamaño Real)</strong>.
             </span>
           </div>
-          <span className="font-semibold text-[11px] text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-md">
-            Tipografía activa: Monotype Corsiva
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-[11px] text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md border border-amber-300/60">
+              Marco Fino Elegante Activo
+            </span>
+          </div>
         </div>
       </header>
 
@@ -269,6 +332,7 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
               width: '100%',
               maxWidth: '215.9mm', // Ancho Carta oficial
               minHeight: '279.4mm', // Alto Carta oficial
+              backgroundColor: '#FFFFFF',
               boxSizing: 'border-box',
             }}
           >
@@ -280,36 +344,35 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
             {/* Cuadrícula de 2 columnas de etiquetas */}
             <div className="grid grid-cols-2 gap-[4mm] h-full items-stretch">
               {pageCards.map((card) => {
-                const labelText = card.salutation || card.title;
-                const isFamily = card.type === 'family';
+                const labelText = getLabelTitle(card);
 
                 return (
                   <div
                     key={card.id}
-                    className={`relative flex flex-col items-center justify-center text-center p-4 transition-all rounded-md overflow-hidden ${getLabelHeightClass()} ${
+                    className={`relative flex flex-col items-center justify-center text-center p-4 transition-all rounded-xs overflow-hidden bg-white ${getLabelHeightClass()} ${
                       showCutLines ? 'border border-dashed border-stone-300' : 'border border-transparent'
-                    } ${
-                      styleTheme === 'frame'
-                        ? 'bg-[#FAF8F5]/50 ring-1 ring-amber-300/70'
-                        : styleTheme === 'monogram'
-                        ? 'bg-white'
-                        : 'bg-white'
                     }`}
+                    style={{ backgroundColor: '#FFFFFF' }}
                   >
-                    {/* Borde interior decorativo para estilo "frame" */}
+                    {/* Marco fino y elegante con doble línea en tono dorado/champán (FONDO BLANCO PURO) */}
                     {styleTheme === 'frame' && (
-                      <div className="absolute inset-1.5 border border-stone-300/60 pointer-events-none rounded-xs" />
+                      <>
+                        {/* Marco exterior */}
+                        <div className="absolute inset-1 border border-[#C5A880]/80 pointer-events-none rounded-xs" />
+                        {/* Marco interior fino */}
+                        <div className="absolute inset-2 border border-[#C5A880]/40 pointer-events-none rounded-xs" />
+                      </>
                     )}
 
                     {/* Monograma opcional en la parte superior */}
                     {styleTheme === 'monogram' && (
-                      <div className="text-[10px] tracking-widest text-amber-800/80 font-serif mb-1">
+                      <div className="text-[10px] tracking-widest text-[#A68453] font-serif mb-1">
                         E & D
                       </div>
                     )}
 
                     {/* Texto principal con fuente Monotype Corsiva */}
-                    <div className="w-full px-2 my-auto">
+                    <div className="w-full px-3 my-auto">
                       <span 
                         className={`font-corsiva text-stone-900 tracking-wide break-words block ${getFontSizeClass()}`}
                         style={{
@@ -325,13 +388,6 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
                     {showSeats && (
                       <div className="absolute bottom-1.5 right-2.5 text-[10px] text-stone-400 font-sans tracking-tight">
                         {card.seats} {card.seats === 1 ? 'pase' : 'pases'}
-                      </div>
-                    )}
-
-                    {/* Tipo discreto en esquina izquierda (solo si marco está activo) */}
-                    {styleTheme === 'frame' && (
-                      <div className="absolute bottom-1.5 left-2.5 text-[9px] uppercase tracking-wider text-stone-400 font-sans">
-                        {isFamily ? 'Familia' : 'Individual'}
                       </div>
                     )}
                   </div>

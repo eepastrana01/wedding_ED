@@ -99,7 +99,10 @@ button, a, input, select, textarea {
     box-shadow: none !important;
     border: none !important;
     margin: 0 auto !important;
-    background: white !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .label-sheet-page:last-child {
