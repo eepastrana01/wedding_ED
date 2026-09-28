@@ -16,7 +16,7 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
   // Configuración de visualización e impresión
   const [layoutFormat, setLayoutFormat] = useState('10'); // '10' (2x5), '8' (2x4), '14' (2x7)
   const [fontSize, setFontSize] = useState('md'); // 'sm', 'md', 'lg'
-  const [styleTheme, setStyleTheme] = useState('frame'); // 'frame' (Marco Fino Elegante por defecto), 'clean', 'monogram'
+  const [styleTheme, setStyleTheme] = useState('frame-double'); // 'frame-double', 'frame-minimal', 'frame-corners', 'frame-vintage', 'frame-french', 'frame-monogram', 'clean'
   const [showCutLines, setShowCutLines] = useState(true);
   const [showSeats, setShowSeats] = useState(false);
   const [includeFamilyWord, setIncludeFamilyWord] = useState(true);
@@ -79,6 +79,29 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
       title = title.replace(/^Familia\s+/i, '').replace(/^Famia\s+/i, '').replace(/^Fanilia\s+/i, '');
     }
     return title;
+  };
+
+  const getStyleBadgeLabel = () => {
+    switch (styleTheme) {
+      case 'frame-double':
+      case 'frame':
+        return 'Doble Línea Dorada';
+      case 'frame-minimal':
+        return 'Minimalista Fino';
+      case 'frame-corners':
+        return 'Esquinas Art Déco';
+      case 'frame-vintage':
+        return 'Romántico con Rombos';
+      case 'frame-french':
+        return 'Esquinas Francesas';
+      case 'frame-monogram':
+      case 'monogram':
+        return 'Monograma E & D';
+      case 'clean':
+        return 'Caligrafía Pura';
+      default:
+        return 'Marco Fino Elegante';
+    }
   };
 
   const handlePrint = () => {
@@ -215,9 +238,13 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
                 className="px-3 py-1.5 rounded-xl border border-stone-300 text-xs font-semibold bg-white text-stone-800 focus:ring-2 focus:ring-wedding-accent"
                 title="Diseño del recuadro de etiqueta"
               >
-                <option value="frame">Con Marco Fino Elegante</option>
-                <option value="clean">Estilo Puro (Sin Marco)</option>
-                <option value="monogram">Con Monograma E & D</option>
+                <option value="frame-double">Doble Línea Dorada (Clásico)</option>
+                <option value="frame-minimal">Línea Fina Minimalista</option>
+                <option value="frame-corners">Esquinas Art Déco</option>
+                <option value="frame-vintage">Romántico con Rombos</option>
+                <option value="frame-french">Esquinas Francesas Suaves</option>
+                <option value="frame-monogram">Marco con Monograma E & D</option>
+                <option value="clean">Sin Marco (Caligrafía Pura)</option>
               </select>
 
               {/* Checkboxes de Configuración */}
@@ -316,7 +343,7 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
           </div>
           <div className="flex items-center gap-2">
             <span className="font-semibold text-[11px] text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md border border-amber-300/60">
-              Marco Fino Elegante Activo
+              Estilo: {getStyleBadgeLabel()}
             </span>
           </div>
         </div>
@@ -354,25 +381,65 @@ export function LabelsPrintModal({ isOpen, onClose, cards = [] }) {
                     }`}
                     style={{ backgroundColor: '#FFFFFF' }}
                   >
-                    {/* Marco fino y elegante con doble línea en tono dorado/champán (FONDO BLANCO PURO) */}
-                    {styleTheme === 'frame' && (
+                    {/* Estilo 1: Doble línea dorada clásica */}
+                    {(styleTheme === 'frame-double' || styleTheme === 'frame') && (
                       <>
-                        {/* Marco exterior */}
-                        <div className="absolute inset-1 border border-[#C5A880]/80 pointer-events-none rounded-xs" />
-                        {/* Marco interior fino */}
-                        <div className="absolute inset-2 border border-[#C5A880]/40 pointer-events-none rounded-xs" />
+                        <div className="absolute inset-1 border border-[#C5A880]/85 pointer-events-none rounded-xs" />
+                        <div className="absolute inset-2 border border-[#C5A880]/45 pointer-events-none rounded-xs" />
                       </>
                     )}
 
-                    {/* Monograma opcional en la parte superior */}
-                    {styleTheme === 'monogram' && (
-                      <div className="text-[10px] tracking-widest text-[#A68453] font-serif mb-1">
-                        E & D
-                      </div>
+                    {/* Estilo 2: Línea fina minimalista moderna */}
+                    {styleTheme === 'frame-minimal' && (
+                      <div className="absolute inset-1.5 border border-[#C5A880]/85 pointer-events-none rounded-xs" />
+                    )}
+
+                    {/* Estilo 3: Esquinas Art Déco con escuadras */}
+                    {styleTheme === 'frame-corners' && (
+                      <>
+                        <div className="absolute inset-2 border border-[#C5A880]/60 pointer-events-none" />
+                        <div className="absolute top-1 left-1 w-3 h-3 border-t-2 border-l-2 border-[#A68453] pointer-events-none" />
+                        <div className="absolute top-1 right-1 w-3 h-3 border-t-2 border-r-2 border-[#A68453] pointer-events-none" />
+                        <div className="absolute bottom-1 left-1 w-3 h-3 border-b-2 border-l-2 border-[#A68453] pointer-events-none" />
+                        <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-[#A68453] pointer-events-none" />
+                      </>
+                    )}
+
+                    {/* Estilo 4: Romántico con rombos en las esquinas */}
+                    {styleTheme === 'frame-vintage' && (
+                      <>
+                        <div className="absolute inset-2 border border-[#C5A880]/70 pointer-events-none" />
+                        <div className="absolute top-1.5 left-1.5 w-1.5 h-1.5 bg-[#A68453] rotate-45 pointer-events-none" />
+                        <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#A68453] rotate-45 pointer-events-none" />
+                        <div className="absolute bottom-1.5 left-1.5 w-1.5 h-1.5 bg-[#A68453] rotate-45 pointer-events-none" />
+                        <div className="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 bg-[#A68453] rotate-45 pointer-events-none" />
+                      </>
+                    )}
+
+                    {/* Estilo 5: Esquinas francesas redondeadas dobles */}
+                    {styleTheme === 'frame-french' && (
+                      <>
+                        <div className="absolute inset-1.5 border border-[#C5A880]/85 rounded-md pointer-events-none" />
+                        <div className="absolute inset-2.5 border border-[#C5A880]/40 rounded-sm pointer-events-none" />
+                      </>
+                    )}
+
+                    {/* Estilo 6: Monograma E & D con filete decorativo superior */}
+                    {(styleTheme === 'frame-monogram' || styleTheme === 'monogram') && (
+                      <>
+                        <div className="absolute inset-1 border border-[#C5A880]/80 rounded-xs pointer-events-none" />
+                        <div className="absolute top-2 left-0 right-0 flex items-center justify-center gap-2 pointer-events-none px-4">
+                          <div className="h-[1px] bg-[#C5A880]/60 flex-1 max-w-[28px]" />
+                          <span className="text-[10px] font-serif tracking-[0.2em] text-[#A68453] font-bold select-none">
+                            E & D
+                          </span>
+                          <div className="h-[1px] bg-[#C5A880]/60 flex-1 max-w-[28px]" />
+                        </div>
+                      </>
                     )}
 
                     {/* Texto principal con fuente Monotype Corsiva */}
-                    <div className="w-full px-3 my-auto">
+                    <div className={`w-full px-3 my-auto ${(styleTheme === 'frame-monogram' || styleTheme === 'monogram') ? 'pt-2' : ''}`}>
                       <span 
                         className={`font-corsiva text-stone-900 tracking-wide break-words block ${getFontSizeClass()}`}
                         style={{

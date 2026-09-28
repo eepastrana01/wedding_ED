@@ -349,19 +349,75 @@ export function generateDirectLabelsPDF(cards, options = {}) {
         doc.setLineDashPattern([], 0);
       }
 
-      // 3. Marco decorativo fino y elegante (sin fondo)
-      if (styleTheme === 'frame') {
+      // 3. Marcos decorativos finos y elegantes (100% fondo blanco puro)
+      if (styleTheme === 'frame' || styleTheme === 'frame-double') {
+        // Estilo 1: Doble línea dorada clásica
         doc.setDrawColor(goldColor[0], goldColor[1], goldColor[2]);
         doc.setLineWidth(0.4);
         doc.roundedRect(x + 0.6, y + 0.6, colWidth - 1.2, rowHeight - 1.2, 1.2, 1.2, 'S');
 
         doc.setLineWidth(0.2);
         doc.roundedRect(x + 1.8, y + 1.8, colWidth - 3.6, rowHeight - 3.6, 0.8, 0.8, 'S');
-      } else if (styleTheme === 'monogram') {
+      } else if (styleTheme === 'frame-minimal') {
+        // Estilo 2: Línea fina minimalista moderna
+        doc.setDrawColor(goldColor[0], goldColor[1], goldColor[2]);
+        doc.setLineWidth(0.35);
+        doc.roundedRect(x + 1, y + 1, colWidth - 2, rowHeight - 2, 1.5, 1.5, 'S');
+      } else if (styleTheme === 'frame-corners') {
+        // Estilo 3: Esquinas Art Déco con escuadras
+        doc.setDrawColor(goldColor[0], goldColor[1], goldColor[2]);
+        doc.setLineWidth(0.3);
+        doc.rect(x + 1.5, y + 1.5, colWidth - 3, rowHeight - 3, 'S');
+
+        doc.setLineWidth(0.5);
+        // Sup-izq
+        doc.line(x + 0.8, y + 0.8, x + 4.5, y + 0.8);
+        doc.line(x + 0.8, y + 0.8, x + 0.8, y + 4.5);
+        // Sup-der
+        doc.line(x + colWidth - 0.8, y + 0.8, x + colWidth - 4.5, y + 0.8);
+        doc.line(x + colWidth - 0.8, y + 0.8, x + colWidth - 0.8, y + 4.5);
+        // Inf-izq
+        doc.line(x + 0.8, y + rowHeight - 0.8, x + 4.5, y + rowHeight - 0.8);
+        doc.line(x + 0.8, y + rowHeight - 0.8, x + 0.8, y + rowHeight - 4.5);
+        // Inf-der
+        doc.line(x + colWidth - 0.8, y + rowHeight - 0.8, x + colWidth - 4.5, y + rowHeight - 0.8);
+        doc.line(x + colWidth - 0.8, y + rowHeight - 0.8, x + colWidth - 0.8, y + rowHeight - 4.5);
+      } else if (styleTheme === 'frame-vintage') {
+        // Estilo 4: Romántico con rombos en esquinas
+        doc.setDrawColor(goldColor[0], goldColor[1], goldColor[2]);
+        doc.setLineWidth(0.3);
+        doc.rect(x + 2, y + 2, colWidth - 4, rowHeight - 4, 'S');
+
+        // Pequeños rombos decorativos
+        const drawDiamond = (cx, cy, r = 0.9) => {
+          doc.setFillColor(goldColor[0], goldColor[1], goldColor[2]);
+          doc.lines([[-r, r], [r, r], [r, -r], [-r, -r]], cx, cy - r, [1, 1], 'F');
+        };
+        drawDiamond(x + 2, y + 2);
+        drawDiamond(x + colWidth - 2, y + 2);
+        drawDiamond(x + 2, y + rowHeight - 2);
+        drawDiamond(x + colWidth - 2, y + rowHeight - 2);
+      } else if (styleTheme === 'frame-french') {
+        // Estilo 5: Esquinas francesas redondeadas dobles
+        doc.setDrawColor(goldColor[0], goldColor[1], goldColor[2]);
+        doc.setLineWidth(0.38);
+        doc.roundedRect(x + 1, y + 1, colWidth - 2, rowHeight - 2, 3, 3, 'S');
+        doc.setLineWidth(0.18);
+        doc.roundedRect(x + 2.2, y + 2.2, colWidth - 4.4, rowHeight - 4.4, 2, 2, 'S');
+      } else if (styleTheme === 'frame-monogram' || styleTheme === 'monogram') {
+        // Estilo 6: Con Monograma E & D y filete decorativo
+        doc.setDrawColor(goldColor[0], goldColor[1], goldColor[2]);
+        doc.setLineWidth(0.35);
+        doc.roundedRect(x + 0.8, y + 0.8, colWidth - 1.6, rowHeight - 1.6, 1.2, 1.2, 'S');
+
         doc.setFont('times', 'bold');
-        doc.setFontSize(7);
+        doc.setFontSize(8);
         doc.setTextColor(goldColor[0], goldColor[1], goldColor[2]);
-        doc.text('E & D', x + (colWidth / 2), y + 6, { align: 'center' });
+        doc.text('E  &  D', x + (colWidth / 2), y + 6.2, { align: 'center' });
+
+        doc.setLineWidth(0.2);
+        doc.line(x + 8, y + 5.5, x + (colWidth / 2) - 8, y + 5.5);
+        doc.line(x + (colWidth / 2) + 8, y + 5.5, x + colWidth - 8, y + 5.5);
       }
 
       // 4. Texto de rotulación
@@ -382,7 +438,8 @@ export function generateDirectLabelsPDF(cards, options = {}) {
       const textLines = doc.splitTextToSize(labelText, maxTextWidth);
       const lineHeightMm = (fontSizePt * 0.3527) * 1.2;
       const totalBlockHeight = textLines.length * lineHeightMm;
-      const startY = y + (rowHeight / 2) - (totalBlockHeight / 2) + (fontSizePt * 0.3527 * 0.85);
+      const monogramOffset = (styleTheme === 'frame-monogram' || styleTheme === 'monogram') ? 1.5 : 0;
+      const startY = y + (rowHeight / 2) - (totalBlockHeight / 2) + (fontSizePt * 0.3527 * 0.85) + monogramOffset;
 
       doc.text(textLines, x + (colWidth / 2), startY, { align: 'center' });
 
