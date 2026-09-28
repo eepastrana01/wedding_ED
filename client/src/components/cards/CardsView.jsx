@@ -1,14 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { useWedding } from '../../context/WeddingContext';
-import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown, Ticket, FileText } from 'lucide-react';
+import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown, Ticket, FileText, Tag } from 'lucide-react';
 import { openWhatsApp } from '../../utils/whatsapp';
 import { generateInvitationCardsPDF } from '../../utils/pdfGenerator';
+import { LabelsPrintModal } from './LabelsPrintModal';
 
 export function CardsView() {
   const { invitationCards, toggleDeliveryStatus, showToast } = useWedding();
   const [filterType, setFilterType] = useState('all'); // 'all', 'family', 'individual', 'pending', 'delivered'
   const [search, setSearch] = useState('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isLabelsModalOpen, setIsLabelsModalOpen] = useState(false);
 
   const { all = [], summary = {} } = invitationCards || {};
 
@@ -84,8 +86,18 @@ export function CardsView() {
           </p>
         </div>
 
-        {/* Action Buttons: PDF Download (Carta) + Print */}
-        <div className="flex items-center gap-2 no-print shrink-0">
+        {/* Action Buttons: Etiquetas + PDF Download (Carta) + Print */}
+        <div className="flex items-center flex-wrap gap-2 no-print shrink-0">
+          <button
+            onClick={() => setIsLabelsModalOpen(true)}
+            disabled={all.length === 0}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-700 hover:to-amber-900 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-sm transition-all duration-150 active:scale-95 disabled:opacity-50 cursor-pointer"
+            title="Generar e imprimir planillas de etiquetas en Monotype Corsiva para todas las familias e individuales"
+          >
+            <Tag size={17} />
+            <span>Imprimir Etiquetas (Monotype Corsiva)</span>
+          </button>
+
           <button
             onClick={handleDownloadPdf}
             disabled={isGeneratingPdf || all.length === 0}
@@ -93,13 +105,14 @@ export function CardsView() {
             title="Descargar documento PDF oficial tamaño Carta para calígrafo o imprenta"
           >
             <FileDown size={17} />
-            <span>{isGeneratingPdf ? 'Generando PDF...' : 'Descargar PDF (Carta)'}</span>
+            <span className="hidden sm:inline">{isGeneratingPdf ? 'Generando...' : 'Lista PDF (Carta)'}</span>
+            <span className="sm:hidden">Lista PDF</span>
           </button>
 
           <button
             onClick={handlePrint}
             className="inline-flex items-center justify-center p-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition-colors border border-stone-200 active:scale-95"
-            title="Imprimir directamente desde el navegador"
+            title="Imprimir listado directamente"
           >
             <Printer size={17} />
           </button>
@@ -446,6 +459,13 @@ export function CardsView() {
           </tbody>
         </table>
       </div>
+
+      {/* Modal de Generación e Impresión de Etiquetas en Monotype Corsiva */}
+      <LabelsPrintModal
+        isOpen={isLabelsModalOpen}
+        onClose={() => setIsLabelsModalOpen(false)}
+        cards={all}
+      />
 
     </div>
   );

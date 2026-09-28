@@ -63,17 +63,47 @@ button, a, input, select, textarea {
   touch-action: manipulation;
 }
 
-/* Print styles for Cards/Envelope list */
+/* Monotype Corsiva font utility with elegant web fallbacks */
+.font-corsiva {
+  font-family: 'Monotype Corsiva', 'MonotypeCorsiva', 'Alex Brush', 'Great Vibes', 'Playfair Display', cursive, serif;
+}
+
+/* Print styles for Cards/Envelope list and Printable Labels */
 @media print {
-  header, nav, .md\\:hidden, button, .no-print {
+  /* Hide standard web UI */
+  header, nav, footer, .md\:hidden, button, .no-print {
     display: none !important;
   }
+  
   body {
     background: white !important;
-    color: black !important;
+    color: #1a1a1a !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
+
+  @page {
+    size: letter portrait;
+    margin: 6mm;
+  }
+
   .print-area {
     padding: 0 !important;
     margin: 0 !important;
+  }
+
+  /* Sheet pagination for labels */
+  .label-sheet-page {
+    page-break-after: always !important;
+    break-after: page !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    background: white !important;
+  }
+
+  .label-sheet-page:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 }
