@@ -4,7 +4,7 @@ import { useWedding } from '../../context/WeddingContext';
 import { familyApi } from '../../services/familyApi';
 import { Plus, X, Search, UserCheck } from 'lucide-react';
 
-export function FamilyModal({ isOpen, onClose, familyToEdit = null }) {
+export function FamilyModal({ isOpen, onClose, familyToEdit = null, preselectedGuestId = null }) {
   const { guests, showToast, refreshAll } = useWedding();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
@@ -19,13 +19,19 @@ export function FamilyModal({ isOpen, onClose, familyToEdit = null }) {
       setNotes(familyToEdit.notes || '');
       setPhone(familyToEdit.phone || '');
       setSelectedGuestIds(familyToEdit.members ? familyToEdit.members.map((m) => m.id) : []);
+    } else if (preselectedGuestId) {
+      const g = guests.find((item) => item.id === preselectedGuestId);
+      setName(g ? (g.partner_name ? `${g.name} & ${g.partner_name}` : g.name) : '');
+      setNotes('');
+      setPhone(g ? (g.phone || '') : '');
+      setSelectedGuestIds([preselectedGuestId]);
     } else {
       setName('');
       setNotes('');
       setPhone('');
       setSelectedGuestIds([]);
     }
-  }, [familyToEdit, isOpen]);
+  }, [familyToEdit, preselectedGuestId, isOpen, guests]);
 
   const toggleGuestSelection = (id) => {
     setSelectedGuestIds((prev) =>
