@@ -207,13 +207,14 @@ export function WeddingProvider({ children }) {
       const totalSeats = members.reduce((sum, m) => sum + (parseInt(m.confirmed_seats, 10) || 1), 0) || fam.total_members || 1;
       const allConfirmed = members.length > 0 && members.every((m) => m.status === 'confirmed');
       const anyDeclined = members.length > 0 && members.every((m) => m.status === 'declined');
+      const cleanName = (fam.name || '').trim();
 
       return {
         id: `fam-${fam.id}`,
         type: 'family',
         familyId: fam.id,
-        title: fam.name,
-        salutation: fam.name.toLowerCase().startsWith('familia') ? fam.name : `Familia ${fam.name}`,
+        title: cleanName,
+        salutation: cleanName,
         seats: Math.max(totalSeats, fam.total_members || 1),
         membersCount: fam.total_members || members.length,
         members: members,

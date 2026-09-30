@@ -35,28 +35,29 @@ export function FamilyModal({ isOpen, onClose, familyToEdit = null }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) {
-      showToast('Escribe el nombre de la familia', 'error');
+    const cleanName = name.trim();
+    if (!cleanName) {
+      showToast('Escribe el nombre de la familia o grupo', 'error');
       return;
     }
 
     setLoading(true);
     try {
       if (familyToEdit) {
-        await familyApi.update(familyToEdit.id, { name, notes, phone });
+        await familyApi.update(familyToEdit.id, { name: cleanName, notes, phone });
         // Assign selected guests
         await familyApi.assignMembers(familyToEdit.id, selectedGuestIds);
         showToast('Familia actualizada');
       } else {
         await familyApi.create({
-          name,
+          name: cleanName,
           notes,
           phone,
           member_ids: selectedGuestIds,
         });
         showToast('Familia creada con éxito');
       }
-      refreshAll();
+      await refreshAll();
       onClose();
     } catch (err) {
       showToast(err.message || 'Error al guardar familia', 'error');

@@ -102,6 +102,12 @@ export async function runMigrations() {
       `);
     }
 
+    // 4b. Limpieza de espacios en blanco en nombres de familias e invitados
+    await client.query(`
+      UPDATE families SET name = TRIM(name) WHERE name IS NOT NULL AND name != TRIM(name);
+      UPDATE guests SET name = TRIM(name) WHERE name IS NOT NULL AND name != TRIM(name);
+    `);
+
     // 5. Crear tabla tasks si no existe
     await client.query(`
       CREATE TABLE IF NOT EXISTS tasks (

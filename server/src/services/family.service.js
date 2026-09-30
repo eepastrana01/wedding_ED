@@ -92,6 +92,7 @@ export const familyService = {
 
   async createFamily(data) {
     const { name, notes, phone, member_ids = [] } = data;
+    const cleanName = (name || '').trim();
     const client = await pool.connect();
 
     try {
@@ -102,7 +103,7 @@ export const familyService = {
         VALUES ($1, $2, $3)
         RETURNING *
       `;
-      const familyResult = await client.query(insertFamilyQuery, [name, notes || null, phone || null]);
+      const familyResult = await client.query(insertFamilyQuery, [cleanName, notes || null, phone || null]);
       const newFamily = familyResult.rows[0];
 
       if (member_ids.length > 0) {
@@ -126,6 +127,7 @@ export const familyService = {
 
   async updateFamily(id, data) {
     const { name, notes, phone } = data;
+    const cleanName = name !== undefined && name !== null ? name.trim() : null;
     const query = `
       UPDATE families 
       SET 
@@ -136,7 +138,7 @@ export const familyService = {
       WHERE id = $4
       RETURNING *
     `;
-    const result = await pool.query(query, [name, notes !== undefined ? notes : null, phone !== undefined ? phone : null, id]);
+    const result = await pool.query(query, [cleanName, notes !== undefined ? notes : null, phone !== undefined ? phone : null, id]);
     return result.rows[0];
   },
 
