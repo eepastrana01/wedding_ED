@@ -103,10 +103,10 @@ export function CountdownView() {
       {/* ========================================================
           HERO BANNER PRINCIPAL: MEDALLÓN MONOGRAMA & PRESENTACIÓN
           ======================================================== */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-b from-white via-[#FCFAF6] to-[#F6EFE6] border-2 border-amber-200/90 shadow-luxury p-6 sm:p-10 text-center">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-white via-[#FCFAF6] to-[#F6EFE6] border-2 border-amber-200/90 shadow-luxury p-6 sm:p-10 text-center">
         {/* Adorno decorativo de esquinas doradas */}
-        <div className="absolute top-0 left-0 w-24 h-24 bg-linear-to-br from-amber-200/40 via-transparent to-transparent pointer-events-none rounded-tl-3xl" />
-        <div className="absolute bottom-0 right-0 w-24 h-24 bg-linear-to-tl from-amber-200/40 via-transparent to-transparent pointer-events-none rounded-br-3xl" />
+        <div className="absolute top-0 left-0 w-24 h-24 bg-gradient-to-br from-amber-200/40 via-transparent to-transparent pointer-events-none rounded-tl-3xl" />
+        <div className="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl from-amber-200/40 via-transparent to-transparent pointer-events-none rounded-br-3xl" />
         <div className="absolute top-4 right-6 text-amber-200/40 select-none pointer-events-none hidden sm:block">
           <Sparkles size={48} />
         </div>
@@ -119,8 +119,8 @@ export function CountdownView() {
           {/* Medallón Monograma de Lujo E & D */}
           <div className="relative mb-5 group">
             {/* Halo radiante animado */}
-            <div className="absolute -inset-1.5 rounded-full bg-linear-to-r from-amber-300 via-amber-400 to-wedding-primary opacity-65 blur-xs group-hover:opacity-100 transition duration-500 animate-pulse" />
-            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-linear-to-tr from-amber-200 via-amber-400 to-wedding-primary shadow-xl">
+            <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-wedding-primary opacity-65 blur-xs group-hover:opacity-100 transition duration-500 animate-pulse" />
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-amber-200 via-amber-400 to-wedding-primary shadow-xl">
               <div className="w-full h-full rounded-full bg-[#FAF7F2] border-2 border-amber-200 flex flex-col items-center justify-center shadow-inner">
                 <span className="font-editorial font-bold text-wedding-primaryDark text-xl sm:text-2xl tracking-widest pl-1 leading-none">
                   E<span className="text-amber-600 font-serif italic mx-1">&</span>D
@@ -174,14 +174,14 @@ export function CountdownView() {
           return (
             <div
               key={unit.label}
-              className={`relative overflow-hidden rounded-3xl p-5 sm:p-7 text-center transition-all duration-300 bg-linear-to-b from-white via-white to-amber-50/60 border-2 ${
+              className={`relative overflow-hidden rounded-3xl p-5 sm:p-7 text-center transition-all duration-300 bg-gradient-to-b from-white via-white to-amber-50/60 border-2 ${
                 unit.isLive
                   ? 'border-amber-400 shadow-xl shadow-amber-900/10 scale-[1.01]'
                   : 'border-amber-200/90 shadow-lg shadow-stone-900/5 hover:border-amber-300'
               }`}
             >
               {/* Resplandor suave superior */}
-              <div className="absolute top-0 inset-x-0 h-1.5 bg-linear-to-r from-amber-200 via-amber-400 to-wedding-primary" />
+              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-amber-200 via-amber-400 to-wedding-primary" />
 
               {/* Indicador de pulso activo para los segundos */}
               {unit.isLive && (
@@ -203,7 +203,7 @@ export function CountdownView() {
 
               {/* ETIQUETA DORADA DE LA UNIDAD */}
               <div className="inline-block">
-                <span className="px-3 py-1 rounded-full bg-linear-to-r from-amber-100 to-amber-200/90 border border-amber-300/80 text-amber-900 text-xs sm:text-sm font-bold tracking-[0.2em] uppercase shadow-2xs">
+                <span className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-100 to-amber-200/90 border border-amber-300/80 text-amber-900 text-xs sm:text-sm font-bold tracking-[0.2em] uppercase shadow-2xs">
                   {unit.label}
                 </span>
               </div>
@@ -247,7 +247,7 @@ export function CountdownView() {
         {/* Barra Visual con Indicador */}
         <div className="relative w-full h-4 bg-stone-100 rounded-full overflow-hidden p-0.5 border border-stone-200">
           <div 
-            className="h-full rounded-full bg-linear-to-r from-wedding-primary via-emerald-600 to-amber-500 transition-all duration-1000 relative shadow-inner"
+            className="h-full rounded-full bg-gradient-to-r from-wedding-primary via-emerald-600 to-amber-500 transition-all duration-1000 relative shadow-inner"
             style={{ width: `${progress}%` }}
           >
             <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/60 animate-pulse rounded-full" />
@@ -298,7 +298,7 @@ export function CountdownView() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
         {/* Botón Épico de Confetti */}
-        <div className="md:col-span-1 rounded-3xl bg-linear-to-br from-amber-500 via-amber-600 to-amber-700 text-white p-6 shadow-xl flex flex-col justify-between relative overflow-hidden group">
+        <div className="md:col-span-1 rounded-3xl bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-white p-6 shadow-xl flex flex-col justify-between relative overflow-hidden group">
           <div className="absolute top-0 right-0 -mr-6 -mt-6 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition duration-500" />
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider mb-3">
@@ -381,7 +381,7 @@ export function CountdownView() {
       {/* ========================================================
           INTEGRACIÓN DE PREPARATIVOS: ESTADO ACTUAL DE LA BODA
           ======================================================== */}
-      <div className="bg-linear-to-b from-[#FAF7F2] to-white rounded-3xl border border-amber-200/70 p-6 sm:p-7 shadow-sm">
+      <div className="bg-gradient-to-b from-[#FAF7F2] to-white rounded-3xl border border-amber-200/70 p-6 sm:p-7 shadow-sm">
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
           <div>

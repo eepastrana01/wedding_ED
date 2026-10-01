@@ -98,7 +98,7 @@ export function DashboardView() {
         </div>
 
         {/* Confirmados */}
-        <div className="bg-white rounded-2xl border border-emerald-200 p-4 sm:p-5 shadow-card relative overflow-hidden bg-linear-to-b from-emerald-50/40 to-white">
+        <div className="bg-white rounded-2xl border border-emerald-200 p-4 sm:p-5 shadow-card relative overflow-hidden bg-gradient-to-b from-emerald-50/40 to-white">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Confirmados</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
@@ -114,7 +114,7 @@ export function DashboardView() {
         </div>
 
         {/* Pendientes */}
-        <div className="bg-white rounded-2xl border border-amber-200 p-4 sm:p-5 shadow-card relative overflow-hidden bg-linear-to-b from-amber-50/40 to-white">
+        <div className="bg-white rounded-2xl border border-amber-200 p-4 sm:p-5 shadow-card relative overflow-hidden bg-gradient-to-b from-amber-50/40 to-white">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Por Confirmar</span>
             <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
@@ -130,7 +130,7 @@ export function DashboardView() {
         </div>
 
         {/* No Asisten */}
-        <div className="bg-white rounded-2xl border border-rose-200 p-4 sm:p-5 shadow-card relative overflow-hidden bg-linear-to-b from-rose-50/40 to-white">
+        <div className="bg-white rounded-2xl border border-rose-200 p-4 sm:p-5 shadow-card relative overflow-hidden bg-gradient-to-b from-rose-50/40 to-white">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-rose-800 uppercase tracking-wider">No Asisten</span>
             <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700">

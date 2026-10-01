@@ -38,7 +38,7 @@ export function Navbar() {
               className="flex items-center gap-2 sm:gap-3 cursor-pointer group select-none shrink-0"
             >
               {/* Medallón de Lujo Monograma E & D */}
-              <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full p-[2px] bg-linear-to-br from-amber-300 via-wedding-accent to-wedding-primary shadow-sm shrink-0 transition-transform duration-200 group-hover:scale-105">
+              <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full p-[2px] bg-gradient-to-br from-amber-300 via-wedding-accent to-wedding-primary shadow-sm shrink-0 transition-transform duration-200 group-hover:scale-105">
                 <div className="w-full h-full rounded-full bg-[#FAF7F2] border border-amber-200/70 flex items-center justify-center shadow-inner">
                   <span className="font-serif font-bold text-wedding-primaryDark text-xs sm:text-sm tracking-widest pl-0.5 inline-flex items-center leading-none">
                     E<span className="text-wedding-accent text-[10px] sm:text-xs font-serif italic mx-0.5">&</span>D
@@ -72,7 +72,7 @@ export function Navbar() {
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 cursor-pointer ${
                       isActive
                         ? item.isCountdown
-                          ? 'bg-linear-to-r from-amber-50 to-amber-100 text-amber-950 shadow-xs font-bold border border-amber-300/80'
+                          ? 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-950 shadow-xs font-bold border border-amber-300/80'
                           : 'bg-white text-wedding-primaryDark shadow-sm font-semibold'
                         : item.isCountdown
                           ? 'text-amber-900/90 hover:text-amber-950 hover:bg-amber-100/60 font-semibold'
@@ -91,7 +91,7 @@ export function Navbar() {
                     {item.count !== undefined && item.count !== null && (
                       <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-semibold ${
                         item.isCountdown
-                          ? 'bg-linear-to-r from-amber-400 to-amber-500 text-amber-950 font-bold shadow-2xs'
+                          ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 font-bold shadow-2xs'
                           : isActive 
                             ? 'bg-wedding-primary/10 text-wedding-primary' 
                             : 'bg-stone-200 text-stone-600'
@@ -111,7 +111,7 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => setIsCountdownOpen(true)}
-                className="relative flex items-center gap-1.5 bg-linear-to-r from-amber-50 via-[#FDFBF7] to-amber-100/90 hover:from-amber-100 hover:to-amber-200 text-amber-950 border border-amber-300/80 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold shadow-2xs hover:shadow-xs transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer"
+                className="relative flex items-center gap-1.5 bg-gradient-to-r from-amber-50 via-[#FDFBF7] to-amber-100/90 hover:from-amber-100 hover:to-amber-200 text-amber-950 border border-amber-300/80 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold shadow-2xs hover:shadow-xs transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer"
                 title="Ver cuenta regresiva oficial para el 21 de Noviembre a las 4:30 PM"
               >
                 <Clock size={13} className="text-amber-700 animate-spin" style={{ animationDuration: '10s' }} />
@@ -126,7 +126,7 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={openChangelog}
-                className="relative flex items-center gap-1.5 bg-linear-to-r from-stone-50 to-amber-50/80 hover:from-amber-50 hover:to-amber-100 text-stone-800 border border-stone-200/90 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold shadow-2xs hover:shadow-xs transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer"
+                className="relative flex items-center gap-1.5 bg-gradient-to-r from-stone-50 to-amber-50/80 hover:from-amber-50 hover:to-amber-100 text-stone-800 border border-stone-200/90 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold shadow-2xs hover:shadow-xs transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer"
                 title="Ver novedades y actualizaciones de la boda"
               >
                 <span className="relative flex h-2 w-2">

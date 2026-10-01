@@ -96,7 +96,7 @@ export function CountdownModal({ isOpen, onClose }) {
         <div className="text-center relative z-10 flex flex-col items-center">
           
           {/* Monogram Medallion */}
-          <div className="w-14 h-14 rounded-full p-0.5 bg-linear-to-tr from-amber-300 via-amber-400 to-wedding-primary shadow-md mb-3">
+          <div className="w-14 h-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-300 via-amber-400 to-wedding-primary shadow-md mb-3">
             <div className="w-full h-full rounded-full bg-[#FAF7F2] border border-amber-200 flex items-center justify-center">
               <span className="font-editorial font-bold text-wedding-primaryDark text-sm tracking-widest pl-0.5">
                 E<span className="text-amber-600 font-serif italic mx-0.5">&</span>D
@@ -127,7 +127,7 @@ export function CountdownModal({ isOpen, onClose }) {
           {units.map((unit) => (
             <div
               key={unit.label}
-              className={`p-3 sm:p-4 rounded-2xl text-center bg-linear-to-b from-[#FCFAF6] to-[#F6EFE6] border ${
+              className={`p-3 sm:p-4 rounded-2xl text-center bg-gradient-to-b from-[#FCFAF6] to-[#F6EFE6] border ${
                 unit.isLive ? 'border-amber-400 shadow-md' : 'border-amber-200/80 shadow-2xs'
               }`}
             >
@@ -152,7 +152,7 @@ export function CountdownModal({ isOpen, onClose }) {
           </div>
           <div className="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-linear-to-r from-wedding-primary via-emerald-600 to-amber-500 rounded-full transition-all duration-500"
+              className="h-full bg-gradient-to-r from-wedding-primary via-emerald-600 to-amber-500 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -163,7 +163,7 @@ export function CountdownModal({ isOpen, onClose }) {
           <button
             type="button"
             onClick={handleCelebrate}
-            className="flex-1 flex items-center justify-center gap-2 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow-md active:scale-95 transition-all cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow-md active:scale-95 transition-all cursor-pointer"
           >
             <Sparkles size={16} />
             <span>Celebrar Momento ✨</span>

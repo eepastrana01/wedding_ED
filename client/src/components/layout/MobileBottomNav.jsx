@@ -61,7 +61,7 @@ export function MobileBottomNav() {
                   <span
                     className={`absolute -top-1.5 -right-2.5 text-[8px] font-bold px-1 rounded-full h-[14px] flex items-center justify-center shadow-2xs transition-colors ${
                       isActive
-                        ? 'bg-linear-to-r from-amber-400 to-amber-500 text-amber-950 font-extrabold'
+                        ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 font-extrabold'
                         : 'bg-amber-200/90 text-amber-900 font-bold'
                     }`}
                   >

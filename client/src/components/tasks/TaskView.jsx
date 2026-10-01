@@ -158,7 +158,7 @@ export function TaskView() {
         </div>
 
         {/* Completadas & Progreso */}
-        <div className="bg-white rounded-2xl border border-emerald-200 p-3.5 sm:p-4 shadow-card bg-linear-to-b from-emerald-50/40 to-white">
+        <div className="bg-white rounded-2xl border border-emerald-200 p-3.5 sm:p-4 shadow-card bg-gradient-to-b from-emerald-50/40 to-white">
           <div className="flex items-center justify-between text-emerald-800 text-xs">
             <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Completadas</span>
             <CheckCircle2 size={16} className="text-emerald-600" />
@@ -175,7 +175,7 @@ export function TaskView() {
         </div>
 
         {/* Por Resolver */}
-        <div className="bg-white rounded-2xl border border-amber-200 p-3.5 sm:p-4 shadow-card bg-linear-to-b from-amber-50/40 to-white">
+        <div className="bg-white rounded-2xl border border-amber-200 p-3.5 sm:p-4 shadow-card bg-gradient-to-b from-amber-50/40 to-white">
           <div className="flex items-center justify-between text-amber-800 text-xs">
             <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Por Resolver</span>
             <Clock size={16} className="text-amber-600" />

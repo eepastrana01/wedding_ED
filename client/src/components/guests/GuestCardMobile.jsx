@@ -27,9 +27,9 @@ export function GuestCardMobile({ guest, onEdit, onDelete }) {
     <div
       className={`bg-white rounded-2xl border transition-all duration-150 shadow-card overflow-hidden ${
         guest.status === 'confirmed'
-          ? 'border-emerald-200/90 bg-linear-to-b from-emerald-50/25 to-white'
+          ? 'border-emerald-200/90 bg-gradient-to-b from-emerald-50/25 to-white'
           : guest.status === 'declined'
-          ? 'border-rose-200/70 bg-linear-to-b from-rose-50/20 to-white'
+          ? 'border-rose-200/70 bg-gradient-to-b from-rose-50/20 to-white'
           : 'border-wedding-border'
       }`}
     >

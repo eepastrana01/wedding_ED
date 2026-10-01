@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useWedding } from '../../context/WeddingContext';
 import { photoApi } from '../../services/photoApi';
+import { WEDDING_ANIMALS, getRandomWeddingAnimal } from '../../constants/weddingAnimals';
 import confetti from 'canvas-confetti';
 import { 
   Camera, 
@@ -9,28 +10,65 @@ import {
   Sparkles, 
   Heart, 
   CheckCircle2, 
-  Image as ImageIcon, 
+  Dices, 
+  Edit3, 
   Loader2, 
-  AlertCircle 
+  AlertCircle,
+  RotateCcw
 } from 'lucide-react';
 
 export function GuestPhotoUploadModal({ isOpen, onClose }) {
-  const { guests, families, addPhoto, triggerCelebration } = useWedding();
+  const { addPhoto, triggerCelebration } = useWedding();
 
-  const [uploaderName, setUploaderName] = useState('');
+  // Personaje animal divertido tipo Google Jamboard
+  const [currentAnimal, setCurrentAnimal] = useState(() => {
+    const saved = localStorage.getItem('wedding_uploader_animal_id');
+    if (saved) {
+      const found = WEDDING_ANIMALS.find((a) => a.id === saved);
+      if (found) return found;
+    }
+    return getRandomWeddingAnimal();
+  });
+
+  const [useCustomName, setUseCustomName] = useState(false);
+  const [customName, setCustomName] = useState('');
   const [caption, setCaption] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState([]); // { file, preview, compressedUrl }
+  const [selectedFiles, setSelectedFiles] = useState([]); // { file, preview, fullUrl, thumbUrl }
   const [isCompressing, setIsCompressing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [errorMsg, setErrorMsg] = useState('');
+  const [diceRolling, setDiceRolling] = useState(false);
 
   const fileInputRef = useRef(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      setErrorMsg('');
+      setUploadSuccess(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  // Manejar selección de archivos desde cámara o galería
+  // Cambiar personaje divertido aleatorio con animación de dado
+  const handleShuffleAnimal = () => {
+    setDiceRolling(true);
+    setTimeout(() => {
+      const next = getRandomWeddingAnimal(currentAnimal.id);
+      setCurrentAnimal(next);
+      localStorage.setItem('wedding_uploader_animal_id', next.id);
+      setDiceRolling(false);
+    }, 200);
+  };
+
+  // Nombre final que se guardará
+  const finalUploaderName = useCustomName && customName.trim()
+    ? customName.trim()
+    : `${currentAnimal.emoji} ${currentAnimal.name}`;
+
+  // Manejar selección de archivos desde cámara o galería en Ultra Calidad
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -42,12 +80,17 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
       const newItems = [];
       for (const file of files) {
         if (!file.type.startsWith('image/')) continue;
-        // Compresión instantánea en el navegador
-        const compressedUrl = await photoApi.compressImage(file, 1600, 0.85);
+        
+        // 1. Imagen de Ultra Alta Definición (3000px, 94% calidad para zoom y descarga)
+        const fullUrl = await photoApi.compressImage(file, 3000, 0.94);
+        // 2. Miniatura nítida y rápida para la grilla (500px)
+        const thumbUrl = await photoApi.createThumbnail(fullUrl, 500, 0.82);
+
         newItems.push({
           file,
-          preview: compressedUrl,
-          compressedUrl,
+          preview: thumbUrl,
+          fullUrl,
+          thumbUrl,
         });
       }
 
@@ -57,7 +100,6 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
       setErrorMsg('No se pudieron procesar algunas fotos. Intenta de nuevo.');
     } finally {
       setIsCompressing(false);
-      // Limpiar input para permitir seleccionar la misma foto si se desea
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -67,8 +109,8 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
   };
 
   const handleUploadAll = async () => {
-    if (!uploaderName.trim()) {
-      setErrorMsg('Por favor escribe tu nombre o el de tu familia.');
+    if (useCustomName && !customName.trim()) {
+      setErrorMsg('Por favor escribe tu nombre o desmarca la opción para usar tu personaje.');
       return;
     }
 
@@ -82,20 +124,25 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
     setUploadProgress({ current: 0, total: selectedFiles.length });
 
     try {
-      // Intentar verificar si hay configuración de Cloudinary en localStorage
+      // Guardar nombre en localStorage
+      if (useCustomName && customName.trim()) {
+        localStorage.setItem('wedding_uploader_custom_name', customName.trim());
+      }
+
       const cloudConfig = JSON.parse(localStorage.getItem('wedding_cloudinary_config') || '{}');
       const useCloudinary = Boolean(cloudConfig.cloudName && cloudConfig.uploadPreset);
 
       for (let i = 0; i < selectedFiles.length; i++) {
         const item = selectedFiles[i];
-        let finalUrl = item.compressedUrl;
-        let thumbnailUrl = item.compressedUrl;
+        let finalUrl = item.fullUrl;
+        let thumbnailUrl = item.thumbUrl;
         let storageKey = null;
 
         if (useCloudinary) {
           try {
+            // Con Cloudinary, subimos el archivo original completo
             const cloudRes = await photoApi.uploadToCloudinary(
-              item.compressedUrl,
+              item.file || item.fullUrl,
               cloudConfig.cloudName,
               cloudConfig.uploadPreset
             );
@@ -111,7 +158,7 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
           url: finalUrl,
           thumbnail_url: thumbnailUrl,
           storage_key: storageKey,
-          uploader_name: uploaderName.trim(),
+          uploader_name: finalUploaderName,
           caption: caption.trim() || null,
           status: 'approved',
         });
@@ -122,12 +169,11 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
       setUploadSuccess(true);
       triggerCelebration();
 
-      // Confetti burst
       confetti({
-        particleCount: 90,
-        spread: 70,
+        particleCount: 100,
+        spread: 80,
         origin: { y: 0.6 },
-        colors: ['#C5A880', '#1F3A2E', '#F3ECE1', '#D9777F'],
+        colors: ['#C5A880', '#1F3A2E', '#F3ECE1', '#D9777F', '#E5A93B'],
       });
     } catch (err) {
       console.error('Error subiendo fotos:', err);
@@ -177,11 +223,15 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
             </div>
 
             <h3 className="font-editorial text-2xl sm:text-3xl font-bold text-wedding-primaryDark">
-              ¡Muchas Gracias, {uploaderName}!
+              ¡Muchas Gracias!
             </h3>
 
+            <div className="my-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100/80 text-amber-900 border border-amber-300 text-xs font-bold">
+              <span>{finalUploaderName}</span>
+            </div>
+
             <p className="text-stone-600 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
-              Tus fotos y momentos ya forman parte de nuestro álbum oficial de bodas. ¡Nos llena el corazón revivir este día con tus recuerdos!
+              Tus fotos en alta resolución ya están en el álbum oficial de bodas y listas para proyectarse en la fiesta. ¡Nos emociona ver este día a través de tus ojos!
             </p>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-2.5 justify-center">
@@ -198,27 +248,27 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
                 onClick={onClose}
                 className="flex items-center justify-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-700 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer"
               >
-                <span>Ver Álbum de Fotos</span>
+                <span>Ver el Álbum</span>
               </button>
             </div>
           </div>
         ) : (
           /* ========================================================
-              FORMULARIO DE SUBIDA DE FOTOS
+              FORMULARIO CON PERSONAJE DIVERTIDO ESTILO GOOGLE
               ======================================================== */
           <div className="space-y-4">
             
             {/* Cabecera */}
             <div className="text-center">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/80 text-amber-900 border border-amber-300/60 text-[11px] font-bold tracking-wider uppercase mb-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 border border-amber-300/60 text-[11px] font-bold tracking-wider uppercase mb-1.5 shadow-2xs">
                 <Sparkles size={12} className="text-amber-700" />
                 <span>Álbum de Recuerdos • E & D</span>
               </div>
               <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-wedding-primaryDark">
                 Comparte tus Fotos de la Boda
               </h2>
-              <p className="text-xs text-stone-500 mt-1">
-                Toma una foto con tu cámara o elige tus favoritas de la fiesta
+              <p className="text-xs text-stone-500 mt-0.5">
+                Fotos nítidas en calidad alta, listas para el proyector
               </p>
             </div>
 
@@ -229,22 +279,85 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
               </div>
             )}
 
-            {/* Campo: Nombre del Invitado o Familia */}
-            <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1">
-                ¿Quién comparte estas fotos? <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={uploaderName}
-                onChange={(e) => setUploaderName(e.target.value)}
-                placeholder="Ej. Familia Alberto Mairena, Tío Carlos, o María & Luis"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-wedding-primary/20 focus:border-wedding-primary transition"
-                disabled={isUploading}
-              />
+            {/* ========================================================
+                SELECTOR DE PERSONAJE AMIGABLE (CERO ESCRITURA OBLIGATORIA)
+                ======================================================== */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-white to-amber-50/60 border-2 border-amber-200/90 shadow-2xs">
+              
+              {!useCustomName ? (
+                <div className="flex items-center justify-between gap-3">
+                  
+                  {/* Avatar & Nombre del Animal */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-white border-2 border-amber-300 flex items-center justify-center text-2xl shadow-xs shrink-0 select-none">
+                      {currentAnimal.emoji}
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase tracking-wider text-amber-800/80 font-bold block">
+                        Compartiendo como:
+                      </span>
+                      <h4 className="font-editorial text-base sm:text-lg font-bold text-stone-900 leading-tight">
+                        {currentAnimal.name}
+                      </h4>
+                      <span className="text-[10px] text-stone-500 font-medium block">
+                        {currentAnimal.badge}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Botón de Cambiar / Dado Aleatorio */}
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleShuffleAnimal}
+                      disabled={diceRolling}
+                      className="flex items-center gap-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1.5 rounded-xl text-xs font-bold shadow-2xs hover:shadow-xs active:scale-95 transition cursor-pointer"
+                      title="Cambiar a otro personaje divertido"
+                    >
+                      <Dices size={14} className={diceRolling ? 'animate-spin text-amber-700' : 'text-amber-700'} />
+                      <span>{diceRolling ? 'Girando...' : 'Cambiar'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUseCustomName(true)}
+                      className="text-[10px] text-stone-400 hover:text-stone-700 underline underline-offset-2 transition"
+                    >
+                      Escribir mi nombre
+                    </button>
+                  </div>
+
+                </div>
+              ) : (
+                /* Modo Escritura Manual */
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-stone-800">
+                      Tu Nombre o Familia:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setUseCustomName(false)}
+                      className="text-[11px] text-amber-800 hover:text-amber-950 font-bold flex items-center gap-1 transition"
+                    >
+                      <RotateCcw size={11} />
+                      <span>Volver a personaje ({currentAnimal.emoji})</span>
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    placeholder="Ej. Familia Alberto Mairena o Carlos & Andrea"
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-wedding-primary/20 focus:border-wedding-primary"
+                    disabled={isUploading}
+                    autoFocus
+                  />
+                </div>
+              )}
+
             </div>
 
-            {/* Campo: Mensaje o Dedicatoria */}
+            {/* Dedicatoria o mensaje opcional */}
             <div>
               <label className="block text-xs font-bold text-stone-700 mb-1">
                 Dedicatoria o mensaje para los novios <span className="text-stone-400 font-normal">(opcional)</span>
@@ -275,31 +388,31 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
                 onClick={() => !isUploading && !isCompressing && fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-2xl p-5 text-center transition cursor-pointer ${
                   selectedFiles.length > 0
-                    ? 'border-amber-300 bg-amber-50/30 hover:bg-amber-50/60'
-                    : 'border-stone-300 bg-stone-50/60 hover:bg-stone-100/60 hover:border-wedding-primary/40'
+                    ? 'border-amber-300 bg-amber-50/40 hover:bg-amber-50/70'
+                    : 'border-stone-300 bg-stone-50 hover:bg-stone-100 hover:border-wedding-primary/40'
                 }`}
               >
                 <div className="flex flex-col items-center gap-2">
-                  <div className="w-12 h-12 rounded-full bg-linear-to-tr from-amber-200 to-amber-400 text-amber-950 flex items-center justify-center shadow-xs">
-                    <Camera size={22} />
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-300 to-amber-500 text-stone-900 flex items-center justify-center shadow-xs">
+                    <Camera size={22} className="text-stone-900" />
                   </div>
                   <div>
-                    <span className="text-xs sm:text-sm font-bold text-stone-800 block">
+                    <span className="text-xs sm:text-sm font-bold text-stone-900 block">
                       Toca aquí para tomar foto o elegir de tu galería
                     </span>
                     <span className="text-[11px] text-stone-500">
-                      Puedes seleccionar varias fotos a la vez
+                      Puedes seleccionar varias fotos a la vez (Calidad Alta)
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Indicador de compresión en progreso */}
+            {/* Indicador de optimización en progreso */}
             {isCompressing && (
               <div className="flex items-center justify-center gap-2 py-2 text-xs text-amber-800 font-medium">
                 <Loader2 size={16} className="animate-spin text-amber-600" />
-                <span>Optimizando fotos para subida rápida...</span>
+                <span>Preparando fotos en alta resolución...</span>
               </div>
             )}
 
@@ -317,7 +430,7 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-44 overflow-y-auto p-1 border border-stone-200 rounded-xl bg-stone-50/50">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto p-1.5 border border-stone-200 rounded-xl bg-stone-50/50">
                   {selectedFiles.map((item, index) => (
                     <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-stone-200 shadow-2xs">
                       <img
@@ -344,12 +457,12 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
             {isUploading && (
               <div className="space-y-1.5 py-1">
                 <div className="flex justify-between text-xs font-bold text-amber-900">
-                  <span>Subiendo fotos a los recuerdos...</span>
+                  <span>Guardando recuerdos en alta calidad...</span>
                   <span>{uploadProgress.current} de {uploadProgress.total}</span>
                 </div>
                 <div className="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-linear-to-r from-wedding-primary via-emerald-600 to-amber-500 rounded-full transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-wedding-primary via-emerald-600 to-amber-500 rounded-full transition-all duration-300"
                     style={{
                       width: `${(uploadProgress.current / uploadProgress.total) * 100}%`,
                     }}
@@ -358,22 +471,22 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
               </div>
             )}
 
-            {/* Botón de Enviar */}
+            {/* Botón de Enviar Fuerte y Visible */}
             <div className="pt-2">
               <button
                 type="button"
                 onClick={handleUploadAll}
                 disabled={isUploading || isCompressing || selectedFiles.length === 0}
-                className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-500 via-amber-600 to-wedding-primary hover:from-amber-600 hover:to-wedding-primaryDark text-white font-bold py-3 px-5 rounded-2xl text-xs sm:text-sm shadow-md active:scale-98 transition disabled:opacity-50 cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 bg-wedding-primary hover:bg-wedding-primaryLight text-white font-extrabold py-3 px-5 rounded-2xl text-xs sm:text-sm shadow-lg hover:shadow-xl active:scale-98 transition disabled:opacity-50 cursor-pointer border border-amber-300/40"
               >
                 {isUploading ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={16} className="animate-spin text-amber-300" />
                     <span>Guardando recuerdos ({uploadProgress.current}/{uploadProgress.total})...</span>
                   </>
                 ) : (
                   <>
-                    <Upload size={16} />
+                    <Upload size={16} className="text-amber-300" />
                     <span>Compartir {selectedFiles.length > 0 ? `${selectedFiles.length} Foto(s)` : 'Fotos'} con los Novios ✨</span>
                   </>
                 )}

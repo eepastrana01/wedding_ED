@@ -159,7 +159,7 @@ export function CardsView() {
         </div>
 
         {/* Total de Pases Requeridos */}
-        <div className="bg-white rounded-2xl border border-wedding-accent/30 p-3.5 sm:p-4 shadow-card bg-linear-to-b from-wedding-accentLight/30 to-white">
+        <div className="bg-white rounded-2xl border border-wedding-accent/30 p-3.5 sm:p-4 shadow-card bg-gradient-to-b from-wedding-accentLight/30 to-white">
           <div className="flex items-center justify-between text-wedding-primary text-xs">
             <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Pases Totales</span>
             <Sparkles size={16} className="text-wedding-accentDark" />
@@ -171,7 +171,7 @@ export function CardsView() {
         </div>
 
         {/* Progreso de Entrega */}
-        <div className="col-span-2 sm:col-span-2 lg:col-span-1 bg-white rounded-2xl border border-emerald-200 p-3.5 sm:p-4 shadow-card bg-linear-to-b from-emerald-50/40 to-white">
+        <div className="col-span-2 sm:col-span-2 lg:col-span-1 bg-white rounded-2xl border border-emerald-200 p-3.5 sm:p-4 shadow-card bg-gradient-to-b from-emerald-50/40 to-white">
           <div className="flex items-center justify-between text-emerald-800 text-xs">
             <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Entregadas</span>
             <CheckCircle2 size={16} className="text-emerald-600" />
@@ -298,7 +298,7 @@ export function CardsView() {
               key={card.id}
               className={`bg-white rounded-2xl border transition-all duration-200 shadow-card flex flex-col justify-between overflow-hidden ${
                 card.delivered
-                  ? 'border-emerald-200/90 bg-linear-to-b from-emerald-50/20 to-white'
+                  ? 'border-emerald-200/90 bg-gradient-to-b from-emerald-50/20 to-white'
                   : 'border-wedding-border hover:border-wedding-accent/60'
               }`}
             >

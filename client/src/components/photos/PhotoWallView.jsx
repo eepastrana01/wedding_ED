@@ -120,13 +120,13 @@ export function PhotoWallView() {
       {/* ========================================================
           HERO BANNER: ÁLBUM DE RECUERDOS & ESTADÍSTICAS
           ======================================================== */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-b from-white via-[#FCFAF6] to-[#F7F2E8] border-2 border-amber-200/90 shadow-luxury p-5 sm:p-8">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-white via-[#FCFAF6] to-[#F7F2E8] border-2 border-amber-200/90 shadow-luxury p-5 sm:p-8">
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
           
           {/* Título e Identidad */}
           <div className="flex items-center gap-3.5 sm:gap-4">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2px] bg-linear-to-tr from-amber-300 via-amber-400 to-wedding-primary shadow-md shrink-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2px] bg-gradient-to-tr from-amber-300 via-amber-400 to-wedding-primary shadow-md shrink-0">
               <div className="w-full h-full rounded-full bg-[#FAF7F2] border border-amber-200 flex items-center justify-center">
                 <span className="font-editorial font-bold text-wedding-primaryDark text-base sm:text-lg tracking-widest pl-0.5">
                   E<span className="text-amber-600 font-serif italic mx-0.5">&</span>D
@@ -186,24 +186,25 @@ export function PhotoWallView() {
           {/* Botones Primarios */}
           <div className="flex flex-wrap items-center gap-2">
             
-            {/* Subir Fotos */}
+            {/* Subir Fotos - Prominente y de Alto Contraste */}
             <button
               type="button"
               onClick={() => setIsUploadModalOpen(true)}
-              className="flex items-center gap-2 bg-linear-to-r from-amber-500 via-amber-600 to-wedding-primary hover:from-amber-600 hover:to-wedding-primaryDark text-white px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md active:scale-95 transition cursor-pointer"
+              className="flex items-center gap-2 bg-wedding-primary hover:bg-wedding-primaryLight text-white px-4 sm:px-5 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md hover:shadow-lg active:scale-95 transition border border-amber-300/60 cursor-pointer"
             >
-              <Camera size={16} />
+              <Camera size={17} className="text-amber-300" />
               <span>Subir Fotos</span>
+              <Sparkles size={14} className="text-amber-300" />
             </button>
 
             {/* Proyector / Modo En Vivo */}
             <button
               type="button"
               onClick={() => setIsSlideshowOpen(true)}
-              className="flex items-center gap-2 bg-wedding-primary hover:bg-wedding-primaryLight text-white px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md active:scale-95 transition cursor-pointer"
+              className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md active:scale-95 transition cursor-pointer"
               title="Abrir proyector en pantalla completa para la recepción"
             >
-              <Tv size={16} className="text-amber-300" />
+              <Tv size={16} className="text-amber-200" />
               <span>Modo Proyector (En Vivo)</span>
             </button>
 
@@ -211,7 +212,7 @@ export function PhotoWallView() {
             <button
               type="button"
               onClick={() => setIsQrModalOpen(true)}
-              className="flex items-center gap-2 bg-white hover:bg-amber-50 text-stone-800 hover:text-amber-900 border border-stone-200 hover:border-amber-300 px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-2xs transition cursor-pointer"
+              className="flex items-center gap-2 bg-white hover:bg-amber-50 text-stone-800 hover:text-amber-900 border border-stone-300 hover:border-amber-400 px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-2xs transition cursor-pointer"
               title="Generar e imprimir cartel con QR para las mesas"
             >
               <QrCode size={16} className="text-wedding-primary" />
@@ -291,6 +292,16 @@ export function PhotoWallView() {
             </button>
           )}
         </div>
+
+        {/* Botón directo de Subir Fotos en la barra de filtros */}
+        <button
+          type="button"
+          onClick={() => setIsUploadModalOpen(true)}
+          className="flex items-center gap-1.5 bg-wedding-primary hover:bg-wedding-primaryLight text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer shrink-0 border border-amber-300/40"
+        >
+          <Camera size={15} className="text-amber-300" />
+          <span className="hidden xs:inline">Subir Fotos</span>
+        </button>
       </div>
 
       {/* ========================================================
@@ -492,6 +503,21 @@ export function PhotoWallView() {
           </div>
         </div>
       )}
+
+      {/* Botón Flotante Permanente (FAB) para subir fotos desde cualquier posición */}
+      <button
+        type="button"
+        onClick={() => setIsUploadModalOpen(true)}
+        className="fixed bottom-20 md:bottom-8 right-4 sm:right-7 z-40 flex items-center gap-2 bg-wedding-primary hover:bg-wedding-primaryLight text-white px-4 sm:px-5 py-3 rounded-full font-extrabold text-xs sm:text-sm shadow-2xl shadow-emerald-950/40 hover:scale-105 active:scale-95 transition-all border-2 border-amber-300 cursor-pointer group"
+        title="Subir fotos al álbum de recuerdos"
+      >
+        <Camera size={18} className="text-amber-300 group-hover:rotate-12 transition-transform" />
+        <span className="tracking-wide">Subir Fotos</span>
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+        </span>
+      </button>
 
     </div>
   );

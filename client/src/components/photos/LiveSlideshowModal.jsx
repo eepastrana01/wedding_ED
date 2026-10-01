@@ -105,11 +105,11 @@ export function LiveSlideshowModal({ isOpen, onClose, photos = [] }) {
       {/* ========================================================
           BARRA SUPERIOR (CONTROLES DISCRETOS)
           ======================================================== */}
-      <div className="relative z-20 flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4 bg-linear-to-b from-black/80 via-black/40 to-transparent">
+      <div className="relative z-20 flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
         
         {/* Monograma y Título */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full p-[1.5px] bg-linear-to-tr from-amber-300 to-amber-500 shadow-md shrink-0">
+          <div className="w-10 h-10 rounded-full p-[1.5px] bg-gradient-to-tr from-amber-300 to-amber-500 shadow-md shrink-0">
             <div className="w-full h-full rounded-full bg-[#1F3A2E] border border-amber-300/40 flex items-center justify-center">
               <span className="font-editorial font-bold text-amber-200 text-xs tracking-widest pl-0.5">
                 E&D
@@ -231,7 +231,7 @@ export function LiveSlideshowModal({ isOpen, onClose, photos = [] }) {
       {/* ========================================================
           BARRA INFERIOR: AUTOR, DEDICATORIA Y CÓDIGO QR EN VIVO
           ======================================================== */}
-      <div className="relative z-20 flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-8 py-3 sm:py-5 bg-linear-to-t from-black/90 via-black/60 to-transparent">
+      <div className="relative z-20 flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-8 py-3 sm:py-5 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
         
         {/* Información del Invitado y su Dedicatoria */}
         {currentPhoto && (

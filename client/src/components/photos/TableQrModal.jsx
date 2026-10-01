@@ -104,7 +104,7 @@ export function TableQrModal({ isOpen, onClose }) {
           <div className="absolute inset-2 border border-amber-300/60 rounded-2xl pointer-events-none" />
 
           {/* Monograma Medallón */}
-          <div className="w-14 h-14 rounded-full p-0.5 bg-linear-to-tr from-amber-300 to-wedding-primary mx-auto mb-3 shadow-xs">
+          <div className="w-14 h-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-300 to-wedding-primary mx-auto mb-3 shadow-xs">
             <div className="w-full h-full rounded-full bg-[#FAF7F2] border border-amber-200 flex items-center justify-center">
               <span className="font-editorial font-bold text-wedding-primaryDark text-base tracking-widest pl-0.5">
                 E<span className="text-amber-600 font-serif italic mx-0.5">&</span>D

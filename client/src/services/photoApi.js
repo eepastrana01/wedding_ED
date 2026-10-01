@@ -49,41 +49,83 @@ export const photoApi = {
     return res.data;
   },
 
-  // Compresión en el navegador con Canvas (reduce fotos de 12MB a ~250KB en milisegundos)
-  compressImage(file, maxDimension = 1600, quality = 0.85) {
+  // Optimización de Ultra Alta Calidad (3000px, 94% fidelidad, renderizado nítido de alta precisión)
+  compressImage(file, maxDimension = 3000, quality = 0.94) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          let { width, height } = img;
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.src = objectUrl;
 
-          if (width > maxDimension || height > maxDimension) {
-            if (width > height) {
-              height = Math.round((height * maxDimension) / width);
-              width = maxDimension;
-            } else {
-              width = Math.round((width * maxDimension) / height);
-              height = maxDimension;
-            }
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let { width, height } = img;
+
+        // Si ya está dentro de dimensiones razonables, conservar dimensiones originales
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
           }
+        }
 
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
 
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
+        const ctx = canvas.getContext('2d');
+        // Suavizado de máxima calidad gráfica
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
 
-          // Convertir a base64 Data URL comprimido
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-          resolve(compressedDataUrl);
-        };
-        img.onerror = (err) => reject(err);
+        // Convertir a JPEG de ultra alta fidelidad (0.94)
+        const highQualityDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(highQualityDataUrl);
       };
-      reader.onerror = (err) => reject(err);
+
+      img.onerror = (err) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
+      };
+    });
+  },
+
+  // Miniatura ultra ligera para navegación fluida en la grilla (500px, 0.82)
+  createThumbnail(fileOrDataUrl, maxDimension = 500, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = (err) => reject(err);
+
+      if (typeof fileOrDataUrl === 'string') {
+        img.src = fileOrDataUrl;
+      } else {
+        img.src = URL.createObjectURL(fileOrDataUrl);
+      }
     });
   },
 
@@ -107,7 +149,7 @@ export const photoApi = {
     const data = await res.json();
     return {
       url: data.secure_url,
-      thumbnailUrl: data.secure_url.replace('/upload/', '/upload/c_thumb,w_400/'),
+      thumbnailUrl: data.secure_url.replace('/upload/', '/upload/c_thumb,w_500/'),
       storageKey: data.public_id,
     };
   }
