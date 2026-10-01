@@ -26,7 +26,7 @@ import {
 export function FamilyView() {
   const { families, guests = [], loading, isRefreshing, showToast, refreshAll } = useWedding();
   const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all'); // 'all', 'families', 'friends', 'individuals', 'unassigned'
+  const [categoryFilter, setCategoryFilter] = useState('families'); // 'families', 'individuals', 'all', 'friends'
   const [modalOpen, setModalOpen] = useState(false);
   const [familyToEdit, setFamilyToEdit] = useState(null);
   const [preselectedGuestId, setPreselectedGuestId] = useState(null);
@@ -40,7 +40,7 @@ export function FamilyView() {
   const [targetFamilyId, setTargetFamilyId] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
 
-  // Clasificación de amigos (por nombre o relación de grupo de sus miembros)
+  // Clasificación de amigos (solo para casos genuinos de grupos de amigos)
   const isFriendFamily = (fam) => {
     if (!fam) return false;
     const nameMatch = fam.name && /amig/i.test(fam.name);
@@ -49,19 +49,7 @@ export function FamilyView() {
     return Boolean(nameMatch || notesMatch || memberMatch);
   };
 
-  // Clasificación de familias de 1 solo integrante (individuales)
-  const isIndividualFamily = (fam) => {
-    if (!fam) return false;
-    return fam.total_members === 1 || (fam.members && fam.members.length === 1);
-  };
-
-  // Clasificación de familias nucleares (3+ integrantes o apellido familiar tradicional)
-  const isTraditionalFamily = (fam) => {
-    if (!fam) return false;
-    return fam.total_members >= 3 || (/^familia/i.test(fam.name.trim()) && !isFriendFamily(fam));
-  };
-
-  // Invitados sin familia asignada (solos)
+  // Invitados sin familia asignada (solos / individuales)
   const unassignedGuests = useMemo(() => {
     return (guests || []).filter((g) => !g.family_id);
   }, [guests]);
@@ -70,36 +58,28 @@ export function FamilyView() {
     return Boolean(g.group_relation && /amig/i.test(g.group_relation));
   };
 
-  // Contadores dinámicos para los filtros
-  const traditionalFamiliesCount = useMemo(() => families.filter(isTraditionalFamily).length, [families]);
+  // Conteos
   const friendsFamiliesCount = useMemo(() => families.filter(isFriendFamily).length, [families]);
   const unassignedFriendsCount = useMemo(() => unassignedGuests.filter(isFriendGuest).length, [unassignedGuests]);
   const totalFriendsCount = friendsFamiliesCount + unassignedFriendsCount;
-  const individualFamiliesCount = useMemo(() => families.filter(isIndividualFamily).length, [families]);
-  const totalIndividualsCount = individualFamiliesCount + unassignedGuests.length;
+  const totalAllCount = families.length + unassignedGuests.length;
 
-  // Filtrado de Familias
+  // Filtrado de Familias (En la pestaña "Familias", TODAS las familias registradas son familias)
   const filteredFamilies = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    // Si el usuario elige específicamente la pestaña "Sin Agrupar", ocultamos las familias asignadas
-    if (categoryFilter === 'unassigned') {
+    // En la pestaña "Individuales", no mostramos las familias
+    if (categoryFilter === 'individuals') {
       return [];
     }
 
     return families.filter((f) => {
-      // Filtro de categoría
-      if (categoryFilter === 'families' && !isTraditionalFamily(f)) {
-        return false;
-      }
+      // Si se activa el filtro específico de amigos
       if (categoryFilter === 'friends' && !isFriendFamily(f)) {
         return false;
       }
-      if (categoryFilter === 'individuals' && !isIndividualFamily(f)) {
-        return false;
-      }
 
-      // Filtro de búsqueda
+      // Filtro de búsqueda en tiempo real
       if (q) {
         const matchName = f.name && f.name.toLowerCase().includes(q);
         const matchNotes = f.notes && f.notes.toLowerCase().includes(q);
@@ -121,8 +101,8 @@ export function FamilyView() {
   const filteredUnassignedGuests = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    // En la pestaña "Familias", no mostramos individuales sin familia
-    if (categoryFilter === 'families') {
+    // En la pestaña "Familias", no mostramos los individuales sin familia (a menos que haya una búsqueda específica)
+    if (categoryFilter === 'families' && !q) {
       return [];
     }
 
@@ -132,7 +112,7 @@ export function FamilyView() {
         return false;
       }
 
-      // Búsqueda
+      // Búsqueda en tiempo real
       if (q) {
         const matchName = g.name && g.name.toLowerCase().includes(q);
         const matchPartner = g.partner_name && g.partner_name.toLowerCase().includes(q);
@@ -225,7 +205,7 @@ export function FamilyView() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" size={17} />
             <input
               type="text"
-              placeholder="Buscar por familia, amigos, integrante o individual..."
+              placeholder="Buscar por familia, integrante o individual..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-9 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-base sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-wedding-accent focus:bg-white transition-all placeholder:text-stone-400"
@@ -269,18 +249,6 @@ export function FamilyView() {
         {/* Row 2: Category Filter Pills */}
         <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar pt-1 text-xs">
           <button
-            onClick={() => setCategoryFilter('all')}
-            className={`px-3 py-1.5 rounded-xl font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-              categoryFilter === 'all'
-                ? 'bg-wedding-primary text-white shadow-xs'
-                : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border border-stone-200/60'
-            }`}
-          >
-            <Users size={14} />
-            <span>Todos ({families.length})</span>
-          </button>
-
-          <button
             onClick={() => setCategoryFilter('families')}
             className={`px-3 py-1.5 rounded-xl font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
               categoryFilter === 'families'
@@ -289,20 +257,7 @@ export function FamilyView() {
             }`}
           >
             <Home size={14} />
-            <span>Familias ({traditionalFamiliesCount})</span>
-          </button>
-
-          <button
-            onClick={() => setCategoryFilter('friends')}
-            className={`px-3 py-1.5 rounded-xl font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-              categoryFilter === 'friends'
-                ? 'bg-amber-700 text-white shadow-xs'
-                : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200/70'
-            }`}
-            title="Grupos y amigos individuales"
-          >
-            <HeartHandshake size={14} />
-            <span>Amigos ({totalFriendsCount})</span>
+            <span>Familias ({families.length})</span>
           </button>
 
           <button
@@ -312,24 +267,38 @@ export function FamilyView() {
                 ? 'bg-purple-700 text-white shadow-xs'
                 : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200/70'
             }`}
-            title="Individuales en grupo y sin familia asignada"
+            title="Invitados individuales sin familia asignada"
           >
             <User size={14} />
-            <span>Individuales ({totalIndividualsCount})</span>
+            <span>Individuales ({unassignedGuests.length})</span>
           </button>
 
           <button
-            onClick={() => setCategoryFilter('unassigned')}
+            onClick={() => setCategoryFilter('all')}
             className={`px-3 py-1.5 rounded-xl font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-              categoryFilter === 'unassigned'
-                ? 'bg-blue-700 text-white shadow-xs'
-                : 'bg-blue-50 text-blue-900 hover:bg-blue-100 border border-blue-200/70'
+              categoryFilter === 'all'
+                ? 'bg-wedding-primary text-white shadow-xs'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border border-stone-200/60'
             }`}
-            title="Invitados que aún no tienen una familia asignada"
           >
-            <UserPlus size={14} />
-            <span>Sin Agrupar ({unassignedGuests.length})</span>
+            <Users size={14} />
+            <span>Todos ({totalAllCount})</span>
           </button>
+
+          {totalFriendsCount > 0 && (
+            <button
+              onClick={() => setCategoryFilter('friends')}
+              className={`px-3 py-1.5 rounded-xl font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                categoryFilter === 'friends'
+                  ? 'bg-amber-700 text-white shadow-xs'
+                  : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200/70'
+              }`}
+              title="Invitados asignados al grupo Amigos"
+            >
+              <HeartHandshake size={14} />
+              <span>Amigos ({totalFriendsCount})</span>
+            </button>
+          )}
         </div>
 
       </div>
@@ -337,7 +306,7 @@ export function FamilyView() {
       {/* Families Count & Sync Indicator */}
       <div className="flex items-center justify-between px-1 text-xs text-stone-500">
         <span>
-          Mostrando <strong className="text-stone-800">{filteredFamilies.length}</strong> familias / grupos
+          Mostrando <strong className="text-stone-800">{filteredFamilies.length}</strong> familias
           {filteredUnassignedGuests.length > 0 && (
             <span> y <strong className="text-stone-800">{filteredUnassignedGuests.length}</strong> individuales</span>
           )}
@@ -367,7 +336,7 @@ export function FamilyView() {
             </h3>
             <p className="text-stone-500 text-sm max-w-md mx-auto mt-1">
               {search
-                ? 'Prueba con otro término de búsqueda o limpia el filtro de categoría.'
+                ? 'Prueba con otro término de búsqueda o limpia los filtros.'
                 : 'Crea una familia o vincula invitados para organizarlos en este grupo.'}
             </p>
           </div>
@@ -375,9 +344,9 @@ export function FamilyView() {
             <button
               onClick={() => {
                 setSearch('');
-                setCategoryFilter('all');
+                setCategoryFilter('families');
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold cursor-pointer"
             >
               <span>Restablecer filtros</span>
             </button>
@@ -403,24 +372,24 @@ export function FamilyView() {
             </div>
           )}
 
-          {/* 2. Sección de Invitados Individuales (Sin Familia / Amigos Solos) */}
+          {/* 2. Sección de Invitados Individuales (Sin Familia Asignada) */}
           {filteredUnassignedGuests.length > 0 && (
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between border-t border-stone-200/80 pt-4">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-blue-100 text-blue-800">
+                  <div className="p-1.5 rounded-lg bg-purple-100 text-purple-800">
                     <UserPlus size={16} />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-stone-900">
-                      Invitados Individuales {categoryFilter === 'friends' ? 'Amigos' : ''} (Sin Familia Asignada)
+                      Invitados Individuales (Sin Familia Asignada)
                     </h3>
                     <p className="text-[11px] text-stone-500">
                       Invitados que asisten solos o que aún no han sido vinculados a un grupo familiar
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/60">
                   {filteredUnassignedGuests.length} {filteredUnassignedGuests.length === 1 ? 'invitado' : 'invitados'}
                 </span>
               </div>
@@ -460,7 +429,7 @@ export function FamilyView() {
                         <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-wedding-accentLight text-wedding-primaryDark">
                           {guest.confirmed_seats || 1} {(guest.confirmed_seats || 1) === 1 ? 'pase' : 'pases'}
                         </span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200/60">
                           Individual
                         </span>
                       </div>
