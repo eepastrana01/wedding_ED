@@ -7,6 +7,7 @@ import { FamilyView } from './components/families/FamilyView';
 import { CardsView } from './components/cards/CardsView';
 import { TaskView } from './components/tasks/TaskView';
 import { DashboardView } from './components/dashboard/DashboardView';
+import { CountdownView } from './components/countdown/CountdownView';
 import { CsvUploader } from './components/importer/CsvUploader';
 import { Toast } from './components/common/Toast';
 import { ChangelogModal } from './components/common/ChangelogModal';
@@ -24,6 +25,7 @@ function WeddingAppContent() {
         {activeTab === 'cards' && <CardsView />}
         {activeTab === 'tasks' && <TaskView />}
         {activeTab === 'dashboard' && <DashboardView />}
+        {activeTab === 'countdown' && <CountdownView />}
         {activeTab === 'importer' && <CsvUploader />}
       </main>
 
