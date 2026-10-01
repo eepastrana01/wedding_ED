@@ -1,19 +1,19 @@
 import React from 'react';
 import { useWedding } from '../../context/WeddingContext';
 import { useWeddingCountdown } from '../../hooks/useWeddingCountdown';
-import { Users, Home, Mail, BarChart3, ListTodo, Sparkles } from 'lucide-react';
+import { Users, Home, Mail, BarChart3, ListTodo, Sparkles, Camera } from 'lucide-react';
 
 export function MobileBottomNav() {
-  const { activeTab, setActiveTab, stats, invitationCards, taskMetrics } = useWedding();
+  const { activeTab, setActiveTab, stats, invitationCards, taskMetrics, photos } = useWedding();
   const { days } = useWeddingCountdown();
 
   const navItems = [
     { id: 'guests', label: 'Invitados', icon: Users, badge: stats?.overview?.total_guests },
     { id: 'families', label: 'Familias', icon: Home, badge: stats?.overview?.total_families },
     { id: 'cards', label: 'Tarjetas', icon: Mail, badge: invitationCards?.summary?.totalCards },
+    { id: 'photos', label: 'Fotos', icon: Camera, badge: photos?.length },
     { id: 'tasks', label: 'Tareas', icon: ListTodo, badge: taskMetrics?.pending },
     { id: 'countdown', label: 'Boda', icon: Sparkles, badgeText: `${days}d`, isHighlight: true },
-    { id: 'dashboard', label: 'Métricas', icon: BarChart3 },
   ];
 
   return (

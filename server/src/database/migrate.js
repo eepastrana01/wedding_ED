@@ -139,6 +139,28 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_tasks_category ON tasks(category);
     `);
 
+    // 7. Crear tabla photos si no existe
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS photos (
+        id SERIAL PRIMARY KEY,
+        url TEXT NOT NULL,
+        thumbnail_url TEXT,
+        storage_key VARCHAR(255),
+        uploader_name VARCHAR(150) NOT NULL,
+        caption TEXT,
+        guest_id INTEGER REFERENCES guests(id) ON DELETE SET NULL,
+        family_id INTEGER REFERENCES families(id) ON DELETE SET NULL,
+        status VARCHAR(50) DEFAULT 'approved',
+        likes INTEGER DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_photos_status ON photos(status);
+      CREATE INDEX IF NOT EXISTS idx_photos_created_at ON photos(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_photos_guest_id ON photos(guest_id);
+    `);
+
     console.log('✅ Migraciones completadas exitosamente en Neon PostgreSQL.');
   } catch (error) {
     console.error('❌ Error ejecutando migraciones:', error);

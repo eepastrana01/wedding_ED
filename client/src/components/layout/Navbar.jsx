@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useWedding } from '../../context/WeddingContext';
 import { useWeddingCountdown } from '../../hooks/useWeddingCountdown';
 import { CountdownModal } from '../countdown/CountdownModal';
-import { Users, Home, Mail, BarChart3, UploadCloud, Heart, Sparkles, ListTodo, Clock } from 'lucide-react';
+import { Users, Home, Mail, BarChart3, UploadCloud, Heart, Sparkles, ListTodo, Clock, Camera } from 'lucide-react';
 
 export function Navbar() {
-  const { activeTab, setActiveTab, stats, invitationCards, taskMetrics, openChangelog } = useWedding();
+  const { activeTab, setActiveTab, stats, invitationCards, taskMetrics, photos, openChangelog } = useWedding();
   const { days, hours, minutes } = useWeddingCountdown();
   const [isCountdownOpen, setIsCountdownOpen] = useState(false);
 
@@ -14,6 +14,7 @@ export function Navbar() {
     { id: 'families', label: 'Familias', icon: Home, count: stats?.overview?.total_families },
     { id: 'cards', label: 'Tarjetas', icon: Mail, count: invitationCards?.summary?.totalCards },
     { id: 'tasks', label: 'Tareas', icon: ListTodo, count: taskMetrics?.pending },
+    { id: 'photos', label: 'Fotos & Recuerdos', icon: Camera, count: photos?.length },
     { id: 'dashboard', label: 'Métricas & Aforo', icon: BarChart3 },
     { 
       id: 'countdown', 

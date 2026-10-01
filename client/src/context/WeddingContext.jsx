@@ -4,6 +4,7 @@ import { guestApi } from '../services/guestApi';
 import { familyApi } from '../services/familyApi';
 import { statsApi } from '../services/statsApi';
 import { taskApi } from '../services/taskApi';
+import { photoApi } from '../services/photoApi';
 
 const WeddingContext = createContext();
 
@@ -12,6 +13,9 @@ export function WeddingProvider({ children }) {
   const [guests, setGuests] = useState([]);
   const [families, setFamilies] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [photos, setPhotos] = useState([]);
+  const [photoStats, setPhotoStats] = useState(null);
+  const [isPhotoUploadOpen, setIsPhotoUploadOpen] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -105,6 +109,72 @@ export function WeddingProvider({ children }) {
     }
   }, []);
 
+  const openPhotoUpload = useCallback(() => setIsPhotoUploadOpen(true), []);
+  const closePhotoUpload = useCallback(() => setIsPhotoUploadOpen(false), []);
+
+  const fetchPhotos = useCallback(async (silent = false) => {
+    try {
+      const [photoList, statsData] = await Promise.all([
+        photoApi.getAll({ status: 'all' }),
+        photoApi.getStats()
+      ]);
+      setPhotos(photoList);
+      setPhotoStats(statsData);
+    } catch (err) {
+      console.error('Error fetching photos:', err);
+      if (!silent) {
+        showToast(err.message, 'error');
+      }
+    }
+  }, []);
+
+  const addPhoto = async (photoData) => {
+    try {
+      const newPhoto = await photoApi.create(photoData);
+      setPhotos((prev) => [newPhoto, ...prev]);
+      setPhotoStats((prev) => prev ? {
+        ...prev,
+        total_photos: Number(prev.total_photos || 0) + 1,
+        approved_photos: Number(prev.approved_photos || 0) + 1,
+      } : null);
+      showToast('¡Foto agregada a los recuerdos con éxito!', 'success');
+      triggerCelebration();
+      return newPhoto;
+    } catch (err) {
+      showToast(err.message || 'Error al guardar foto', 'error');
+      throw err;
+    }
+  };
+
+  const likePhoto = async (id) => {
+    try {
+      setPhotos((prev) => prev.map((p) => p.id === id ? { ...p, likes: Number(p.likes || 0) + 1 } : p));
+      await photoApi.like(id);
+    } catch (err) {
+      console.error('Error liking photo:', err);
+    }
+  };
+
+  const updatePhotoStatus = async (id, status) => {
+    try {
+      const updated = await photoApi.updateStatus(id, status);
+      setPhotos((prev) => prev.map((p) => p.id === id ? updated : p));
+      showToast(`Estado de foto actualizado a ${status}`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Error al actualizar foto', 'error');
+    }
+  };
+
+  const deletePhoto = async (id) => {
+    try {
+      await photoApi.delete(id);
+      setPhotos((prev) => prev.filter((p) => p.id !== id));
+      showToast('Foto eliminada del álbum', 'info');
+    } catch (err) {
+      showToast(err.message || 'Error al eliminar foto', 'error');
+    }
+  };
+
   // Silent refresh in background that does NOT flash full loading spinners or reset scroll
   const refreshAll = useCallback(async (isInitial = false) => {
     if (isInitial) {
@@ -116,14 +186,15 @@ export function WeddingProvider({ children }) {
       fetchAllGuests(!isInitial), 
       fetchFamilies(), 
       fetchStats(),
-      fetchTasks(!isInitial)
+      fetchTasks(!isInitial),
+      fetchPhotos(!isInitial)
     ]);
     if (isInitial) {
       setLoading(false);
     } else {
       setIsRefreshing(false);
     }
-  }, [fetchAllGuests, fetchFamilies, fetchStats, fetchTasks]);
+  }, [fetchAllGuests, fetchFamilies, fetchStats, fetchTasks, fetchPhotos]);
 
   useEffect(() => {
     // Carga inicial
@@ -592,6 +663,16 @@ export function WeddingProvider({ children }) {
         setIsChangelogOpen,
         openChangelog,
         closeChangelog,
+        photos,
+        photoStats,
+        isPhotoUploadOpen,
+        openPhotoUpload,
+        closePhotoUpload,
+        fetchPhotos,
+        addPhoto,
+        likePhoto,
+        updatePhotoStatus,
+        deletePhoto,
         showToast,
         toastMessage,
         setToastMessage,

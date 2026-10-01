@@ -8,12 +8,22 @@ import { CardsView } from './components/cards/CardsView';
 import { TaskView } from './components/tasks/TaskView';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { CountdownView } from './components/countdown/CountdownView';
+import { PhotoWallView } from './components/photos/PhotoWallView';
 import { CsvUploader } from './components/importer/CsvUploader';
 import { Toast } from './components/common/Toast';
 import { ChangelogModal } from './components/common/ChangelogModal';
 
 function WeddingAppContent() {
-  const { activeTab, isChangelogOpen, closeChangelog } = useWedding();
+  const { activeTab, setActiveTab, isChangelogOpen, closeChangelog } = useWedding();
+
+  // Soporte para enlaces directos por código QR (ej. ?tab=photos)
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['guests', 'families', 'cards', 'tasks', 'dashboard', 'countdown', 'photos', 'importer'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [setActiveTab]);
 
   return (
     <div className="min-h-screen flex flex-col bg-wedding-bg">
@@ -26,6 +36,7 @@ function WeddingAppContent() {
         {activeTab === 'tasks' && <TaskView />}
         {activeTab === 'dashboard' && <DashboardView />}
         {activeTab === 'countdown' && <CountdownView />}
+        {activeTab === 'photos' && <PhotoWallView />}
         {activeTab === 'importer' && <CsvUploader />}
       </main>
 
