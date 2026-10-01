@@ -68,7 +68,7 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
     ? customName.trim()
     : `${currentAnimal.emoji} ${currentAnimal.name}`;
 
-  // Manejar selección de archivos desde cámara o galería en Ultra Calidad
+  // Manejar selección de archivos desde cámara o galería en Máxima Calidad
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -81,9 +81,18 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
       for (const file of files) {
         if (!file.type.startsWith('image/')) continue;
         
-        // 1. Imagen de Ultra Alta Definición (3000px, 94% calidad para zoom y descarga)
-        const fullUrl = await photoApi.compressImage(file, 3000, 0.94);
-        // 2. Miniatura nítida y rápida para la grilla (500px)
+        let fullUrl;
+        const isSmallEnoughForDirect = file.size <= 3.2 * 1024 * 1024; // Hasta 3.2 MB (conserva exactamente los bytes originales)
+
+        if (isSmallEnoughForDirect) {
+          // 1. Conservar 100% el archivo original sin tocar ni recomprimir nada (0% pérdida de calidad)
+          fullUrl = await photoApi.readFileAsOriginal(file);
+        } else {
+          // Si pasa de 3.2 MB y va a Neon, se optimiza en ultra alta resolución (3600px, 95% calidad)
+          fullUrl = await photoApi.compressImage(file, 3600, 0.95);
+        }
+
+        // 2. Miniatura nítida para la grilla rápida (500px)
         const thumbUrl = await photoApi.createThumbnail(fullUrl, 500, 0.82);
 
         newItems.push({
@@ -91,6 +100,8 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
           preview: thumbUrl,
           fullUrl,
           thumbUrl,
+          sizeMb: (file.size / (1024 * 1024)).toFixed(1),
+          isOriginal: isSmallEnoughForDirect,
         });
       }
 

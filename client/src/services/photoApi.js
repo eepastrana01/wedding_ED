@@ -49,7 +49,17 @@ export const photoApi = {
     return res.data;
   },
 
-  // Optimización de Ultra Alta Calidad (3000px, 94% fidelidad, renderizado nítido de alta precisión)
+  // Leer archivo 100% original sin tocar ni recomprimir nada (conserva exactamente los MB originales)
+  readFileAsOriginal(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  },
+
+  // Optimización de Ultra Alta Calidad (3600px, 96% fidelidad, renderizado nítido de alta precisión)
   compressImage(file, maxDimension = 3000, quality = 0.94) {
     return new Promise((resolve, reject) => {
       const objectUrl = URL.createObjectURL(file);
