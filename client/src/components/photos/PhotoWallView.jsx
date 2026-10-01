@@ -18,7 +18,8 @@ import {
   Filter, 
   Image as ImageIcon,
   Loader2,
-  Users
+  Users,
+  ExternalLink
 } from 'lucide-react';
 
 export function PhotoWallView() {
@@ -218,6 +219,24 @@ export function PhotoWallView() {
               <QrCode size={16} className="text-wedding-primary" />
               <span>QR para Mesas</span>
             </button>
+
+            {/* Álbum Oficial en Google Photos */}
+            <a
+              href="https://photos.app.goo.gl/6sSJGZM6tVVg4PnU9"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-white hover:bg-blue-50 text-blue-900 border border-blue-200 hover:border-blue-400 px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-2xs transition"
+              title="Abrir álbum colaborativo oficial en Google Photos"
+            >
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <path fill="#EA4335" d="M12 5a7 7 0 0 0-7 7v1h7V5z"/>
+                <path fill="#4285F4" d="M19 12a7 7 0 0 0-7-7h-1v7h8z"/>
+                <path fill="#FBBC05" d="M5 12a7 7 0 0 0 7 7h1v-7H5z"/>
+                <path fill="#34A853" d="M12 19a7 7 0 0 0 7-7v-1h-7v8z"/>
+              </svg>
+              <span>Álbum Google Photos</span>
+              <ExternalLink size={13} className="text-blue-500" />
+            </a>
           </div>
 
           {/* Botones Secundarios: Descarga ZIP y Ajustes */}
@@ -248,6 +267,45 @@ export function PhotoWallView() {
 
         </div>
 
+      </div>
+
+      {/* ========================================================
+          BANNER DE GOOGLE PHOTOS COLABORATIVO
+          ======================================================== */}
+      <div className="bg-gradient-to-r from-blue-50/80 via-white to-amber-50/50 rounded-2xl p-4 border border-blue-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-white border border-blue-200 flex items-center justify-center shadow-xs shrink-0">
+            <svg className="w-6 h-6" viewBox="0 0 24 24">
+              <path fill="#EA4335" d="M12 5a7 7 0 0 0-7 7v1h7V5z"/>
+              <path fill="#4285F4" d="M19 12a7 7 0 0 0-7-7h-1v7h8z"/>
+              <path fill="#FBBC05" d="M5 12a7 7 0 0 0 7 7h1v-7H5z"/>
+              <path fill="#34A853" d="M12 19a7 7 0 0 0 7-7v-1h-7v8z"/>
+            </svg>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="font-editorial text-sm sm:text-base font-bold text-stone-900 leading-tight">
+                Álbum Oficial en Google Photos
+              </h4>
+              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
+                Colaborativo
+              </span>
+            </div>
+            <p className="text-xs text-stone-600 mt-0.5">
+              Si prefieres subir lotes grandes de fotos y videos en calidad original directamente con tu cuenta de Google, puedes agregarlas a nuestro álbum compartido.
+            </p>
+          </div>
+        </div>
+
+        <a
+          href="https://photos.app.goo.gl/6sSJGZM6tVVg4PnU9"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition shrink-0"
+        >
+          <span>Abrir Google Photos</span>
+          <ExternalLink size={13} />
+        </a>
       </div>
 
       {/* ========================================================

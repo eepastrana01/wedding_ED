@@ -504,6 +504,25 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
               </button>
             </div>
 
+            {/* Alternativa Google Photos para lotes grandes */}
+            <div className="pt-2 text-center border-t border-stone-100">
+              <a
+                href="https://photos.app.goo.gl/6sSJGZM6tVVg4PnU9"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-900 font-semibold transition py-1 hover:underline"
+              >
+                <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                  <path fill="#EA4335" d="M12 5a7 7 0 0 0-7 7v1h7V5z"/>
+                  <path fill="#4285F4" d="M19 12a7 7 0 0 0-7-7h-1v7h8z"/>
+                  <path fill="#FBBC05" d="M5 12a7 7 0 0 0 7 7h1v-7H5z"/>
+                  <path fill="#34A853" d="M12 19a7 7 0 0 0 7-7v-1h-7v8z"/>
+                </svg>
+                <span>¿Prefieres usar Google Photos? Abre el álbum compartido</span>
+                <span className="text-blue-500 font-bold">↗</span>
+              </a>
+            </div>
+
           </div>
         )}
 

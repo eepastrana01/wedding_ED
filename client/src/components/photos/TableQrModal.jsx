@@ -191,6 +191,30 @@ export function TableQrModal({ isOpen, onClose }) {
             </button>
           </div>
 
+          {/* Enlace alternativo a Google Photos */}
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-xs">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <path fill="#EA4335" d="M12 5a7 7 0 0 0-7 7v1h7V5z"/>
+                <path fill="#4285F4" d="M19 12a7 7 0 0 0-7-7h-1v7h8z"/>
+                <path fill="#FBBC05" d="M5 12a7 7 0 0 0 7 7h1v-7H5z"/>
+                <path fill="#34A853" d="M12 19a7 7 0 0 0 7-7v-1h-7v8z"/>
+              </svg>
+              <span className="font-semibold text-blue-900">
+                Álbum Oficial de Google Photos
+              </span>
+            </div>
+            <a
+              href="https://photos.app.goo.gl/6sSJGZM6tVVg4PnU9"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-[11px] shadow-xs transition"
+            >
+              <span>Abrir Álbum</span>
+              <ExternalLink size={12} />
+            </a>
+          </div>
+
         </div>
 
       </div>
