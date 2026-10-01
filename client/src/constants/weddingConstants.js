@@ -51,3 +51,5 @@ export const DEFAULT_GROUPS = [
 export const GUEST_TYPES = ['Titular', 'Acompañante', 'Familiar', 'VIP', 'Padrino/Madrina', 'Dama de Honor', 'Testigo'];
 
 export const AGE_TYPES = ['Adulto', 'Joven', 'Niño', 'Bebé'];
+
+export const GOOGLE_PHOTOS_ALBUM_URL = 'https://photos.app.goo.gl/mKvgJ4jYmZXbP9or9';

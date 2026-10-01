@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
+import { GOOGLE_PHOTOS_ALBUM_URL } from '../../constants/weddingConstants';
 import { 
   X, 
   Printer, 
@@ -205,7 +206,7 @@ export function TableQrModal({ isOpen, onClose }) {
               </span>
             </div>
             <a
-              href="https://photos.app.goo.gl/6sSJGZM6tVVg4PnU9"
+              href={GOOGLE_PHOTOS_ALBUM_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-[11px] shadow-xs transition"

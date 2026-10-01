@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useWedding } from '../../context/WeddingContext';
 import { photoApi } from '../../services/photoApi';
 import { WEDDING_ANIMALS, getRandomWeddingAnimal } from '../../constants/weddingAnimals';
+import { GOOGLE_PHOTOS_ALBUM_URL } from '../../constants/weddingConstants';
 import confetti from 'canvas-confetti';
 import { 
   Camera, 
@@ -507,7 +508,7 @@ export function GuestPhotoUploadModal({ isOpen, onClose }) {
             {/* Alternativa Google Photos para lotes grandes */}
             <div className="pt-2 text-center border-t border-stone-100">
               <a
-                href="https://photos.app.goo.gl/6sSJGZM6tVVg4PnU9"
+                href={GOOGLE_PHOTOS_ALBUM_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-900 font-semibold transition py-1 hover:underline"

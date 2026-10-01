@@ -4,6 +4,7 @@ import { GuestPhotoUploadModal } from './GuestPhotoUploadModal';
 import { LiveSlideshowModal } from './LiveSlideshowModal';
 import { TableQrModal } from './TableQrModal';
 import { PhotoLightboxModal } from './PhotoLightboxModal';
+import { GOOGLE_PHOTOS_ALBUM_URL } from '../../constants/weddingConstants';
 import JSZip from 'jszip';
 import { 
   Camera, 
@@ -222,7 +223,7 @@ export function PhotoWallView() {
 
             {/* Álbum Oficial en Google Photos */}
             <a
-              href="https://photos.app.goo.gl/6sSJGZM6tVVg4PnU9"
+              href={GOOGLE_PHOTOS_ALBUM_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 bg-white hover:bg-blue-50 text-blue-900 border border-blue-200 hover:border-blue-400 px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-2xs transition"
@@ -298,7 +299,7 @@ export function PhotoWallView() {
         </div>
 
         <a
-          href="https://photos.app.goo.gl/6sSJGZM6tVVg4PnU9"
+          href={GOOGLE_PHOTOS_ALBUM_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition shrink-0"
