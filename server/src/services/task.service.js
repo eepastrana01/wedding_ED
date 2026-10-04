@@ -24,9 +24,9 @@ export const taskService = {
     if (search && search.trim()) {
       params.push(`%${search.trim().toLowerCase()}%`);
       query += ` AND (
-        LOWER(title) LIKE $${params.length} 
-        OR LOWER(COALESCE(description, '')) LIKE $${params.length}
-        OR subtasks::text ILIKE $${params.length}
+        unaccent(LOWER(title)) LIKE unaccent($${params.length}) 
+        OR unaccent(LOWER(COALESCE(description, ''))) LIKE unaccent($${params.length})
+        OR unaccent(LOWER(subtasks::text)) LIKE unaccent($${params.length})
       )`;
     }
 

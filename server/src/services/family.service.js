@@ -40,7 +40,7 @@ export const familyService = {
 
     if (search) {
       params.push(`%${search.trim().toLowerCase()}%`);
-      query += ` WHERE LOWER(f.name) LIKE $1 OR LOWER(COALESCE(g.name, '')) LIKE $1`;
+      query += ` WHERE unaccent(LOWER(f.name)) LIKE unaccent($1) OR unaccent(LOWER(COALESCE(g.name, ''))) LIKE unaccent($1)`;
     }
 
     query += ` GROUP BY f.id ORDER BY f.name ASC`;

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useWedding } from '../../context/WeddingContext';
 import { TaskCard } from './TaskCard';
 import { TaskModal, TASK_CATEGORIES } from './TaskModal';
+import { matchesSearch } from '../../utils/textUtils';
 import { 
   Plus, 
   Sparkles, 
@@ -41,13 +42,16 @@ export function TaskView() {
     const q = search.trim().toLowerCase();
 
     return tasks.filter((task) => {
-      // Filtro de búsqueda
-      if (q) {
-        const matchTitle = task.title && task.title.toLowerCase().includes(q);
-        const matchDesc = task.description && task.description.toLowerCase().includes(q);
-        const matchCategory = task.category && task.category.toLowerCase().includes(q);
-        const matchSubtasks = task.subtasks && task.subtasks.some((st) => st.title.toLowerCase().includes(q));
-        if (!matchTitle && !matchDesc && !matchCategory && !matchSubtasks) {
+      // Filtro de búsqueda (insensible a acentos/diacríticos)
+      if (search && search.trim()) {
+        const isMatch = matchesSearch([
+          task.title,
+          task.description,
+          task.category,
+          task.assigned_to,
+          ...(task.subtasks || []).map((st) => st.title)
+        ], search);
+        if (!isMatch) {
           return false;
         }
       }

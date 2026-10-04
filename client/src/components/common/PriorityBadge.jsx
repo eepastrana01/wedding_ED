@@ -1,5 +1,6 @@
 import React from 'react';
 import { PRIORITY_CONFIG } from '../../constants/weddingConstants';
+import { normalizeText } from '../../utils/textUtils';
 
 export function PriorityBadge({ priority = 'A', className = '' }) {
   const config = PRIORITY_CONFIG[priority] || {
@@ -16,8 +17,9 @@ export function PriorityBadge({ priority = 'A', className = '' }) {
 
 export function GroupBadge({ group, className = '' }) {
   if (!group) return null;
-  const isNovio = group.toLowerCase().includes('novio');
-  const isNovia = group.toLowerCase().includes('novia');
+  const norm = normalizeText(group);
+  const isNovio = norm.includes('novio');
+  const isNovia = norm.includes('novia');
 
   let colorClass = 'bg-stone-100 text-stone-700 border-stone-200';
   if (isNovio) {

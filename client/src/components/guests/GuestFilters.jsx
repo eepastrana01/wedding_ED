@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useWedding } from '../../context/WeddingContext';
 import { Search, Filter, X, Users, UserPlus, ChevronDown, ChevronUp } from 'lucide-react';
 import { DEFAULT_GROUPS } from '../../constants/weddingConstants';
+import { getAvailableGroups, areStringsEqualNormalized } from '../../utils/textUtils';
 
 export function GuestFilters({ onNewGuest, totalCount = 0 }) {
-  const { filters, setFilters, stats, families } = useWedding();
+  const { filters, setFilters, stats, families, guests } = useWedding();
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const availableGroups = useMemo(() => {
+    return getAvailableGroups(guests, DEFAULT_GROUPS);
+  }, [guests]);
 
   const handleSearchChange = (e) => {
     setFilters((prev) => ({ ...prev, search: e.target.value }));
@@ -157,12 +162,12 @@ export function GuestFilters({ onNewGuest, totalCount = 0 }) {
         {/* Grupo / Relación */}
         <div>
           <select
-            value={filters.group_relation}
+            value={filters.group_relation || 'all'}
             onChange={handleGroupFilter}
             className="w-full px-2.5 py-2 sm:py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-700 text-base sm:text-xs focus:ring-1 focus:ring-wedding-accent bg-white"
           >
             <option value="all">Todo Grupo / Relación</option>
-            {DEFAULT_GROUPS.map((g) => (
+            {availableGroups.map((g) => (
               <option key={g} value={g}>{g}</option>
             ))}
           </select>

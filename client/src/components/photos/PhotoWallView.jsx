@@ -5,6 +5,7 @@ import { LiveSlideshowModal } from './LiveSlideshowModal';
 import { TableQrModal } from './TableQrModal';
 import { PhotoLightboxModal } from './PhotoLightboxModal';
 import { GOOGLE_PHOTOS_ALBUM_URL } from '../../constants/weddingConstants';
+import { normalizeText } from '../../utils/textUtils';
 import JSZip from 'jszip';
 import { 
   Camera, 
@@ -92,7 +93,7 @@ export function PhotoWallView() {
         try {
           const res = await fetch(photo.url);
           const blob = await res.blob();
-          const cleanName = (photo.uploader_name || 'Invitado').replace(/[^a-zA-Z0-9_-]/g, '_');
+          const cleanName = normalizeText(photo.uploader_name || 'Invitado').replace(/[^a-z0-9_-]/g, '_');
           folder.file(`${i + 1}_${cleanName}_${photo.id}.jpg`, blob);
         } catch (fetchErr) {
           console.warn('Error descargando imagen para zip:', fetchErr);

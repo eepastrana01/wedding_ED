@@ -4,6 +4,7 @@ import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, Mess
 import { openWhatsApp } from '../../utils/whatsapp';
 import { generateInvitationCardsPDF } from '../../utils/pdfGenerator';
 import { LabelsPrintModal } from './LabelsPrintModal';
+import { matchesSearch } from '../../utils/textUtils';
 
 export function CardsView() {
   const { invitationCards, toggleDeliveryStatus, showToast } = useWedding();
@@ -19,13 +20,16 @@ export function CardsView() {
     const q = search.trim().toLowerCase();
 
     return all.filter((card) => {
-      // Search filter
-      if (q) {
-        const matchTitle = card.title && card.title.toLowerCase().includes(q);
-        const matchSalutation = card.salutation && card.salutation.toLowerCase().includes(q);
-        const matchMembers = card.members && card.members.some((m) => m.name && m.name.toLowerCase().includes(q));
-        const matchPhone = card.phone && card.phone.toLowerCase().includes(q);
-        if (!matchTitle && !matchSalutation && !matchMembers && !matchPhone) {
+      // Search filter (insensible a acentos/diacríticos)
+      if (search && search.trim()) {
+        const isMatch = matchesSearch([
+          card.title,
+          card.salutation,
+          card.phone,
+          card.group,
+          ...(card.members || []).flatMap((m) => [m.name, m.partner_name])
+        ], search);
+        if (!isMatch) {
           return false;
         }
       }

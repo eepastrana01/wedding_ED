@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { useWedding } from '../../context/WeddingContext';
 import { familyApi } from '../../services/familyApi';
+import { matchesSearch } from '../../utils/textUtils';
 import { Plus, X, Search, UserCheck } from 'lucide-react';
 
 export function FamilyModal({ isOpen, onClose, familyToEdit = null, preselectedGuestId = null }) {
@@ -72,14 +73,13 @@ export function FamilyModal({ isOpen, onClose, familyToEdit = null, preselectedG
     }
   };
 
-  // Filter available guests for selection
+  // Filter available guests for selection (insensible a acentos/diacríticos)
   const filteredGuests = guests.filter((g) => {
-    const matchesSearch = g.name.toLowerCase().includes(guestSearch.toLowerCase()) ||
-      (g.partner_name && g.partner_name.toLowerCase().includes(guestSearch.toLowerCase()));
+    const isSearchMatch = matchesSearch([g.name, g.partner_name, g.group_relation, g.phone], guestSearch);
     
     // Show if matches search and either is not in a family, or is in THIS family
     const isAvailableOrCurrent = !g.family_id || (familyToEdit && g.family_id === familyToEdit.id);
-    return matchesSearch && isAvailableOrCurrent;
+    return isSearchMatch && isAvailableOrCurrent;
   });
 
   return (

@@ -4,6 +4,7 @@ import { FamilyCard } from './FamilyCard';
 import { FamilyModal } from './FamilyModal';
 import { Modal } from '../common/Modal';
 import { familyApi } from '../../services/familyApi';
+import { normalizeText, matchesSearch } from '../../utils/textUtils';
 import { 
   Home, 
   Plus, 
@@ -43,10 +44,12 @@ export function FamilyView() {
   // Clasificación de amigos (solo para casos genuinos de grupos de amigos)
   const isFriendFamily = (fam) => {
     if (!fam) return false;
-    const nameMatch = fam.name && /amig/i.test(fam.name);
-    const notesMatch = fam.notes && /amig/i.test(fam.notes);
-    const memberMatch = fam.members && fam.members.some((m) => m.group_relation && /amig/i.test(m.group_relation));
-    return Boolean(nameMatch || notesMatch || memberMatch);
+    const targets = [
+      fam.name,
+      fam.notes,
+      ...(fam.members || []).map((m) => m.group_relation)
+    ];
+    return targets.some((t) => normalizeText(t).includes('amig'));
   };
 
   // Invitados sin familia asignada (solos / individuales)
@@ -55,7 +58,7 @@ export function FamilyView() {
   }, [guests]);
 
   const isFriendGuest = (g) => {
-    return Boolean(g.group_relation && /amig/i.test(g.group_relation));
+    return normalizeText(g?.group_relation).includes('amig');
   };
 
   // Conteos
@@ -66,8 +69,6 @@ export function FamilyView() {
 
   // Filtrado de Familias (En la pestaña "Familias", TODAS las familias registradas son familias)
   const filteredFamilies = useMemo(() => {
-    const q = search.trim().toLowerCase();
-
     // En la pestaña "Individuales", no mostramos las familias
     if (categoryFilter === 'individuals') {
       return [];
@@ -79,16 +80,15 @@ export function FamilyView() {
         return false;
       }
 
-      // Filtro de búsqueda en tiempo real
-      if (q) {
-        const matchName = f.name && f.name.toLowerCase().includes(q);
-        const matchNotes = f.notes && f.notes.toLowerCase().includes(q);
-        const matchPhone = f.phone && f.phone.toLowerCase().includes(q);
-        const matchMembers = f.members && f.members.some((m) =>
-          (m.name && m.name.toLowerCase().includes(q)) ||
-          (m.group_relation && m.group_relation.toLowerCase().includes(q))
-        );
-        if (!matchName && !matchNotes && !matchPhone && !matchMembers) {
+      // Filtro de búsqueda en tiempo real insensible a acentos
+      if (search && search.trim()) {
+        const isMatch = matchesSearch([
+          f.name,
+          f.notes,
+          f.phone,
+          ...(f.members || []).flatMap((m) => [m.name, m.partner_name, m.group_relation, m.phone, m.notes])
+        ], search);
+        if (!isMatch) {
           return false;
         }
       }
@@ -99,7 +99,7 @@ export function FamilyView() {
 
   // Filtrado de Invitados Individuales (sin familia asignada)
   const filteredUnassignedGuests = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = search.trim();
 
     // En la pestaña "Familias", no mostramos los individuales sin familia (a menos que haya una búsqueda específica)
     if (categoryFilter === 'families' && !q) {
@@ -112,13 +112,17 @@ export function FamilyView() {
         return false;
       }
 
-      // Búsqueda en tiempo real
+      // Búsqueda en tiempo real insensible a acentos
       if (q) {
-        const matchName = g.name && g.name.toLowerCase().includes(q);
-        const matchPartner = g.partner_name && g.partner_name.toLowerCase().includes(q);
-        const matchGroup = g.group_relation && g.group_relation.toLowerCase().includes(q);
-        const matchPhone = g.phone && g.phone.toLowerCase().includes(q);
-        if (!matchName && !matchPartner && !matchGroup && !matchPhone) {
+        const isMatch = matchesSearch([
+          g.name,
+          g.partner_name,
+          g.group_relation,
+          g.phone,
+          g.notes,
+          g.dietary_notes
+        ], q);
+        if (!isMatch) {
           return false;
         }
       }

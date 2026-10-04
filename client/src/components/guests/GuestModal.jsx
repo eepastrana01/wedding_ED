@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../common/Modal';
 import { useWedding } from '../../context/WeddingContext';
 import { DEFAULT_GROUPS, GUEST_TYPES, AGE_TYPES } from '../../constants/weddingConstants';
+import { getAvailableGroups } from '../../utils/textUtils';
 import { guestApi } from '../../services/guestApi';
 
 export function GuestModal({ isOpen, onClose, guestToEdit = null, onSaved }) {
-  const { families, showToast, refreshAll } = useWedding();
+  const { families, showToast, refreshAll, guests } = useWedding();
   const [loading, setLoading] = useState(false);
+
+  const availableGroups = useMemo(() => {
+    return getAvailableGroups(guests, DEFAULT_GROUPS);
+  }, [guests]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -197,7 +202,7 @@ export function GuestModal({ isOpen, onClose, guestToEdit = null, onSaved }) {
               className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-wedding-accent focus:border-wedding-accent text-base sm:text-sm"
             />
             <datalist id="groups-list">
-              {DEFAULT_GROUPS.map((g) => (
+              {availableGroups.map((g) => (
                 <option key={g} value={g} />
               ))}
             </datalist>

@@ -16,10 +16,11 @@ export const guestService = {
     if (search) {
       params.push(`%${search.trim().toLowerCase()}%`);
       query += ` AND (
-        LOWER(g.name) LIKE $${params.length} 
-        OR LOWER(COALESCE(g.partner_name, '')) LIKE $${params.length} 
-        OR LOWER(COALESCE(f.name, '')) LIKE $${params.length}
-        OR LOWER(COALESCE(g.phone, '')) LIKE $${params.length}
+        unaccent(LOWER(COALESCE(g.name, ''))) LIKE unaccent($${params.length}) 
+        OR unaccent(LOWER(COALESCE(g.partner_name, ''))) LIKE unaccent($${params.length}) 
+        OR unaccent(LOWER(COALESCE(f.name, ''))) LIKE unaccent($${params.length})
+        OR unaccent(LOWER(COALESCE(g.phone, ''))) LIKE unaccent($${params.length})
+        OR unaccent(LOWER(COALESCE(g.group_relation, ''))) LIKE unaccent($${params.length})
       )`;
     }
 
@@ -30,7 +31,7 @@ export const guestService = {
 
     if (group_relation && group_relation !== 'all') {
       params.push(group_relation);
-      query += ` AND g.group_relation = $${params.length}`;
+      query += ` AND unaccent(LOWER(COALESCE(g.group_relation, ''))) = unaccent(LOWER($${params.length}))`;
     }
 
     if (priority && priority !== 'all') {

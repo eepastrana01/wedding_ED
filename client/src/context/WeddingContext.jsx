@@ -5,6 +5,7 @@ import { familyApi } from '../services/familyApi';
 import { statsApi } from '../services/statsApi';
 import { taskApi } from '../services/taskApi';
 import { photoApi } from '../services/photoApi';
+import { normalizeText, matchesSearch, areStringsEqualNormalized } from '../utils/textUtils';
 
 const WeddingContext = createContext();
 
@@ -225,19 +226,23 @@ export function WeddingProvider({ children }) {
     };
   }, [refreshAll]);
 
-  // Instant in-memory filtering: 0ms lag, silky smooth 60fps typing
+  // Instant in-memory filtering: 0ms lag, silky smooth 60fps typing, insensible a acentos/diacríticos
   const filteredGuests = useMemo(() => {
-    const searchLower = filters.search.trim().toLowerCase();
-
     return guests.filter((g) => {
-      // Search filter
-      if (searchLower) {
-        const matchName = g.name && g.name.toLowerCase().includes(searchLower);
-        const matchPartner = g.partner_name && g.partner_name.toLowerCase().includes(searchLower);
-        const matchFamily = g.family_name && g.family_name.toLowerCase().includes(searchLower);
-        const matchPhone = g.phone && g.phone.toLowerCase().includes(searchLower);
-        const matchGroup = g.group_relation && g.group_relation.toLowerCase().includes(searchLower);
-        if (!matchName && !matchPartner && !matchFamily && !matchPhone && !matchGroup) {
+      // Search filter (búsqueda multicampo insensible a acentos, diacríticos y mayúsculas)
+      if (filters.search && filters.search.trim()) {
+        const isMatch = matchesSearch([
+          g.name,
+          g.partner_name,
+          g.family_name,
+          g.phone,
+          g.group_relation,
+          g.notes,
+          g.dietary_notes,
+          g.type,
+          g.guest_type
+        ], filters.search);
+        if (!isMatch) {
           return false;
         }
       }
@@ -247,14 +252,14 @@ export function WeddingProvider({ children }) {
         if (g.status !== filters.status) return false;
       }
 
-      // Group relation filter
+      // Group relation filter (insensible a acentos: ej. "Tíos" vs "Tios", "Amigos en Común" vs "Amigos en Comun")
       if (filters.group_relation && filters.group_relation !== 'all') {
-        if (g.group_relation !== filters.group_relation) return false;
+        if (!areStringsEqualNormalized(g.group_relation, filters.group_relation)) return false;
       }
 
-      // Priority filter
+      // Priority filter (insensible a acentos y mayúsculas)
       if (filters.priority && filters.priority !== 'all') {
-        if (g.priority !== filters.priority) return false;
+        if (!areStringsEqualNormalized(g.priority, filters.priority)) return false;
       }
 
       // Family filter
@@ -307,9 +312,9 @@ export function WeddingProvider({ children }) {
     // 2. Individual / Couple cards (guests with no family_id)
     const soloGuests = guests.filter((g) => !g.family_id);
     const individualCards = soloGuests.map((guest) => {
-      const INVALID_PARTNERS = ['novio', 'novia', 'comun', 'común', 'general', 'ninguno', 'ninguna', 'no', 'sin pareja'];
+      const INVALID_PARTNERS = ['novio', 'novia', 'comun', 'general', 'ninguno', 'ninguna', 'no', 'sin pareja'];
       const rawPartner = (guest.partner_name || '').trim();
-      const hasPartner = Boolean(rawPartner && !INVALID_PARTNERS.includes(rawPartner.toLowerCase()));
+      const hasPartner = Boolean(rawPartner && !INVALID_PARTNERS.includes(normalizeText(rawPartner)));
       const seats = hasPartner ? Math.max(2, parseInt(guest.confirmed_seats, 10) || 2) : (parseInt(guest.confirmed_seats, 10) || 1);
 
       let salutation = guest.name;

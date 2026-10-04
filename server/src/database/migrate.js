@@ -5,6 +5,9 @@ export async function runMigrations() {
   try {
     console.log('🔄 Ejecutando migraciones seguras en Neon PostgreSQL...');
 
+    // 0. Habilitar extensión unaccent para búsquedas y filtros insensibles a tildes
+    await client.query(`CREATE EXTENSION IF NOT EXISTS unaccent;`);
+
     // 1. Crear tabla families si no existe
     await client.query(`
       CREATE TABLE IF NOT EXISTS families (
