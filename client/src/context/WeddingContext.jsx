@@ -11,14 +11,49 @@ const WeddingContext = createContext();
 
 export function WeddingProvider({ children }) {
   const [activeTab, setActiveTab] = useState('guests');
-  const [guests, setGuests] = useState([]);
-  const [families, setFamilies] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [photos, setPhotos] = useState([]);
+  const [guests, setGuests] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wedding_guests_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [families, setFamilies] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wedding_families_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wedding_tasks_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [photos, setPhotos] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wedding_photos_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [photoStats, setPhotoStats] = useState(null);
   const [isPhotoUploadOpen, setIsPhotoUploadOpen] = useState(false);
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wedding_stats_cache');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -40,10 +75,15 @@ export function WeddingProvider({ children }) {
   const closeChangelog = useCallback(() => setIsChangelogOpen(false), []);
 
   const showToast = (message, type = 'success') => {
-    setToastMessage({ message, type, id: Date.now() });
+    let cleanMessage = message;
+    if (typeof message === 'string' && message.toLowerCase().includes('exceeded the quota')) {
+      cleanMessage = '⚠️ La base de datos de Neon ha alcanzado el límite mensual de horas gratuitas. Revisa tu consola en console.neon.tech para reactivarla.';
+      type = 'error';
+    }
+    setToastMessage({ message: cleanMessage, type, id: Date.now() });
     setTimeout(() => {
       setToastMessage(null);
-    }, 4000);
+    }, 6000);
   };
 
   const triggerCelebration = () => {
@@ -63,8 +103,11 @@ export function WeddingProvider({ children }) {
   const fetchAllGuests = useCallback(async (silent = false) => {
     try {
       const res = await guestApi.getAll();
-      if (res.success) {
+      if (res.success && res.data) {
         setGuests(res.data);
+        try {
+          localStorage.setItem('wedding_guests_cache', JSON.stringify(res.data));
+        } catch (e) {}
       }
     } catch (err) {
       console.error('Error fetching guests:', err);
@@ -77,8 +120,11 @@ export function WeddingProvider({ children }) {
   const fetchFamilies = useCallback(async () => {
     try {
       const res = await familyApi.getAll();
-      if (res.success) {
+      if (res.success && res.data) {
         setFamilies(res.data);
+        try {
+          localStorage.setItem('wedding_families_cache', JSON.stringify(res.data));
+        } catch (e) {}
       }
     } catch (err) {
       console.error('Error fetching families:', err);
@@ -88,8 +134,11 @@ export function WeddingProvider({ children }) {
   const fetchStats = useCallback(async () => {
     try {
       const res = await statsApi.getStats();
-      if (res.success) {
+      if (res.success && res.data) {
         setStats(res.data);
+        try {
+          localStorage.setItem('wedding_stats_cache', JSON.stringify(res.data));
+        } catch (e) {}
       }
     } catch (err) {
       console.error('Error fetching stats:', err);
@@ -99,8 +148,11 @@ export function WeddingProvider({ children }) {
   const fetchTasks = useCallback(async (silent = false) => {
     try {
       const res = await taskApi.getAll();
-      if (res.success) {
+      if (res.success && res.data) {
         setTasks(res.data);
+        try {
+          localStorage.setItem('wedding_tasks_cache', JSON.stringify(res.data));
+        } catch (e) {}
       }
     } catch (err) {
       console.error('Error fetching tasks:', err);
@@ -201,10 +253,12 @@ export function WeddingProvider({ children }) {
     // Carga inicial
     refreshAll(true);
 
-    // Sincronización automática entre dispositivos (PC <-> Celular)
-    // Se actualiza en silencio cuando el usuario vuelve a enfocar la ventana/pestaña
+    // Sincronización inteligente entre dispositivos (PC <-> Celular)
+    // Se actualiza en silencio cuando el usuario vuelve a enfocar la ventana/pestaña (con límite de al menos 90 seg)
+    let lastRefreshTime = Date.now();
     const handleFocusOrVisible = () => {
-      if (!document.hidden) {
+      if (!document.hidden && Date.now() - lastRefreshTime > 90000) {
+        lastRefreshTime = Date.now();
         refreshAll(false);
       }
     };
@@ -212,17 +266,9 @@ export function WeddingProvider({ children }) {
     window.addEventListener('focus', handleFocusOrVisible);
     document.addEventListener('visibilitychange', handleFocusOrVisible);
 
-    // Sondeo inteligente en vivo (cada 6 segundos, únicamente si la pestaña está visible)
-    const intervalId = setInterval(() => {
-      if (!document.hidden) {
-        refreshAll(false);
-      }
-    }, 6000);
-
     return () => {
       window.removeEventListener('focus', handleFocusOrVisible);
       document.removeEventListener('visibilitychange', handleFocusOrVisible);
-      clearInterval(intervalId);
     };
   }, [refreshAll]);
 
