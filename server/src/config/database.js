@@ -7,7 +7,11 @@ dotenv.config();
 const { Pool } = pg;
 
 const fallbackEnc = 'cG9zdGdyZXNxbDovL25lb25kYl9vd25lcjpucGdfQUcxWUJKeXhobWI4QGVwLW9sZC1zdGFyLWI0aHVteW1qLXBvb2xlci5jLTYudXMtZWFzdC0yLmF3cy5uZW9uLnRlY2gvbmVvbmRiP3NzbG1vZGU9cmVxdWlyZSZjaGFubmVsX2JpbmRpbmc9cmVxdWlyZQ==';
-const connectionString = process.env.DATABASE_URL || Buffer.from(fallbackEnc, 'base64').toString('utf-8');
+const newDefaultConn = Buffer.from(fallbackEnc, 'base64').toString('utf-8');
+let connectionString = process.env.DATABASE_URL || newDefaultConn;
+if (connectionString.includes('ep-silent-rice-aeva84a3')) {
+  connectionString = newDefaultConn;
+}
 
 export const pool = new Pool({
   connectionString,
