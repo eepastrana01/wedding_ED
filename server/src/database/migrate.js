@@ -142,7 +142,7 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_tasks_category ON tasks(category);
     `);
 
-    // 7. Crear tabla photos si no existe
+    // 7. Crear tabla photos si no existe y asegurar columnas
     await client.query(`
       CREATE TABLE IF NOT EXISTS photos (
         id SERIAL PRIMARY KEY,
@@ -158,6 +158,12 @@ export async function runMigrations() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
+      ALTER TABLE photos ADD COLUMN IF NOT EXISTS guest_id INTEGER REFERENCES guests(id) ON DELETE SET NULL;
+      ALTER TABLE photos ADD COLUMN IF NOT EXISTS family_id INTEGER REFERENCES families(id) ON DELETE SET NULL;
+      ALTER TABLE photos ADD COLUMN IF NOT EXISTS storage_key VARCHAR(255);
+      ALTER TABLE photos ADD COLUMN IF NOT EXISTS uploader_animal VARCHAR(50);
+      ALTER TABLE photos ADD COLUMN IF NOT EXISTS public_id VARCHAR(255);
 
       CREATE INDEX IF NOT EXISTS idx_photos_status ON photos(status);
       CREATE INDEX IF NOT EXISTS idx_photos_created_at ON photos(created_at DESC);
