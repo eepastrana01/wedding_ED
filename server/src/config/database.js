@@ -6,7 +6,7 @@ dotenv.config();
 
 const { Pool } = pg;
 
-const fallbackEnc = 'cG9zdGdyZXNxbDovL25lb25kYl9vd25lcjpucGdfZDNLeGo5eWZEYk1rQGVwLXNpbGVudC1yaWNlLWFldmE4NGEzLXBvb2xlci5jLTIudXMtZWFzdC0yLmF3cy5uZW9uLnRlY2gvbmVvbmRiP3NzbG1vZGU9cmVxdWlyZSZjaGFubmVsX2JpbmRpbmc9cmVxdWlyZQ==';
+const fallbackEnc = 'cG9zdGdyZXNxbDovL25lb25kYl9vd25lcjpucGdfQUcxWUJKeXhobWI4QGVwLW9sZC1zdGFyLWI0aHVteW1qLXBvb2xlci5jLTYudXMtZWFzdC0yLmF3cy5uZW9uLnRlY2gvbmVvbmRiP3NzbG1vZGU9cmVxdWlyZSZjaGFubmVsX2JpbmRpbmc9cmVxdWlyZQ==';
 const connectionString = process.env.DATABASE_URL || Buffer.from(fallbackEnc, 'base64').toString('utf-8');
 
 export const pool = new Pool({
