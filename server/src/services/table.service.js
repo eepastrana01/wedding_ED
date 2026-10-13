@@ -11,6 +11,9 @@ export const tableService = {
         t.capacity,
         t.shape,
         t.notes,
+        COALESCE(t.pos_x, 0) as pos_x,
+        COALESCE(t.pos_y, 0) as pos_y,
+        COALESCE(t.rotation, 0) as rotation,
         t.created_at,
         t.updated_at,
         COUNT(g.id)::int as seated_count,
@@ -79,7 +82,7 @@ export const tableService = {
   },
 
   async createTable(data) {
-    let { table_number, name, capacity, shape, notes } = data;
+    let { table_number, name, capacity, shape, notes, pos_x, pos_y, rotation } = data;
 
     // Si no se especifica número de mesa, calcular el siguiente
     if (!table_number) {
@@ -88,8 +91,8 @@ export const tableService = {
     }
 
     const query = `
-      INSERT INTO wedding_tables (table_number, name, capacity, shape, notes)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO wedding_tables (table_number, name, capacity, shape, notes, pos_x, pos_y, rotation)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
     const { rows } = await pool.query(query, [
@@ -97,7 +100,10 @@ export const tableService = {
       name ? name.trim() : null,
       parseInt(capacity, 10) || 10,
       shape || 'round',
-      notes ? notes.trim() : null
+      notes ? notes.trim() : null,
+      parseInt(pos_x, 10) || 0,
+      parseInt(pos_y, 10) || 0,
+      parseInt(rotation, 10) || 0
     ]);
     return rows[0];
   },
@@ -111,6 +117,9 @@ export const tableService = {
     const capacity = data.capacity !== undefined ? parseInt(data.capacity, 10) : current.capacity;
     const shape = data.shape !== undefined ? data.shape : current.shape;
     const notes = data.notes !== undefined ? (data.notes ? data.notes.trim() : null) : current.notes;
+    const pos_x = data.pos_x !== undefined ? parseInt(data.pos_x, 10) : current.pos_x;
+    const pos_y = data.pos_y !== undefined ? parseInt(data.pos_y, 10) : current.pos_y;
+    const rotation = data.rotation !== undefined ? parseInt(data.rotation, 10) : current.rotation;
 
     const query = `
       UPDATE wedding_tables
@@ -120,11 +129,14 @@ export const tableService = {
         capacity = $3,
         shape = $4,
         notes = $5,
+        pos_x = $6,
+        pos_y = $7,
+        rotation = $8,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $6
+      WHERE id = $9
       RETURNING *
     `;
-    const { rows } = await pool.query(query, [table_number, name, capacity, shape, notes, id]);
+    const { rows } = await pool.query(query, [table_number, name, capacity, shape, notes, pos_x, pos_y, rotation, id]);
 
     // Mantener table_assigned en guests sincronizado con el nombre de la mesa
     if (rows[0]) {

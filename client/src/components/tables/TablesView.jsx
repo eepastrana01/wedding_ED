@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useWedding } from '../../context/WeddingContext';
 import { RoundTableCard } from './RoundTableCard';
+import { FloorPlanStudio } from './FloorPlanStudio';
 import { TableModal } from './TableModal';
 import { TablePrintModal } from './TablePrintModal';
 import { QuickAssignModal } from './QuickAssignModal';
 import { 
   Utensils, Plus, Search, Users, Printer, Sparkles, 
-  Wand2, Home, UserCheck, RefreshCw, AlertCircle, ChevronDown, ChevronRight, Check
+  Wand2, Home, UserCheck, RefreshCw, AlertCircle, ChevronDown, ChevronRight, Check,
+  Maximize2, LayoutGrid, Compass
 } from 'lucide-react';
 import { matchesSearch } from '../../utils/textUtils';
 
@@ -24,6 +26,10 @@ export function TablesView() {
     isRefreshing,
     refreshAll,
   } = useWedding();
+
+  // Mode: 'studio' (Lienzo Arquitectónico 360°) or 'cards' (Cuadrícula de Tarjetas)
+  const [viewMode, setViewMode] = useState('studio');
+  const [isFullscreenStudio, setIsFullscreenStudio] = useState(false);
 
   // Modals state
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
@@ -125,6 +131,16 @@ export function TablesView() {
     setIsQuickAssignOpen(true);
   };
 
+  // If user enters immersive fullscreen mode, render FloorPlanStudio full-bleed
+  if (isFullscreenStudio) {
+    return (
+      <FloorPlanStudio
+        isFullscreenMode={true}
+        onToggleFullscreen={() => setIsFullscreenStudio(false)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Banner & Banquet Metric Cards */}
@@ -135,49 +151,76 @@ export function TablesView() {
               <span className="px-3 py-0.5 rounded-full bg-wedding-accentLight/60 text-wedding-primaryDark text-xs font-serif font-bold tracking-wider uppercase">
                 Salón & Banquete
               </span>
-              <span className="text-xs text-stone-400">• Formato Redondo</span>
+              <span className="text-xs text-stone-400">• Formato Redondo & Plano Arquitectónico</span>
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-wedding-primaryDark">
               Distribución de Mesas de Boda
             </h2>
             <p className="text-xs sm:text-sm text-stone-500 mt-1 max-w-2xl">
-              Diseña la ubicación de tus invitados, arrastra comensales a cada mesa redonda y organiza familias con 1 solo clic.
+              Diseña la ubicación de tus invitados con personitas ilustradas, arrastra comensales y mueve mesas en un plano arquitectónico 360°.
             </p>
           </div>
 
-          {/* Quick Actions Buttons */}
+          {/* Quick Actions Buttons & View Mode Switch */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Selector de Modo: Plano 360° vs Tarjetas */}
+            <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-2xl border border-stone-200">
+              <button
+                type="button"
+                onClick={() => setViewMode('studio')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  viewMode === 'studio'
+                    ? 'bg-white text-wedding-primaryDark shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                <Compass size={14} className={viewMode === 'studio' ? 'text-wedding-primary' : 'text-stone-400'} />
+                <span>Plano 360°</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('cards')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  viewMode === 'cards'
+                    ? 'bg-white text-wedding-primaryDark shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                <LayoutGrid size={14} className={viewMode === 'cards' ? 'text-wedding-primary' : 'text-stone-400'} />
+                <span>Tarjetas</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsFullscreenStudio(true)}
+              className="px-3 py-2 bg-gradient-to-r from-amber-50 to-amber-100/90 hover:from-amber-100 hover:to-amber-200 text-amber-950 border border-amber-300/80 text-xs font-bold rounded-2xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Abrir estudio en pantalla completa para máximo espacio"
+            >
+              <Maximize2 size={14} className="text-amber-800" />
+              <span className="hidden sm:inline">Pantalla Completa</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
                 setEditingTable(null);
                 setIsTableModalOpen(true);
               }}
-              className="px-4 py-2.5 bg-gradient-to-r from-wedding-primary to-wedding-primaryDark text-white text-xs sm:text-sm font-bold rounded-2xl shadow-sm hover:shadow-md hover:brightness-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2 bg-gradient-to-r from-wedding-primary to-wedding-primaryDark text-white text-xs sm:text-sm font-bold rounded-2xl shadow-sm hover:shadow-md hover:brightness-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Plus size={16} className="text-wedding-accent" />
               Nueva Mesa
             </button>
 
-            {tables.length === 0 && (
-              <button
-                type="button"
-                onClick={() => autoGenerateTables(10, 10)}
-                className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 text-xs sm:text-sm font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Wand2 size={16} className="text-amber-700" />
-                Generar 10 Mesas
-              </button>
-            )}
-
             {tables.length > 0 && (
               <button
                 type="button"
                 onClick={() => setIsPrintModalOpen(true)}
-                className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs sm:text-sm font-semibold rounded-2xl transition-all flex items-center gap-2 cursor-pointer"
+                className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                <Printer size={16} className="text-stone-600" />
-                Reporte para Catering / PDF
+                <Printer size={15} className="text-stone-600" />
+                <span className="hidden md:inline">Reporte PDF</span>
               </button>
             )}
 
@@ -258,11 +301,16 @@ export function TablesView() {
         </div>
       </div>
 
-      {/* Main Workspace Layout (Sidebar + Salon Grid) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* Left Column: Unassigned Guests Drawer */}
-        <div className="lg:col-span-4 xl:col-span-3 bg-white rounded-3xl border border-wedding-border p-4 sm:p-5 shadow-xs sticky top-20 flex flex-col max-h-[85vh]">
+      {/* Contenido Principal: Plano Arquitectónico 360° o Cuadrícula de Tarjetas */}
+      {viewMode === 'studio' ? (
+        <FloorPlanStudio
+          isFullscreenMode={false}
+          onToggleFullscreen={() => setIsFullscreenStudio(true)}
+        />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column: Unassigned Guests Drawer */}
+          <div className="lg:col-span-4 xl:col-span-3 bg-white rounded-3xl border border-wedding-border p-4 sm:p-5 shadow-xs sticky top-20 flex flex-col max-h-[85vh]">
           
           {/* Drawer Header */}
           <div className="flex items-center justify-between pb-3 border-b border-stone-100">
@@ -503,6 +551,7 @@ export function TablesView() {
           )}
         </div>
       </div>
+      )}
 
       {/* Modals */}
       <TableModal

@@ -183,6 +183,10 @@ export async function runMigrations() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
+      ALTER TABLE wedding_tables ADD COLUMN IF NOT EXISTS pos_x INTEGER DEFAULT 0;
+      ALTER TABLE wedding_tables ADD COLUMN IF NOT EXISTS pos_y INTEGER DEFAULT 0;
+      ALTER TABLE wedding_tables ADD COLUMN IF NOT EXISTS rotation INTEGER DEFAULT 0;
+
       ALTER TABLE guests ADD COLUMN IF NOT EXISTS table_id INTEGER REFERENCES wedding_tables(id) ON DELETE SET NULL;
       
       CREATE INDEX IF NOT EXISTS idx_guests_table_id ON guests(table_id);
