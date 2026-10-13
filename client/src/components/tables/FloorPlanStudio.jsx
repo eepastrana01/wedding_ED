@@ -8,6 +8,7 @@ import { QuickAssignModal } from './QuickAssignModal';
 import { 
   ZoomIn, ZoomOut, Maximize2, Minimize2, Move, Plus, Search, 
   Users, Home, Wand2, Printer, Check, ChevronLeft, ChevronRight,
+  ChevronUp, ChevronDown, Compass, X,
   Layers, RotateCcw, Sparkles, Utensils, ExternalLink, Grid
 } from 'lucide-react';
 import { matchesSearch } from '../../utils/textUtils';
@@ -29,14 +30,23 @@ export function FloorPlanStudio({
     autoGenerateTables,
   } = useWedding();
 
-  // Canvas pan & zoom state
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  // Canvas pan & zoom state (Responsive defaults para móvil y PC)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [zoom, setZoom] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 0.6 : 1));
+  const [pan, setPan] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return {
+        x: Math.round(window.innerWidth / 2 - 780 * 0.6),
+        y: 20,
+      };
+    }
+    return { x: 0, y: 0 };
+  });
   const [isPanning, setIsPanning] = useState(false);
   const [startPan, setStartPan] = useState({ x: 0, y: 0 });
 
-  // Sidebar / Drawer state
-  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+  // Sidebar / Drawer state (Inicia cerrado en móviles y tablets para dar visión total)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1024 : true));
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all'); // 'all', 'confirmed', 'with_family'
 
@@ -76,57 +86,172 @@ export function FloorPlanStudio({
     setLocalTableCoords(coords);
   }, [tables, getTableCoordinates]);
 
-  // Manejador para empezar a mover una mesa
+  // Sincronización continua de referencias para callbacks táctiles sin cierres obsoletos
+  const zoomRef = useRef(zoom);
+  const panRef = useRef(pan);
+  const movingTableRef = useRef(null);
+  const localTableCoordsRef = useRef({});
+  const touchTrackingRef = useRef({
+    mode: null,
+    startTouch1: { x: 0, y: 0 },
+    startTouch2: { x: 0, y: 0 },
+    startPan: { x: 0, y: 0 },
+    startDistance: 0,
+    startZoom: 1,
+    midpoint: { x: 0, y: 0 },
+  });
+
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { panRef.current = pan; }, [pan]);
+  useEffect(() => { movingTableRef.current = movingTable; }, [movingTable]);
+  useEffect(() => { localTableCoordsRef.current = localTableCoords; }, [localTableCoords]);
+
+  // Manejador para empezar a mover una mesa (ratón o toque táctil)
   const handleStartDragTable = (table, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const currentPos = localTableCoords[table.id] || getTableCoordinates(table, 0);
-    setMovingTable({
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
+    const currentPos = localTableCoordsRef.current[table.id] || getTableCoordinates(table, 0);
+    const newMoving = {
       id: table.id,
       startMouseX: e.clientX,
       startMouseY: e.clientY,
       initialX: currentPos.x,
       initialY: currentPos.y,
-    });
+    };
+    movingTableRef.current = newMoving;
+    setMovingTable(newMoving);
   };
 
-  // Movimiento del ratón sobre el lienzo (paneo de cámara o arrastre de mesa)
-  const handleMouseMove = (e) => {
-    if (movingTable) {
-      const deltaX = (e.clientX - movingTable.startMouseX) / zoom;
-      const deltaY = (e.clientY - movingTable.startMouseY) / zoom;
-      // Snapping de 10px para alineación arquitectónica limpia
-      const newX = Math.round((movingTable.initialX + deltaX) / 10) * 10;
-      const newY = Math.round((movingTable.initialY + deltaY) / 10) * 10;
-      
-      setLocalTableCoords((prev) => ({
-        ...prev,
-        [movingTable.id]: { x: Math.max(20, newX), y: Math.max(260, newY) },
-      }));
-    } else if (isPanning) {
-      setPan({
-        x: e.clientX - startPan.x,
-        y: e.clientY - startPan.y,
-      });
-    }
-  };
+  // 1. Motor Táctil para Móvil y Tablets (Paneo con 1 dedo, Pinch-to-zoom con 2 dedos, y arrastre de mesas)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  // Soltar mesa o soltar paneo
-  const handleMouseUp = () => {
-    if (movingTable) {
-      const finalPos = localTableCoords[movingTable.id];
-      if (finalPos) {
-        updateTable(movingTable.id, {
-          pos_x: Math.round(finalPos.x),
-          pos_y: Math.round(finalPos.y),
-        });
+    const onTouchStart = (e) => {
+      if (e.target.closest('button, input, select, textarea, [role="dialog"], .modal-backdrop')) {
+        return;
       }
-      setMovingTable(null);
-    }
-    setIsPanning(false);
-  };
 
-  // Iniciar paneo del lienzo al hacer clic en el fondo
+      if (e.touches.length === 1) {
+        if (!movingTableRef.current) {
+          touchTrackingRef.current.mode = 'pan';
+          touchTrackingRef.current.startTouch1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          touchTrackingRef.current.startPan = { ...panRef.current };
+          setIsPanning(true);
+        }
+      } else if (e.touches.length === 2) {
+        e.preventDefault();
+        touchTrackingRef.current.mode = 'pinch';
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        touchTrackingRef.current.startDistance = Math.max(10, dist);
+        touchTrackingRef.current.startZoom = zoomRef.current;
+        touchTrackingRef.current.midpoint = {
+          x: (t1.clientX + t2.clientX) / 2,
+          y: (t1.clientY + t2.clientY) / 2,
+        };
+        touchTrackingRef.current.startPan = { ...panRef.current };
+        setIsPanning(false);
+      }
+    };
+
+    const onTouchMove = (e) => {
+      if (movingTableRef.current || touchTrackingRef.current.mode) {
+        if (e.cancelable) e.preventDefault();
+      }
+
+      // Arrastre táctil de mesa
+      if (movingTableRef.current && e.touches.length > 0) {
+        const touch = e.touches[0];
+        const m = movingTableRef.current;
+        const currentZoom = zoomRef.current || 1;
+        const deltaX = (touch.clientX - m.startMouseX) / currentZoom;
+        const deltaY = (touch.clientY - m.startMouseY) / currentZoom;
+        const newX = Math.round((m.initialX + deltaX) / 10) * 10;
+        const newY = Math.round((m.initialY + deltaY) / 10) * 10;
+
+        const updated = {
+          ...localTableCoordsRef.current,
+          [m.id]: { x: Math.max(20, newX), y: Math.max(260, newY) },
+        };
+        localTableCoordsRef.current = updated;
+        setLocalTableCoords(updated);
+        return;
+      }
+
+      // Pinch to zoom táctil
+      if (touchTrackingRef.current.mode === 'pinch' && e.touches.length === 2) {
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const newDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        const { startDistance, startZoom, startPan, midpoint } = touchTrackingRef.current;
+        const scaleChange = newDist / startDistance;
+        const nextZoom = Math.min(1.6, Math.max(0.35, Number((startZoom * scaleChange).toFixed(2))));
+
+        const rect = canvas.getBoundingClientRect();
+        const relMidX = midpoint.x - rect.left;
+        const relMidY = midpoint.y - rect.top;
+        const newPanX = relMidX - (relMidX - startPan.x) * (nextZoom / startZoom);
+        const newPanY = relMidY - (relMidY - startPan.y) * (nextZoom / startZoom);
+
+        zoomRef.current = nextZoom;
+        setZoom(nextZoom);
+        panRef.current = { x: newPanX, y: newPanY };
+        setPan({ x: newPanX, y: newPanY });
+        return;
+      }
+
+      // Paneo táctil con 1 dedo
+      if (touchTrackingRef.current.mode === 'pan' && e.touches.length === 1) {
+        const touch = e.touches[0];
+        const { startTouch1, startPan } = touchTrackingRef.current;
+        const dx = touch.clientX - startTouch1.x;
+        const dy = touch.clientY - startTouch1.y;
+        const newPan = { x: startPan.x + dx, y: startPan.y + dy };
+        panRef.current = newPan;
+        setPan(newPan);
+      }
+    };
+
+    const onTouchEnd = (e) => {
+      if (movingTableRef.current) {
+        const m = movingTableRef.current;
+        const finalPos = localTableCoordsRef.current[m.id];
+        if (finalPos) {
+          updateTable(m.id, {
+            pos_x: Math.round(finalPos.x),
+            pos_y: Math.round(finalPos.y),
+          });
+        }
+        movingTableRef.current = null;
+        setMovingTable(null);
+      }
+
+      if (e.touches.length === 0) {
+        touchTrackingRef.current.mode = null;
+        setIsPanning(false);
+      } else if (e.touches.length === 1 && touchTrackingRef.current.mode === 'pinch') {
+        touchTrackingRef.current.mode = 'pan';
+        touchTrackingRef.current.startTouch1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        touchTrackingRef.current.startPan = { ...panRef.current };
+      }
+    };
+
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd, { passive: false });
+    window.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [updateTable]);
+
+  // 2. Motor de Ratón para Escritorio (Paneo y arrastre con ventana activa)
   const handleMouseDown = (e) => {
     if (
       e.target === canvasRef.current || 
@@ -137,6 +262,58 @@ export function FloorPlanStudio({
       setStartPan({ x: e.clientX - pan.x, y: e.clientY - pan.y });
     }
   };
+
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      if (movingTableRef.current) {
+        const m = movingTableRef.current;
+        const currentZoom = zoomRef.current || 1;
+        const deltaX = (e.clientX - m.startMouseX) / currentZoom;
+        const deltaY = (e.clientY - m.startMouseY) / currentZoom;
+        const newX = Math.round((m.initialX + deltaX) / 10) * 10;
+        const newY = Math.round((m.initialY + deltaY) / 10) * 10;
+        
+        const updated = {
+          ...localTableCoordsRef.current,
+          [m.id]: { x: Math.max(20, newX), y: Math.max(260, newY) },
+        };
+        localTableCoordsRef.current = updated;
+        setLocalTableCoords(updated);
+      } else if (isPanning) {
+        const newPan = {
+          x: e.clientX - startPan.x,
+          y: e.clientY - startPan.y,
+        };
+        panRef.current = newPan;
+        setPan(newPan);
+      }
+    };
+
+    const onMouseUp = () => {
+      if (movingTableRef.current) {
+        const m = movingTableRef.current;
+        const finalPos = localTableCoordsRef.current[m.id];
+        if (finalPos) {
+          updateTable(m.id, {
+            pos_x: Math.round(finalPos.x),
+            pos_y: Math.round(finalPos.y),
+          });
+        }
+        movingTableRef.current = null;
+        setMovingTable(null);
+      }
+      setIsPanning(false);
+    };
+
+    if (movingTable || isPanning) {
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+    }
+  }, [movingTable, isPanning, startPan, updateTable]);
 
   // Auto-alinear mesas en cuadrícula ordenada
   const handleAutoAlignTables = () => {
@@ -197,8 +374,17 @@ export function FloorPlanStudio({
   const totalSeated = tables.reduce((acc, t) => acc + (t.guests?.length || 0), 0);
 
   const handleResetView = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
+    const isMob = typeof window !== 'undefined' && window.innerWidth < 768;
+    const targetZoom = isMob ? 0.6 : 1;
+    const screenW = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const targetPan = {
+      x: Math.round(screenW / 2 - 780 * targetZoom),
+      y: 20,
+    };
+    setZoom(targetZoom);
+    setPan(targetPan);
+    zoomRef.current = targetZoom;
+    panRef.current = targetPan;
   };
 
   // Drag guest start
@@ -231,24 +417,25 @@ export function FloorPlanStudio({
       }`}
     >
       {/* 1. Barra de Herramientas Superior del Estudio (Floating Studio HUD) */}
-      <header className="absolute top-3 left-3 right-3 z-30 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-stone-200/90 shadow-md flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-xl bg-wedding-primary text-wedding-accent flex items-center justify-center font-serif font-bold text-xs shadow-xs">
+      {/* 1. Barra de Herramientas Superior del Estudio (Floating Studio HUD) */}
+      <header className="absolute top-3 left-3 right-3 z-30 bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-stone-200/90 shadow-md flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-8 h-8 rounded-xl bg-wedding-primary text-wedding-accent flex items-center justify-center font-serif font-bold text-xs shadow-xs shrink-0">
               E&D
             </span>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h3 className="font-serif font-bold text-xs sm:text-sm text-wedding-primaryDark leading-tight">
-                  Estudio del Salón de Banquete
+                <h3 className="font-serif font-bold text-xs sm:text-sm text-wedding-primaryDark leading-tight truncate">
+                  Estudio del Salón
                 </h3>
                 {isStandaloneTab && (
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[9px] uppercase tracking-wider">
+                  <span className="hidden sm:inline-block px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[9px] uppercase tracking-wider">
                     Pestaña Completa
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-stone-500 font-medium hidden sm:block">
+              <p className="text-[10px] text-stone-500 font-medium hidden sm:block truncate">
                 Plano 360° Interactivo con Personitas & Arrastre de Mesas
               </p>
             </div>
@@ -271,20 +458,22 @@ export function FloorPlanStudio({
         </div>
 
         {/* Acciones principales de salón */}
-        <div className="flex items-center gap-2">
-          {/* Botón Abrir en Nueva Pestaña (Para ocupar todo el navegador en la PC) */}
-          {!isStandaloneTab && (
-            <a
-              href="/?tab=tables&standalone=true"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-50 to-amber-100/90 hover:from-amber-100 hover:to-amber-200 text-amber-950 border border-amber-300/80 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
-              title="Abrir en pestaña nueva para ocupar el 100% del navegador"
-            >
-              <ExternalLink size={13} className="text-amber-800" />
-              <span className="hidden sm:inline">Nueva Pestaña</span>
-            </a>
-          )}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Botón Móvil/Tablet para abrir Invitados Sin Asignar */}
+          <button
+            type="button"
+            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+              isDrawerOpen
+                ? 'bg-wedding-primary text-white shadow-xs'
+                : 'bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-200'
+            }`}
+            title="Ver invitados sin mesa"
+          >
+            <Users size={14} className={isDrawerOpen ? 'text-wedding-accent' : 'text-amber-700'} />
+            <span className="text-xs font-bold">{unassignedGuests.length}</span>
+            <span className="hidden sm:inline text-xs font-semibold">Sin mesa</span>
+          </button>
 
           {/* Botón Auto-alinear Mesas */}
           {tables.length > 0 && (
@@ -299,37 +488,40 @@ export function FloorPlanStudio({
             </button>
           )}
 
+          {/* Botón + Mesa */}
           <button
             type="button"
             onClick={() => {
               setEditingTable(null);
               setIsTableModalOpen(true);
             }}
-            className="px-3 py-1.5 rounded-xl bg-wedding-primary text-white text-xs font-bold hover:bg-wedding-primaryDark transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-wedding-primary text-white text-xs font-bold hover:bg-wedding-primaryDark transition-all flex items-center gap-1 cursor-pointer shadow-xs active:scale-95"
           >
             <Plus size={14} className="text-wedding-accent" />
-            <span>+ Mesa</span>
+            <span>Mesa</span>
           </button>
 
-          {tables.length === 0 && (
-            <button
-              type="button"
-              onClick={() => autoGenerateTables(10, 10)}
-              className="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+          {/* Botón Abrir en Nueva Pestaña (Para ocupar todo el navegador en la PC) */}
+          {!isStandaloneTab && (
+            <a
+              href="/?tab=tables&standalone=true"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+              title="Abrir en pestaña nueva para ocupar el 100% del navegador"
             >
-              <Wand2 size={13} className="text-amber-800" />
-              <span>Generar 10 Mesas</span>
-            </button>
+              <ExternalLink size={13} />
+              <span className="hidden lg:inline">Nueva Pestaña</span>
+            </a>
           )}
 
           <button
             type="button"
             onClick={() => setIsPrintModalOpen(true)}
-            className="px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer hidden sm:flex"
             title="Imprimir plano de mesas"
           >
             <Printer size={14} />
-            <span className="hidden sm:inline">Imprimir</span>
           </button>
 
           {onToggleFullscreen && !isStandaloneTab && (
@@ -349,11 +541,8 @@ export function FloorPlanStudio({
       <div 
         ref={canvasRef}
         onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        className="canvas-background relative flex-1 w-full h-full overflow-hidden cursor-default"
+        className="canvas-background relative flex-1 w-full h-full overflow-hidden cursor-default touch-none"
         style={{
-          // Fondo de papel milimetrado / plano de arquitectura
           backgroundColor: '#F8F9FA',
           backgroundImage: `
             radial-gradient(#D3DCE6 1.1px, transparent 1.1px),
@@ -367,13 +556,13 @@ export function FloorPlanStudio({
         <div
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: 'top center',
+            transformOrigin: '0 0',
             transition: isPanning || movingTable ? 'none' : 'transform 0.15s ease-out',
           }}
           className="canvas-surface relative min-w-[2000px] min-h-[1800px] pt-24 pb-40 px-20"
         >
           {/* A. Encabezado del Salón: Mesa Presidencial de los Novios (Bride & Groom) */}
-          <div className="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center z-10 pointer-events-auto">
+          <div className="absolute top-10 left-[780px] -translate-x-1/2 flex flex-col items-center z-10 pointer-events-auto">
             <div className="mb-2 px-3 py-1 rounded-full bg-stone-200/70 border border-stone-300 text-[10px] font-bold tracking-widest uppercase text-stone-600">
               Cabecera del Salón • Pista de Baile & Banquete
             </div>
@@ -438,20 +627,28 @@ export function FloorPlanStudio({
         </div>
       </div>
 
+      {/* Backdrop oscuro para móvil cuando se abre la gaveta de invitados */}
+      {isDrawerOpen && (
+        <div 
+          onClick={() => setIsDrawerOpen(false)}
+          className="md:hidden fixed inset-0 z-25 bg-stone-900/40 backdrop-blur-2xs transition-opacity cursor-pointer"
+        />
+      )}
+
       {/* 3. Gaveta Deslizante de Invitados Sin Asignar (Slide-out Left Drawer) */}
       <aside
-        className={`absolute top-16 bottom-4 left-3 z-30 bg-white/95 backdrop-blur-md rounded-2xl border border-stone-200 shadow-xl transition-all duration-300 flex flex-col overflow-hidden ${
-          isDrawerOpen ? 'w-72 sm:w-80' : 'w-10'
+        className={`absolute top-16 bottom-4 left-3 z-30 bg-white/95 backdrop-blur-md rounded-2xl border border-stone-200 shadow-xl transition-all duration-300 flex flex-col overflow-hidden max-w-[calc(100vw-24px)] ${
+          isDrawerOpen ? 'w-72 sm:w-80' : 'w-0 md:w-10 overflow-hidden border-0 md:border pointer-events-none md:pointer-events-auto'
         }`}
       >
         {/* Toggle Button */}
         <button
           type="button"
           onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-          className="absolute top-3 right-2.5 z-40 p-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer"
-          title={isDrawerOpen ? 'Ocultar panel para ampliar el salón' : 'Mostrar invitados'}
+          className="absolute top-3 right-2.5 z-40 p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer"
+          title={isDrawerOpen ? 'Ocultar panel' : 'Mostrar invitados'}
         >
-          {isDrawerOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+          {isDrawerOpen ? <X size={15} /> : <ChevronRight size={16} />}
         </button>
 
         {isDrawerOpen ? (
@@ -588,7 +785,7 @@ export function FloorPlanStudio({
         ) : (
           <div 
             onClick={() => setIsDrawerOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center cursor-pointer hover:bg-stone-50"
+            className="hidden md:flex flex-1 flex-col items-center justify-center cursor-pointer hover:bg-stone-50"
             title="Abrir lista de invitados sin mesa"
           >
             <span className="writing-mode-vertical text-xs font-bold text-stone-500 tracking-widest uppercase rotate-180">
@@ -598,37 +795,118 @@ export function FloorPlanStudio({
         )}
       </aside>
 
-      {/* 4. Controles de Zoom Flotantes (Bottom Right HUD) */}
-      <div className="absolute bottom-4 right-4 z-30 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-stone-200/90 shadow-md flex items-center gap-2">
+      {/* 4. D-Pad / Control Pad de Navegación Rápida para Móvil y Táctil (Bottom Left HUD) */}
+      <div className="absolute bottom-4 left-4 z-30 flex items-center gap-2">
+        <div className="bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-stone-200/90 shadow-md flex flex-col items-center gap-0.5 select-none">
+          {/* Botón Arriba */}
+          <button
+            type="button"
+            onClick={() => {
+              const newPan = { ...panRef.current, y: panRef.current.y + 140 };
+              panRef.current = newPan;
+              setPan(newPan);
+            }}
+            className="w-7 h-7 rounded-xl bg-stone-50 hover:bg-stone-200 active:bg-stone-300 text-stone-700 flex items-center justify-center transition-colors cursor-pointer"
+            title="Mover salón hacia arriba"
+          >
+            <ChevronUp size={15} />
+          </button>
+
+          <div className="flex items-center gap-0.5">
+            {/* Botón Izquierda */}
+            <button
+              type="button"
+              onClick={() => {
+                const newPan = { ...panRef.current, x: panRef.current.x + 140 };
+                panRef.current = newPan;
+                setPan(newPan);
+              }}
+              className="w-7 h-7 rounded-xl bg-stone-50 hover:bg-stone-200 active:bg-stone-300 text-stone-700 flex items-center justify-center transition-colors cursor-pointer"
+              title="Mover salón a la izquierda"
+            >
+              <ChevronLeft size={15} />
+            </button>
+
+            {/* Botón Centrar Salón */}
+            <button
+              type="button"
+              onClick={handleResetView}
+              className="w-7 h-7 rounded-xl bg-wedding-primary/10 hover:bg-wedding-primary active:bg-wedding-primaryDark text-wedding-primary hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              title="Centrar Salón y Mesa Presidencial"
+            >
+              <Compass size={14} />
+            </button>
+
+            {/* Botón Derecha */}
+            <button
+              type="button"
+              onClick={() => {
+                const newPan = { ...panRef.current, x: panRef.current.x - 140 };
+                panRef.current = newPan;
+                setPan(newPan);
+              }}
+              className="w-7 h-7 rounded-xl bg-stone-50 hover:bg-stone-200 active:bg-stone-300 text-stone-700 flex items-center justify-center transition-colors cursor-pointer"
+              title="Mover salón a la derecha"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+
+          {/* Botón Abajo */}
+          <button
+            type="button"
+            onClick={() => {
+              const newPan = { ...panRef.current, y: panRef.current.y - 140 };
+              panRef.current = newPan;
+              setPan(newPan);
+            }}
+            className="w-7 h-7 rounded-xl bg-stone-50 hover:bg-stone-200 active:bg-stone-300 text-stone-700 flex items-center justify-center transition-colors cursor-pointer"
+            title="Mover salón hacia abajo"
+          >
+            <ChevronDown size={15} />
+          </button>
+        </div>
+      </div>
+
+      {/* 5. Controles de Zoom Flotantes (Bottom Right HUD) */}
+      <div className="absolute bottom-4 right-4 z-30 bg-white/95 backdrop-blur-md px-2.5 sm:px-3 py-1.5 rounded-2xl border border-stone-200/90 shadow-md flex items-center gap-1.5 sm:gap-2">
         <button
           type="button"
-          onClick={() => setZoom((z) => Math.max(0.5, Number((z - 0.1).toFixed(1))))}
-          className="p-1.5 rounded-xl hover:bg-stone-100 text-stone-600 cursor-pointer"
+          onClick={() => {
+            const nextZoom = Math.max(0.35, Number((zoom - 0.1).toFixed(1)));
+            zoomRef.current = nextZoom;
+            setZoom(nextZoom);
+          }}
+          className="p-1 sm:p-1.5 rounded-xl hover:bg-stone-100 text-stone-600 cursor-pointer"
           title="Alejar (-)"
         >
-          <ZoomOut size={16} />
+          <ZoomOut size={15} />
         </button>
 
-        <span className="text-xs font-mono font-bold text-stone-700 min-w-[42px] text-center">
+        <span className="text-xs font-mono font-bold text-stone-700 min-w-[36px] sm:min-w-[42px] text-center">
           {Math.round(zoom * 100)}%
         </span>
 
         <button
           type="button"
-          onClick={() => setZoom((z) => Math.min(1.5, Number((z + 0.1).toFixed(1))))}
-          className="p-1.5 rounded-xl hover:bg-stone-100 text-stone-600 cursor-pointer"
+          onClick={() => {
+            const nextZoom = Math.min(1.6, Number((zoom + 0.1).toFixed(1)));
+            zoomRef.current = nextZoom;
+            setZoom(nextZoom);
+          }}
+          className="p-1 sm:p-1.5 rounded-xl hover:bg-stone-100 text-stone-600 cursor-pointer"
           title="Acercar (+)"
         >
-          <ZoomIn size={16} />
+          <ZoomIn size={15} />
         </button>
 
-        <div className="h-4 w-px bg-stone-200 mx-1" />
+        <div className="h-4 w-px bg-stone-200 mx-0.5 sm:mx-1" />
 
         <button
           type="button"
           onClick={handleResetView}
-          className="text-[11px] font-semibold text-stone-600 hover:text-wedding-primary px-2 py-1 rounded-lg hover:bg-stone-100 cursor-pointer"
-          title="Restablecer posición y zoom"
+          className="text-[10px] sm:text-[11px] font-semibold text-stone-600 hover:text-wedding-primary px-1.5 sm:px-2 py-1 rounded-lg hover:bg-stone-100 cursor-pointer"
+          title="Restablecer posición y centrar salón"
         >
           Centrar
         </button>

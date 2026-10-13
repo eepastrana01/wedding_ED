@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { PersonAvatar, EmptySeatSlot } from './PersonAvatar';
 import { 
   Users, Edit2, Trash2, RotateCcw, Plus, AlertTriangle, Check, 
-  Utensils, Move, Sparkles 
+  Utensils, Move, Sparkles, X, RefreshCw 
 } from 'lucide-react';
+import { detectGuestGender, setGuestGenderOverride } from '../../utils/genderUtils';
 
 export function InteractiveTable({
   table,
@@ -17,7 +18,9 @@ export function InteractiveTable({
   zoom = 1,
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isDraggingTable, setIsDraggingTable] = useState(false);
+  const [selectedGuest, setSelectedGuest] = useState(null);
+  const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
+  const touchStartPosRef = React.useRef({ time: 0, x: 0, y: 0 });
 
   const guests = table.guests || [];
   const capacity = table.capacity || 10;
@@ -105,10 +108,33 @@ export function InteractiveTable({
           <div 
             onMouseDown={(e) => {
               if (e.button === 0 && !e.target.closest('button')) {
+                touchStartPosRef.current = { time: Date.now(), x: e.clientX, y: e.clientY };
                 onStartDragTable && onStartDragTable(table, e);
               }
             }}
-            className="relative w-48 h-48 rounded-full bg-[#E8E8E8] border-4 border-[#C8C8C8] shadow-[0_10px_25px_rgba(0,0,0,0.08)] flex flex-col items-center justify-center text-center z-10 group/center transition-all hover:border-wedding-primary/50 cursor-grab active:cursor-grabbing"
+            onTouchStart={(e) => {
+              if (e.touches && e.touches.length === 1 && !e.target.closest('button')) {
+                touchStartPosRef.current = {
+                  time: Date.now(),
+                  x: e.touches[0].clientX,
+                  y: e.touches[0].clientY,
+                };
+                onStartDragTable && onStartDragTable(table, {
+                  clientX: e.touches[0].clientX,
+                  clientY: e.touches[0].clientY,
+                  preventDefault: () => e.preventDefault(),
+                  stopPropagation: () => e.stopPropagation(),
+                });
+              }
+            }}
+            onClick={(e) => {
+              if (e.target.closest('button')) return;
+              const dt = Date.now() - touchStartPosRef.current.time;
+              if (dt < 300) {
+                setIsTableMenuOpen(true);
+              }
+            }}
+            className="relative w-48 h-48 rounded-full bg-[#E8E8E8] border-4 border-[#C8C8C8] shadow-[0_10px_25px_rgba(0,0,0,0.08)] flex flex-col items-center justify-center text-center z-10 group/center transition-all hover:border-wedding-primary/50 cursor-grab active:cursor-grabbing touch-none"
           >
             
             {/* Número grande de mesa en el centro */}
@@ -148,6 +174,17 @@ export function InteractiveTable({
                 onMouseDown={(e) => {
                   e.stopPropagation();
                   onStartDragTable && onStartDragTable(table, e);
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  if (e.touches && e.touches[0]) {
+                    onStartDragTable && onStartDragTable(table, {
+                      clientX: e.touches[0].clientX,
+                      clientY: e.touches[0].clientY,
+                      preventDefault: () => e.preventDefault(),
+                      stopPropagation: () => e.stopPropagation(),
+                    });
+                  }
                 }}
                 className="w-8 h-8 rounded-full bg-white/20 hover:bg-wedding-primary text-white flex items-center justify-center transition-colors cursor-move"
                 title="Mover mesa en el plano"
@@ -224,7 +261,7 @@ export function InteractiveTable({
                     seatNumber={i + 1}
                     onDragStart={(e) => handleSeatDragStart(e, guest)}
                     onRemove={() => onUnassignGuest([guest.id])}
-                    onClick={() => onQuickAssignClick(table)}
+                    onClick={() => setSelectedGuest(guest)}
                     showName={true}
                     size={48}
                   />
@@ -251,10 +288,33 @@ export function InteractiveTable({
           <div 
             onMouseDown={(e) => {
               if (e.button === 0 && !e.target.closest('button')) {
+                touchStartPosRef.current = { time: Date.now(), x: e.clientX, y: e.clientY };
                 onStartDragTable && onStartDragTable(table, e);
               }
             }}
-            className="relative w-72 h-36 rounded-2xl bg-[#E8E8E8] border-4 border-[#C8C8C8] shadow-md flex flex-col items-center justify-center text-center z-10 group/center cursor-grab active:cursor-grabbing"
+            onTouchStart={(e) => {
+              if (e.touches && e.touches.length === 1 && !e.target.closest('button')) {
+                touchStartPosRef.current = {
+                  time: Date.now(),
+                  x: e.touches[0].clientX,
+                  y: e.touches[0].clientY,
+                };
+                onStartDragTable && onStartDragTable(table, {
+                  clientX: e.touches[0].clientX,
+                  clientY: e.touches[0].clientY,
+                  preventDefault: () => e.preventDefault(),
+                  stopPropagation: () => e.stopPropagation(),
+                });
+              }
+            }}
+            onClick={(e) => {
+              if (e.target.closest('button')) return;
+              const dt = Date.now() - touchStartPosRef.current.time;
+              if (dt < 300) {
+                setIsTableMenuOpen(true);
+              }
+            }}
+            className="relative w-72 h-36 rounded-2xl bg-[#E8E8E8] border-4 border-[#C8C8C8] shadow-md flex flex-col items-center justify-center text-center z-10 group/center cursor-grab active:cursor-grabbing touch-none"
           >
             <span className="font-sans font-light text-4xl text-stone-600 leading-none pointer-events-none">
               {table.table_number}
@@ -273,6 +333,17 @@ export function InteractiveTable({
                 onMouseDown={(e) => {
                   e.stopPropagation();
                   onStartDragTable && onStartDragTable(table, e);
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  if (e.touches && e.touches[0]) {
+                    onStartDragTable && onStartDragTable(table, {
+                      clientX: e.touches[0].clientX,
+                      clientY: e.touches[0].clientY,
+                      preventDefault: () => e.preventDefault(),
+                      stopPropagation: () => e.stopPropagation(),
+                    });
+                  }
                 }}
                 className="w-8 h-8 rounded-full bg-white/20 hover:bg-wedding-primary text-white flex items-center justify-center cursor-move"
                 title="Mover mesa en el plano"
@@ -334,7 +405,7 @@ export function InteractiveTable({
                     radialAngle={isTopRow ? -Math.PI / 2 : Math.PI / 2}
                     onDragStart={(e) => handleSeatDragStart(e, guest)}
                     onRemove={() => onUnassignGuest([guest.id])}
-                    onClick={() => onQuickAssignClick(table)}
+                    onClick={() => setSelectedGuest(guest)}
                     showName={true}
                     size={46}
                   />
@@ -350,6 +421,197 @@ export function InteractiveTable({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal / Menú Rápido al tocar un Invitado en Móvil o Escritorio */}
+      {selectedGuest && (
+        <div 
+          onClick={(e) => { e.stopPropagation(); setSelectedGuest(null); }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs select-none"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-xs w-full p-5 shadow-2xl border border-stone-200 text-stone-800 animate-in zoom-in-95"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+              <div>
+                <h4 className="font-serif font-bold text-base text-wedding-primaryDark">
+                  {selectedGuest.name}
+                </h4>
+                {selectedGuest.family_name && (
+                  <p className="text-xs text-stone-500 font-medium">
+                    {selectedGuest.family_name}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedGuest(null)}
+                className="p-1 rounded-full hover:bg-stone-100 text-stone-400 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="py-3 space-y-2 text-xs">
+              <p className="text-stone-600">
+                Ubicación actual: <strong>Mesa {table.table_number}</strong> {table.name ? `(${table.name})` : ''}
+              </p>
+              {selectedGuest.dietary_notes && (
+                <div className="p-2 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 font-medium">
+                  🍽️ Requerimiento de menú: {selectedGuest.dietary_notes}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const currentGender = detectGuestGender(selectedGuest);
+                  const newGender = currentGender === 'woman' ? 'man' : 'woman';
+                  setGuestGenderOverride(selectedGuest.id, newGender);
+                  setSelectedGuest(null);
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <RefreshCw size={13} />
+                <span>Cambiar aspecto (Traje ↔ Vestido)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const guestId = selectedGuest.id;
+                  onUnassignGuest([guestId]);
+                  setSelectedGuest(null);
+                  onQuickAssignClick(null);
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <Move size={13} />
+                <span>Mover a otra mesa...</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onUnassignGuest([selectedGuest.id]);
+                  setSelectedGuest(null);
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <X size={14} />
+                <span>Desocupar silla (Quitar de mesa)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal / Menú Rápido al tocar el Centro de la Mesa (Especialmente en Móvil) */}
+      {isTableMenuOpen && (
+        <div 
+          onClick={(e) => { e.stopPropagation(); setIsTableMenuOpen(false); }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs select-none"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-xs w-full p-5 shadow-2xl border border-stone-200 text-stone-800 animate-in zoom-in-95"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-wedding-accent">
+                  Opciones de Mesa
+                </span>
+                <h4 className="font-serif font-bold text-lg text-wedding-primaryDark">
+                  Mesa {table.table_number}
+                </h4>
+                {table.name && (
+                  <p className="text-xs text-stone-500 font-medium truncate max-w-[200px]">
+                    {table.name}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTableMenuOpen(false)}
+                className="p-1 rounded-full hover:bg-stone-100 text-stone-400 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="py-3 text-xs space-y-1">
+              <p className="text-stone-600">
+                Ocupación: <strong>{seatedCount} de {capacity}</strong> personas
+              </p>
+              <p className="text-stone-500">
+                Asientos disponibles: <strong>{freeSeats}</strong>
+              </p>
+            </div>
+
+            <div className="pt-1 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTableMenuOpen(false);
+                  onQuickAssignClick(table);
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-wedding-primary hover:bg-wedding-primaryDark text-white font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+              >
+                <Plus size={14} className="text-wedding-accent" />
+                <span>+ Agregar comensales</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTableMenuOpen(false);
+                  onEdit(table);
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <Edit2 size={13} />
+                <span>Editar mesa (Nombre, capacidad)</span>
+              </button>
+
+              {seatedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsTableMenuOpen(false);
+                    if (window.confirm(`¿Desocupar todos los comensales de la Mesa ${table.table_number}?`)) {
+                      onClear(table.id);
+                    }
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                >
+                  <RotateCcw size={13} />
+                  <span>Desocupar mesa (Quitar a todos)</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTableMenuOpen(false);
+                  if (window.confirm(`¿Eliminar definitivamente la Mesa ${table.table_number}?`)) {
+                    onDelete(table.id);
+                  }
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <Trash2 size={13} />
+                <span>Eliminar Mesa</span>
+              </button>
+            </div>
+
+            <div className="pt-2 border-t border-stone-100 text-[10px] text-stone-400 text-center">
+              💡 <em>Arrastra la mesa con el dedo para moverla de lugar.</em>
+            </div>
+          </div>
         </div>
       )}
     </div>
