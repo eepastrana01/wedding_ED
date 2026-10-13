@@ -358,7 +358,7 @@ export function InteractiveTable({
 
 // Mesa Presidencial de los Novios (Bride & Groom) + Mesa de Regalos
 export function SweetheartHeadTable({
-  groomName = 'Eduardo',
+  groomName = 'Edis',
   brideName = 'Dania',
   onAssignNovios,
 }) {

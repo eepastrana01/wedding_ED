@@ -99,7 +99,7 @@ export function PersonAvatar({
   const [genderOverride, setGenderOverride] = useState(null);
   const style = getAvatarStyle(guest, isBride, isGroom, genderOverride);
   const hasDietary = Boolean(guest?.dietary_notes && guest?.dietary_notes.trim());
-  const fullName = isBride ? 'Dania (Novia)' : isGroom ? 'Eduardo (Novio)' : guest?.name || 'Invitado';
+  const fullName = isBride ? 'Dania (Novia)' : isGroom ? 'Edis (Novio)' : guest?.name || 'Invitado';
 
   const handleToggleGender = (e) => {
     e.stopPropagation();

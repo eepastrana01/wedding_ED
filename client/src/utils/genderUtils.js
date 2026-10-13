@@ -17,7 +17,7 @@ const FEMALE_NAMES = new Set([
 
 const MALE_NAMES = new Set([
   'adolfo', 'adonay', 'alexander', 'alexis', 'alfonso', 'angel', 'anthony', 'brandon',
-  'carlitos', 'carlos', 'cesar', 'daniel', 'david', 'diego', 'edgar', 'eli', 'eduardo',
+  'carlitos', 'carlos', 'cesar', 'daniel', 'david', 'diego', 'edgar', 'eli', 'eduardo', 'edis',
   'enrique', 'ethan', 'francisco', 'gabriel', 'henry', 'jeison', 'jason', 'jonathan',
   'jose', 'juan', 'julio', 'kenneth', 'kevin', 'luis', 'mario', 'marlon',
   'miguel', 'miguelito', 'misael', 'nelson', 'obed', 'patricio', 'rafael', 'roberto',

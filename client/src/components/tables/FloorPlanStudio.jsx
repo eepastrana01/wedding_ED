@@ -379,7 +379,7 @@ export function FloorPlanStudio({
             </div>
             <SweetheartHeadTable
               brideName="Dania"
-              groomName="Eduardo"
+              groomName="Edis"
             />
           </div>
 

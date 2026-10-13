@@ -69,7 +69,7 @@ export function TablePrintModal({ isOpen, onClose, tables, guests }) {
           {/* Header Title for Print */}
           <div className="text-center pb-6 mb-6 border-b border-stone-200">
             <div className="inline-block px-3 py-1 rounded-full bg-stone-100 text-[11px] font-bold tracking-widest uppercase text-stone-600 mb-2">
-              Recepción de Boda • Eduardo & Dania
+              Recepción de Boda • Edis & Dania
             </div>
             <h1 className="font-serif text-2xl sm:text-3xl font-extrabold text-wedding-primaryDark">
               Distribución Oficial de Mesas & Banquete
@@ -196,7 +196,7 @@ export function TablePrintModal({ isOpen, onClose, tables, guests }) {
 
           {/* Footer */}
           <div className="mt-8 pt-4 border-t border-stone-200 text-center text-xs text-stone-400 flex items-center justify-between">
-            <span>Boda Eduardo & Dania • 21 de Noviembre de 2026</span>
+            <span>Boda Edis & Dania • 21 de Noviembre de 2026</span>
             <span>Generado con amor desde la App Oficial</span>
           </div>
         </div>
