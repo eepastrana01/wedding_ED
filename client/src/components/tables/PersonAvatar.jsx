@@ -1,8 +1,9 @@
-import React from 'react';
-import { Utensils, AlertCircle, X, Phone, Heart } from 'lucide-react';
+import React, { useState } from 'react';
+import { Utensils, AlertCircle, X, Phone, Heart, RefreshCw } from 'lucide-react';
+import { detectGuestGender, setGuestGenderOverride } from '../../utils/genderUtils';
 
 // Generador determinista de color y estilo basado en el ID y nombre del invitado
-function getAvatarStyle(guest, isBride = false, isGroom = false) {
+function getAvatarStyle(guest, isBride = false, isGroom = false, genderOverride = null) {
   if (isBride) {
     return {
       type: 'bride',
@@ -27,7 +28,7 @@ function getAvatarStyle(guest, isBride = false, isGroom = false) {
     };
   }
 
-  // Hash determinista del nombre o ID para que el avatar siempre mantenga su estilo
+  // Hash determinista del nombre o ID para que el avatar mantenga su ropa favorita
   const seed = (guest?.id || 1) * 31 + (guest?.name?.charCodeAt(0) || 65);
   
   // Paleta de trajes y vestidos de boda (editorial & luxury)
@@ -58,8 +59,9 @@ function getAvatarStyle(guest, isBride = false, isGroom = false) {
 
   const hairColor = hairColors[seed % hairColors.length];
 
-  // Intento de inferir género/estilo por cortesía o nombre (o aleatorio pero determinista)
-  const isFemale = (seed % 2 === 0);
+  // Detección precisa de género por catálogo de nombres de la boda
+  const detected = genderOverride || detectGuestGender(guest);
+  const isFemale = detected === 'woman';
 
   if (isFemale) {
     return {
@@ -94,9 +96,19 @@ export function PersonAvatar({
   showName = true,
   size = 46, // Tamaño en px
 }) {
-  const style = getAvatarStyle(guest, isBride, isGroom);
+  const [genderOverride, setGenderOverride] = useState(null);
+  const style = getAvatarStyle(guest, isBride, isGroom, genderOverride);
   const hasDietary = Boolean(guest?.dietary_notes && guest?.dietary_notes.trim());
   const fullName = isBride ? 'Dania (Novia)' : isGroom ? 'Eduardo (Novio)' : guest?.name || 'Invitado';
+
+  const handleToggleGender = (e) => {
+    e.stopPropagation();
+    if (!guest) return;
+    const currentGender = style.type === 'woman' ? 'woman' : 'man';
+    const newGender = currentGender === 'woman' ? 'man' : 'woman';
+    setGuestGenderOverride(guest.id, newGender);
+    setGenderOverride(newGender);
+  };
 
   // Cortar nombre para visualización limpia en 2 líneas si es largo
   const formatDisplayName = (name) => {
@@ -306,6 +318,18 @@ export function PersonAvatar({
           title={`Quitar a ${guest.name} de esta mesa`}
         >
           <X size={10} strokeWidth={2.5} />
+        </button>
+      )}
+
+      {/* Botón cambiar atuendo (traje ↔ vestido) en hover */}
+      {guest && !isBride && !isGroom && (
+        <button
+          type="button"
+          onClick={handleToggleGender}
+          className="absolute -bottom-1 -left-1 z-30 w-4 h-4 rounded-full bg-stone-800 text-white opacity-0 group-hover/person:opacity-100 hover:bg-wedding-primary flex items-center justify-center transition-opacity shadow-sm cursor-pointer"
+          title={style.type === 'woman' ? 'Cambiar a traje' : 'Cambiar a vestido'}
+        >
+          <RefreshCw size={8} />
         </button>
       )}
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useWedding } from '../../context/WeddingContext';
 import { InteractiveTable, SweetheartHeadTable } from './InteractiveTable';
 import { PersonAvatar } from './PersonAvatar';
@@ -8,11 +8,15 @@ import { QuickAssignModal } from './QuickAssignModal';
 import { 
   ZoomIn, ZoomOut, Maximize2, Minimize2, Move, Plus, Search, 
   Users, Home, Wand2, Printer, Check, ChevronLeft, ChevronRight,
-  Layers, RotateCcw, Sparkles, Utensils
+  Layers, RotateCcw, Sparkles, Utensils, ExternalLink, Grid
 } from 'lucide-react';
 import { matchesSearch } from '../../utils/textUtils';
 
-export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }) {
+export function FloorPlanStudio({ 
+  isFullscreenMode = false, 
+  isStandaloneTab = false,
+  onToggleFullscreen 
+}) {
   const {
     tables = [],
     guests = [],
@@ -44,6 +48,110 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
   const [targetQuickTable, setTargetQuickTable] = useState(null);
 
   const canvasRef = useRef(null);
+
+  // Helper para calcular coordenadas por defecto espaciadas
+  const getTableCoordinates = useCallback((table, index) => {
+    if (table.pos_x && table.pos_y && (table.pos_x !== 0 || table.pos_y !== 0)) {
+      return { x: table.pos_x, y: table.pos_y };
+    }
+    const cols = 3;
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    return {
+      x: 140 + col * 460,
+      y: 340 + row * 440,
+    };
+  }, []);
+
+  // Estado local de posiciones de mesas (para arrastre fluido a 60fps)
+  const [localTableCoords, setLocalTableCoords] = useState({});
+  const [movingTable, setMovingTable] = useState(null);
+
+  // Sincronizar coordenadas al recibir tablas
+  useEffect(() => {
+    const coords = {};
+    tables.forEach((t, i) => {
+      coords[t.id] = getTableCoordinates(t, i);
+    });
+    setLocalTableCoords(coords);
+  }, [tables, getTableCoordinates]);
+
+  // Manejador para empezar a mover una mesa
+  const handleStartDragTable = (table, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const currentPos = localTableCoords[table.id] || getTableCoordinates(table, 0);
+    setMovingTable({
+      id: table.id,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      initialX: currentPos.x,
+      initialY: currentPos.y,
+    });
+  };
+
+  // Movimiento del ratón sobre el lienzo (paneo de cámara o arrastre de mesa)
+  const handleMouseMove = (e) => {
+    if (movingTable) {
+      const deltaX = (e.clientX - movingTable.startMouseX) / zoom;
+      const deltaY = (e.clientY - movingTable.startMouseY) / zoom;
+      // Snapping de 10px para alineación arquitectónica limpia
+      const newX = Math.round((movingTable.initialX + deltaX) / 10) * 10;
+      const newY = Math.round((movingTable.initialY + deltaY) / 10) * 10;
+      
+      setLocalTableCoords((prev) => ({
+        ...prev,
+        [movingTable.id]: { x: Math.max(20, newX), y: Math.max(260, newY) },
+      }));
+    } else if (isPanning) {
+      setPan({
+        x: e.clientX - startPan.x,
+        y: e.clientY - startPan.y,
+      });
+    }
+  };
+
+  // Soltar mesa o soltar paneo
+  const handleMouseUp = () => {
+    if (movingTable) {
+      const finalPos = localTableCoords[movingTable.id];
+      if (finalPos) {
+        updateTable(movingTable.id, {
+          pos_x: Math.round(finalPos.x),
+          pos_y: Math.round(finalPos.y),
+        });
+      }
+      setMovingTable(null);
+    }
+    setIsPanning(false);
+  };
+
+  // Iniciar paneo del lienzo al hacer clic en el fondo
+  const handleMouseDown = (e) => {
+    if (
+      e.target === canvasRef.current || 
+      e.target.classList.contains('canvas-background') ||
+      e.target.classList.contains('canvas-surface')
+    ) {
+      setIsPanning(true);
+      setStartPan({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  };
+
+  // Auto-alinear mesas en cuadrícula ordenada
+  const handleAutoAlignTables = () => {
+    const cols = 3;
+    const newCoords = {};
+    tables.forEach((t, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = 140 + col * 460;
+      const y = 340 + row * 440;
+      newCoords[t.id] = { x, y };
+      updateTable(t.id, { pos_x: x, pos_y: y });
+    });
+    setLocalTableCoords(newCoords);
+  };
 
   // Unassigned guests
   const unassignedGuests = useMemo(() => {
@@ -87,29 +195,6 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
   // Metrics
   const totalCapacity = tables.reduce((acc, t) => acc + (t.capacity || 10), 0);
   const totalSeated = tables.reduce((acc, t) => acc + (t.guests?.length || 0), 0);
-  const freeSeats = Math.max(0, totalCapacity - totalSeated);
-
-  // Pan canvas with mouse
-  const handleMouseDown = (e) => {
-    // Only pan if clicking on canvas background directly
-    if (e.target === canvasRef.current || e.target.classList.contains('canvas-background')) {
-      setIsPanning(true);
-      setStartPan({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-    }
-  };
-
-  const handleMouseMove = (e) => {
-    if (isPanning) {
-      setPan({
-        x: e.clientX - startPan.x,
-        y: e.clientY - startPan.y,
-      });
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsPanning(false);
-  };
 
   const handleResetView = () => {
     setZoom(1);
@@ -132,7 +217,6 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
     e.dataTransfer.setData('text/plain', payload);
   };
 
-  // Open quick assign modal
   const handleOpenQuickAssign = (table = null) => {
     setTargetQuickTable(table);
     setIsQuickAssignOpen(true);
@@ -141,7 +225,9 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
   return (
     <div 
       className={`relative w-full overflow-hidden select-none bg-[#F7F8FA] flex flex-col ${
-        isFullscreenMode ? 'fixed inset-0 z-50 h-screen w-screen' : 'h-[85vh] rounded-3xl border border-wedding-border shadow-md'
+        isFullscreenMode || isStandaloneTab 
+          ? 'fixed inset-0 z-50 h-screen w-screen' 
+          : 'h-[85vh] rounded-3xl border border-wedding-border shadow-md'
       }`}
     >
       {/* 1. Barra de Herramientas Superior del Estudio (Floating Studio HUD) */}
@@ -152,11 +238,18 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
               E&D
             </span>
             <div>
-              <h3 className="font-serif font-bold text-xs sm:text-sm text-wedding-primaryDark leading-tight">
-                Estudio del Salón de Banquete
-              </h3>
+              <div className="flex items-center gap-1.5">
+                <h3 className="font-serif font-bold text-xs sm:text-sm text-wedding-primaryDark leading-tight">
+                  Estudio del Salón de Banquete
+                </h3>
+                {isStandaloneTab && (
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[9px] uppercase tracking-wider">
+                    Pestaña Completa
+                  </span>
+                )}
+              </div>
               <p className="text-[10px] text-stone-500 font-medium hidden sm:block">
-                Plano 360° Interactivo con Personitas & Asignación Dinámica
+                Plano 360° Interactivo con Personitas & Arrastre de Mesas
               </p>
             </div>
           </div>
@@ -179,6 +272,33 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
 
         {/* Acciones principales de salón */}
         <div className="flex items-center gap-2">
+          {/* Botón Abrir en Nueva Pestaña (Para ocupar todo el navegador en la PC) */}
+          {!isStandaloneTab && (
+            <a
+              href="/?tab=tables&standalone=true"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-50 to-amber-100/90 hover:from-amber-100 hover:to-amber-200 text-amber-950 border border-amber-300/80 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
+              title="Abrir en pestaña nueva para ocupar el 100% del navegador"
+            >
+              <ExternalLink size={13} className="text-amber-800" />
+              <span className="hidden sm:inline">Nueva Pestaña</span>
+            </a>
+          )}
+
+          {/* Botón Auto-alinear Mesas */}
+          {tables.length > 0 && (
+            <button
+              type="button"
+              onClick={handleAutoAlignTables}
+              className="px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+              title="Alinear todas las mesas en orden"
+            >
+              <Grid size={13} />
+              <span className="hidden md:inline">Auto-alinear</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => {
@@ -209,10 +329,10 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
             title="Imprimir plano de mesas"
           >
             <Printer size={14} />
-            <span className="hidden sm:inline">Imprimir / PDF</span>
+            <span className="hidden sm:inline">Imprimir</span>
           </button>
 
-          {onToggleFullscreen && (
+          {onToggleFullscreen && !isStandaloneTab && (
             <button
               type="button"
               onClick={onToggleFullscreen}
@@ -233,7 +353,7 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
         onMouseUp={handleMouseUp}
         className="canvas-background relative flex-1 w-full h-full overflow-hidden cursor-default"
         style={{
-          // Fondo con textura de papel milimetrado / plano de arquitectura
+          // Fondo de papel milimetrado / plano de arquitectura
           backgroundColor: '#F8F9FA',
           backgroundImage: `
             radial-gradient(#D3DCE6 1.1px, transparent 1.1px),
@@ -248,12 +368,12 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transformOrigin: 'top center',
-            transition: isPanning ? 'none' : 'transform 0.15s ease-out',
+            transition: isPanning || movingTable ? 'none' : 'transform 0.15s ease-out',
           }}
-          className="relative min-w-[1600px] min-h-[1400px] pt-24 pb-40 px-20 flex flex-col items-center"
+          className="canvas-surface relative min-w-[2000px] min-h-[1800px] pt-24 pb-40 px-20"
         >
           {/* A. Encabezado del Salón: Mesa Presidencial de los Novios (Bride & Groom) */}
-          <div className="mb-14 flex flex-col items-center">
+          <div className="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center z-10 pointer-events-auto">
             <div className="mb-2 px-3 py-1 rounded-full bg-stone-200/70 border border-stone-300 text-[10px] font-bold tracking-widest uppercase text-stone-600">
               Cabecera del Salón • Pista de Baile & Banquete
             </div>
@@ -263,9 +383,9 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
             />
           </div>
 
-          {/* B. Salón Principal: Grid espacioso de Mesas Redondas con sus Personitas */}
+          {/* B. Salón Principal: Mesas Posicionadas Libremente en el Plano */}
           {tables.length === 0 ? (
-            <div className="mt-10 p-10 bg-white/90 rounded-3xl border border-stone-300 shadow-lg text-center max-w-md backdrop-blur-xs">
+            <div className="absolute top-80 left-1/2 -translate-x-1/2 p-10 bg-white/95 rounded-3xl border border-stone-300 shadow-lg text-center max-w-md backdrop-blur-xs z-10">
               <Utensils size={36} className="mx-auto text-wedding-accent mb-3" />
               <h4 className="font-serif text-lg font-bold text-wedding-primaryDark">
                 Salón listo para montar
@@ -282,9 +402,21 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-16 justify-items-center">
-              {tables.map((table) => (
-                <div key={table.id} className="p-2 transition-transform hover:scale-[1.01]">
+            tables.map((table, i) => {
+              const coords = localTableCoords[table.id] || getTableCoordinates(table, i);
+              const isMoving = movingTable?.id === table.id;
+              return (
+                <div
+                  key={table.id}
+                  style={{
+                    position: 'absolute',
+                    left: `${coords.x}px`,
+                    top: `${coords.y}px`,
+                    zIndex: isMoving ? 40 : 20,
+                    transition: isMoving ? 'none' : 'box-shadow 0.2s',
+                  }}
+                  className={isMoving ? 'scale-105 shadow-2xl ring-4 ring-wedding-accent/40 rounded-full' : ''}
+                >
                   <InteractiveTable
                     table={table}
                     zoom={zoom}
@@ -297,10 +429,11 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
                     onAssignGuests={assignGuestsToTable}
                     onUnassignGuest={unassignGuestsFromTable}
                     onQuickAssignClick={handleOpenQuickAssign}
+                    onStartDragTable={handleStartDragTable}
                   />
                 </div>
-              ))}
-            </div>
+              );
+            })
           )}
         </div>
       </div>
@@ -403,7 +536,7 @@ export function FloorPlanStudio({ isFullscreenMode = false, onToggleFullscreen }
                       </div>
                     )}
 
-                    {/* Personitas individuales */}
+                    {/* Personitas individuales con traje/vestido corregido */}
                     <div className="space-y-1">
                       {fam.guests.map((guest) => (
                         <div

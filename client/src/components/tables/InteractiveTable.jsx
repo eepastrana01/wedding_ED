@@ -13,7 +13,7 @@ export function InteractiveTable({
   onAssignGuests,
   onUnassignGuest,
   onQuickAssignClick,
-  onMoveTable,
+  onStartDragTable,
   zoom = 1,
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -102,26 +102,33 @@ export function InteractiveTable({
         <div className="relative w-full h-full flex items-center justify-center">
           
           {/* El Mantel / Círculo de la Mesa (Exacto al estilo del plano de referencia) */}
-          <div className="relative w-48 h-48 rounded-full bg-[#E8E8E8] border-4 border-[#C8C8C8] shadow-[0_10px_25px_rgba(0,0,0,0.08)] flex flex-col items-center justify-center text-center z-10 group/center transition-all hover:border-wedding-primary/50">
+          <div 
+            onMouseDown={(e) => {
+              if (e.button === 0 && !e.target.closest('button')) {
+                onStartDragTable && onStartDragTable(table, e);
+              }
+            }}
+            className="relative w-48 h-48 rounded-full bg-[#E8E8E8] border-4 border-[#C8C8C8] shadow-[0_10px_25px_rgba(0,0,0,0.08)] flex flex-col items-center justify-center text-center z-10 group/center transition-all hover:border-wedding-primary/50 cursor-grab active:cursor-grabbing"
+          >
             
             {/* Número grande de mesa en el centro */}
-            <span className="font-sans font-light text-5xl text-stone-600 tracking-tight leading-none">
+            <span className="font-sans font-light text-5xl text-stone-600 tracking-tight leading-none pointer-events-none">
               {table.table_number}
             </span>
 
             {/* Nombre opcional de la mesa */}
             {table.name ? (
-              <span className="font-serif italic text-xs font-semibold text-wedding-primaryDark mt-1 px-3 truncate max-w-[140px]" title={table.name}>
+              <span className="font-serif italic text-xs font-semibold text-wedding-primaryDark mt-1 px-3 truncate max-w-[140px] pointer-events-none" title={table.name}>
                 {table.name}
               </span>
             ) : (
-              <span className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold mt-1">
+              <span className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold mt-1 pointer-events-none">
                 Mesa
               </span>
             )}
 
             {/* Contador de ocupación (ej. 8/10) */}
-            <div className={`mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold shadow-2xs inline-flex items-center gap-1 ${
+            <div className={`mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold shadow-2xs inline-flex items-center gap-1 pointer-events-none ${
               isOverCapacity
                 ? 'bg-rose-500 text-white'
                 : isFull
@@ -135,7 +142,18 @@ export function InteractiveTable({
             </div>
 
             {/* Menú de acciones en hover sobre el centro de la mesa */}
-            <div className="absolute inset-0 rounded-full bg-stone-900/75 backdrop-blur-2xs opacity-0 group-hover/center:opacity-100 flex items-center justify-center gap-2 transition-opacity duration-200 z-30">
+            <div className="absolute inset-0 rounded-full bg-stone-900/75 backdrop-blur-2xs opacity-0 group-hover/center:opacity-100 flex items-center justify-center gap-1.5 transition-opacity duration-200 z-30">
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartDragTable && onStartDragTable(table, e);
+                }}
+                className="w-8 h-8 rounded-full bg-white/20 hover:bg-wedding-primary text-white flex items-center justify-center transition-colors cursor-move"
+                title="Mover mesa en el plano"
+              >
+                <Move size={14} />
+              </button>
               <button
                 type="button"
                 onClick={() => onQuickAssignClick(table)}
@@ -230,19 +248,37 @@ export function InteractiveTable({
         <div className="relative w-full h-full flex items-center justify-center">
           
           {/* El Tablón Rectangular */}
-          <div className="relative w-72 h-36 rounded-2xl bg-[#E8E8E8] border-4 border-[#C8C8C8] shadow-md flex flex-col items-center justify-center text-center z-10 group/center">
-            <span className="font-sans font-light text-4xl text-stone-600 leading-none">
+          <div 
+            onMouseDown={(e) => {
+              if (e.button === 0 && !e.target.closest('button')) {
+                onStartDragTable && onStartDragTable(table, e);
+              }
+            }}
+            className="relative w-72 h-36 rounded-2xl bg-[#E8E8E8] border-4 border-[#C8C8C8] shadow-md flex flex-col items-center justify-center text-center z-10 group/center cursor-grab active:cursor-grabbing"
+          >
+            <span className="font-sans font-light text-4xl text-stone-600 leading-none pointer-events-none">
               {table.table_number}
             </span>
-            <span className="font-serif italic text-xs font-semibold text-wedding-primaryDark mt-1">
+            <span className="font-serif italic text-xs font-semibold text-wedding-primaryDark mt-1 pointer-events-none">
               {table.name || 'Mesa Imperial'}
             </span>
-            <span className="text-[11px] font-bold text-stone-600 bg-white/90 px-2 py-0.5 rounded-full mt-1 border border-stone-200">
+            <span className="text-[11px] font-bold text-stone-600 bg-white/90 px-2 py-0.5 rounded-full mt-1 border border-stone-200 pointer-events-none">
               {seatedCount}/{capacity}
             </span>
 
             {/* Hover Actions */}
             <div className="absolute inset-0 rounded-2xl bg-stone-900/75 backdrop-blur-2xs opacity-0 group-hover/center:opacity-100 flex items-center justify-center gap-2 transition-opacity z-30">
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartDragTable && onStartDragTable(table, e);
+                }}
+                className="w-8 h-8 rounded-full bg-white/20 hover:bg-wedding-primary text-white flex items-center justify-center cursor-move"
+                title="Mover mesa en el plano"
+              >
+                <Move size={14} />
+              </button>
               <button
                 type="button"
                 onClick={() => onQuickAssignClick(table)}

@@ -8,7 +8,7 @@ import { QuickAssignModal } from './QuickAssignModal';
 import { 
   Utensils, Plus, Search, Users, Printer, Sparkles, 
   Wand2, Home, UserCheck, RefreshCw, AlertCircle, ChevronDown, ChevronRight, Check,
-  Maximize2, LayoutGrid, Compass
+  Maximize2, LayoutGrid, Compass, ExternalLink
 } from 'lucide-react';
 import { matchesSearch } from '../../utils/textUtils';
 
@@ -191,13 +191,24 @@ export function TablesView() {
               </button>
             </div>
 
+            <a
+              href="/?tab=tables&standalone=true"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 bg-gradient-to-r from-amber-50 to-amber-100/90 hover:from-amber-100 hover:to-amber-200 text-amber-950 border border-amber-300/80 text-xs font-bold rounded-2xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Abrir en pestaña nueva para ocupar el 100% del navegador"
+            >
+              <ExternalLink size={14} className="text-amber-800" />
+              <span className="hidden sm:inline">Nueva Pestaña</span>
+            </a>
+
             <button
               type="button"
               onClick={() => setIsFullscreenStudio(true)}
-              className="px-3 py-2 bg-gradient-to-r from-amber-50 to-amber-100/90 hover:from-amber-100 hover:to-amber-200 text-amber-950 border border-amber-300/80 text-xs font-bold rounded-2xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 text-xs font-bold rounded-2xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
               title="Abrir estudio en pantalla completa para máximo espacio"
             >
-              <Maximize2 size={14} className="text-amber-800" />
+              <Maximize2 size={14} className="text-stone-600" />
               <span className="hidden sm:inline">Pantalla Completa</span>
             </button>
 

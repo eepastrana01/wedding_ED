@@ -10,12 +10,18 @@ import { DashboardView } from './components/dashboard/DashboardView';
 import { CountdownView } from './components/countdown/CountdownView';
 import { PhotoWallView } from './components/photos/PhotoWallView';
 import { TablesView } from './components/tables/TablesView';
+import { FloorPlanStudio } from './components/tables/FloorPlanStudio';
 import { CsvUploader } from './components/importer/CsvUploader';
 import { Toast } from './components/common/Toast';
 import { ChangelogModal } from './components/common/ChangelogModal';
 
 function WeddingAppContent() {
   const { activeTab, setActiveTab, isChangelogOpen, closeChangelog } = useWedding();
+
+  const isStandalone = typeof window !== 'undefined' && (
+    new URLSearchParams(window.location.search).get('standalone') === 'true' ||
+    window.location.pathname === '/tables-studio'
+  );
 
   // Soporte para enlaces directos por código QR (ej. ?tab=photos)
   React.useEffect(() => {
@@ -25,6 +31,16 @@ function WeddingAppContent() {
       setActiveTab(tabParam);
     }
   }, [setActiveTab]);
+
+  // Si se abre en una pestaña independiente para diseño de mesas, ocupa el 100% de la ventana del navegador
+  if (isStandalone) {
+    return (
+      <div className="w-screen h-screen overflow-hidden bg-[#F8F9FA] fixed inset-0 select-none">
+        <FloorPlanStudio isFullscreenMode={true} isStandaloneTab={true} />
+        <Toast />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-wedding-bg">
