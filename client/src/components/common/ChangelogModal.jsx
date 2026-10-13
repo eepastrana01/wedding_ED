@@ -12,7 +12,8 @@ import {
   X,
   Layers,
   FileText,
-  Bell
+  Bell,
+  Utensils
 } from 'lucide-react';
 
 export function ChangelogModal({ isOpen, onClose }) {
@@ -43,6 +44,11 @@ export function ChangelogModal({ isOpen, onClose }) {
 
   const handleGoToTasks = () => {
     setActiveTab('tasks');
+    onClose();
+  };
+
+  const handleGoToTables = () => {
+    setActiveTab('tables');
     onClose();
   };
 
@@ -93,6 +99,56 @@ export function ChangelogModal({ isOpen, onClose }) {
         {/* Contenido scrolleable con tarjetas de mejoras */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1 overscroll-contain">
           
+          {/* Card 0: Nuevo Gestor de Mesas de Boda (Seating Chart) */}
+          <div className="p-4 rounded-2xl bg-[#FCFAF6] border border-amber-200/90 hover:border-amber-400 transition-colors shadow-2xs">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100/90 border border-amber-200 text-amber-900 flex items-center justify-center shrink-0 mt-0.5">
+                <Utensils size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="font-editorial text-base sm:text-lg font-bold text-wedding-primaryDark">
+                    ¡Nuevo Gestor de Mesas Redondas & Seating Chart!
+                  </h4>
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-200 text-amber-950 px-2 py-0.5 rounded-full shrink-0">
+                    Estreno
+                  </span>
+                </div>
+                <p className="text-xs text-stone-600 mt-1 leading-relaxed">
+                  Visualiza el salón de tu banquete y organiza a tus invitados fácilmente:
+                </p>
+                <ul className="mt-2 space-y-1.5 text-xs text-stone-700">
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 size={14} className="text-amber-700 shrink-0 mt-0.5" />
+                    <span><strong>Mesas redondas interactivas:</strong> Diseñadas con capacidad configurable (10 sillas c/u) y distribución circular 360°.</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 size={14} className="text-amber-700 shrink-0 mt-0.5" />
+                    <span><strong>Arrastrar y soltar (Drag & Drop):</strong> Arrastra invitados directo a su mesa, muévelos entre mesas o asígnalos con 1 toque en tu celular.</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 size={14} className="text-amber-700 shrink-0 mt-0.5" />
+                    <span><strong>Sentar familias completas:</strong> Botón rápido para ubicar a todos los integrantes de una familia en la misma mesa al instante.</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 size={14} className="text-amber-700 shrink-0 mt-0.5" />
+                    <span><strong>Reporte para Catering / Impresión:</strong> Resumen de requerimientos dietarios, alergias y lista oficial por mesa para el banquete.</span>
+                  </li>
+                </ul>
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={handleGoToTables}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-wedding-primary text-white text-xs font-bold hover:bg-wedding-primaryDark transition-colors cursor-pointer shadow-xs"
+                  >
+                    <span>Ir a Salón de Mesas</span>
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Card 1: To-Do List & Tareas */}
           <div className="p-4 rounded-2xl bg-[#FCFAF6] border border-wedding-border/90 hover:border-emerald-300 transition-colors shadow-2xs">
             <div className="flex items-start gap-3">
@@ -102,7 +158,7 @@ export function ChangelogModal({ isOpen, onClose }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <h4 className="font-editorial text-base sm:text-lg font-bold text-wedding-primaryDark">
-                    Nuevo Gestor de Tareas & To-Do List
+                    Gestor de Tareas & To-Do List
                   </h4>
                   <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full shrink-0">
                     Nuevo

@@ -1,15 +1,16 @@
 import React from 'react';
 import { useWedding } from '../../context/WeddingContext';
 import { useWeddingCountdown } from '../../hooks/useWeddingCountdown';
-import { Users, Home, Mail, BarChart3, ListTodo, Sparkles, Camera } from 'lucide-react';
+import { Users, Home, Mail, BarChart3, ListTodo, Sparkles, Camera, Utensils } from 'lucide-react';
 
 export function MobileBottomNav() {
-  const { activeTab, setActiveTab, stats, invitationCards, taskMetrics, photos } = useWedding();
+  const { activeTab, setActiveTab, stats, invitationCards, taskMetrics, photos, tables } = useWedding();
   const { days } = useWeddingCountdown();
 
   const navItems = [
     { id: 'guests', label: 'Invitados', icon: Users, badge: stats?.overview?.total_guests },
     { id: 'families', label: 'Familias', icon: Home, badge: stats?.overview?.total_families },
+    { id: 'tables', label: 'Mesas', icon: Utensils, badge: tables?.length },
     { id: 'cards', label: 'Tarjetas', icon: Mail, badge: invitationCards?.summary?.totalCards },
     { id: 'photos', label: 'Fotos', icon: Camera, badge: photos?.length },
     { id: 'tasks', label: 'Tareas', icon: ListTodo, badge: taskMetrics?.pending },
@@ -18,7 +19,7 @@ export function MobileBottomNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-wedding-border/80 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-1 pt-1 pb-safe select-none">
-      <div className="grid grid-cols-6 gap-0.5 items-center">
+      <div className="grid grid-cols-7 gap-0.5 items-center">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;

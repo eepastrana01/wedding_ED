@@ -5,6 +5,7 @@ import { familyApi } from '../services/familyApi';
 import { statsApi } from '../services/statsApi';
 import { taskApi } from '../services/taskApi';
 import { photoApi } from '../services/photoApi';
+import { tableApi } from '../services/tableApi';
 import { normalizeText, matchesSearch, areStringsEqualNormalized } from '../utils/textUtils';
 
 const WeddingContext = createContext();
@@ -22,6 +23,14 @@ export function WeddingProvider({ children }) {
   const [families, setFamilies] = useState(() => {
     try {
       const cached = localStorage.getItem('wedding_families_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [tables, setTables] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wedding_tables_cache');
       return cached ? JSON.parse(cached) : [];
     } catch {
       return [];
@@ -228,6 +237,23 @@ export function WeddingProvider({ children }) {
     }
   };
 
+  const fetchTables = useCallback(async (silent = false) => {
+    try {
+      const res = await tableApi.getAll();
+      if (res.success && res.data) {
+        setTables(res.data);
+        try {
+          localStorage.setItem('wedding_tables_cache', JSON.stringify(res.data));
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.error('Error fetching tables:', err);
+      if (!silent) {
+        showToast(err.message, 'error');
+      }
+    }
+  }, []);
+
   // Silent refresh in background that does NOT flash full loading spinners or reset scroll
   const refreshAll = useCallback(async (isInitial = false) => {
     if (isInitial) {
@@ -240,14 +266,15 @@ export function WeddingProvider({ children }) {
       fetchFamilies(), 
       fetchStats(),
       fetchTasks(!isInitial),
-      fetchPhotos(!isInitial)
+      fetchPhotos(!isInitial),
+      fetchTables(!isInitial)
     ]);
     if (isInitial) {
       setLoading(false);
     } else {
       setIsRefreshing(false);
     }
-  }, [fetchAllGuests, fetchFamilies, fetchStats, fetchTasks, fetchPhotos]);
+  }, [fetchAllGuests, fetchFamilies, fetchStats, fetchTasks, fetchPhotos, fetchTables]);
 
   useEffect(() => {
     // Carga inicial
@@ -680,6 +707,109 @@ export function WeddingProvider({ children }) {
     }
   };
 
+  const createTable = async (tableData) => {
+    try {
+      const res = await tableApi.create(tableData);
+      if (res.success && res.data) {
+        setTables((prev) => [...prev, { ...res.data, guests: [], seated_count: 0, total_seats_used: 0 }].sort((a, b) => a.table_number - b.table_number));
+        showToast(`Mesa ${res.data.table_number} creada con éxito`);
+        fetchTables(true);
+        return res.data;
+      }
+    } catch (err) {
+      showToast(err.message || 'Error al crear mesa', 'error');
+      throw err;
+    }
+  };
+
+  const updateTable = async (id, tableData) => {
+    try {
+      const res = await tableApi.update(id, tableData);
+      if (res.success && res.data) {
+        setTables((prev) => prev.map((t) => (t.id === id ? { ...t, ...res.data } : t)));
+        showToast('Mesa actualizada correctamente');
+        fetchTables(true);
+        fetchAllGuests(true);
+        return res.data;
+      }
+    } catch (err) {
+      showToast(err.message || 'Error al actualizar mesa', 'error');
+      throw err;
+    }
+  };
+
+  const deleteTable = async (id) => {
+    try {
+      setTables((prev) => prev.filter((t) => t.id !== id));
+      await tableApi.delete(id);
+      showToast('Mesa eliminada e invitados liberados', 'info');
+      fetchTables(true);
+      fetchAllGuests(true);
+    } catch (err) {
+      fetchTables(true);
+      showToast(err.message || 'Error al eliminar mesa', 'error');
+      throw err;
+    }
+  };
+
+  const assignGuestsToTable = async (tableId, guestIds = []) => {
+    if (!guestIds || guestIds.length === 0) return;
+    try {
+      await tableApi.assignGuests(tableId, guestIds);
+      showToast(
+        guestIds.length === 1 
+          ? 'Invitado asignado a la mesa' 
+          : `${guestIds.length} invitados asignados a la mesa`
+      );
+      await Promise.all([fetchTables(true), fetchAllGuests(true)]);
+    } catch (err) {
+      showToast(err.message || 'Error al asignar a la mesa', 'error');
+      throw err;
+    }
+  };
+
+  const unassignGuestsFromTable = async (guestIds = []) => {
+    if (!guestIds || guestIds.length === 0) return;
+    try {
+      await tableApi.unassignGuests(guestIds);
+      showToast(
+        guestIds.length === 1 
+          ? 'Invitado movido a lista sin asignar' 
+          : `${guestIds.length} invitados movidos a lista sin asignar`, 
+        'info'
+      );
+      await Promise.all([fetchTables(true), fetchAllGuests(true)]);
+    } catch (err) {
+      showToast(err.message || 'Error al desasignar invitados', 'error');
+      throw err;
+    }
+  };
+
+  const clearTable = async (tableId) => {
+    try {
+      await tableApi.clearTable(tableId);
+      showToast('Todos los invitados de la mesa fueron desasignados', 'info');
+      await Promise.all([fetchTables(true), fetchAllGuests(true)]);
+    } catch (err) {
+      showToast(err.message || 'Error al limpiar mesa', 'error');
+      throw err;
+    }
+  };
+
+  const autoGenerateTables = async (count = 10, capacity = 10) => {
+    try {
+      const res = await tableApi.autoGenerate(count, capacity);
+      if (res.success) {
+        showToast(`¡Se han generado ${res.data?.length || count} mesas redondas!`);
+        triggerCelebration();
+        await fetchTables(true);
+      }
+    } catch (err) {
+      showToast(err.message || 'Error al autogenerar mesas', 'error');
+      throw err;
+    }
+  };
+
   return (
     <WeddingContext.Provider
       value={{
@@ -692,6 +822,7 @@ export function WeddingProvider({ children }) {
         tasks,
         taskMetrics,
         stats,
+        tables,
         loading,
         isRefreshing,
         filters,
@@ -700,6 +831,14 @@ export function WeddingProvider({ children }) {
         fetchFamilies,
         fetchStats,
         fetchTasks,
+        fetchTables,
+        createTable,
+        updateTable,
+        deleteTable,
+        assignGuestsToTable,
+        unassignGuestsFromTable,
+        clearTable,
+        autoGenerateTables,
         refreshAll,
         setGuestStatus,
         setFamilyStatus,

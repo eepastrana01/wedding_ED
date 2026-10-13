@@ -5,11 +5,13 @@ import statsRoutes from './stats.routes.js';
 import csvRoutes from './csv.routes.js';
 import taskRoutes from './task.routes.js';
 import photoRoutes from './photo.routes.js';
+import tableRoutes from './table.routes.js';
 
 const router = Router();
 
 router.use('/guests', guestRoutes);
 router.use('/families', familyRoutes);
+router.use('/tables', tableRoutes);
 router.use('/stats', statsRoutes);
 router.use('/csv', csvRoutes);
 router.use('/tasks', taskRoutes);

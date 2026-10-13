@@ -6,9 +6,12 @@ export const guestService = {
     let query = `
       SELECT 
         g.*,
-        f.name as family_name
+        f.name as family_name,
+        t.table_number,
+        t.name as table_name
       FROM guests g
       LEFT JOIN families f ON g.family_id = f.id
+      LEFT JOIN wedding_tables t ON g.table_id = t.id
       WHERE 1=1
     `;
     const params = [];

@@ -9,6 +9,7 @@ import { TaskView } from './components/tasks/TaskView';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { CountdownView } from './components/countdown/CountdownView';
 import { PhotoWallView } from './components/photos/PhotoWallView';
+import { TablesView } from './components/tables/TablesView';
 import { CsvUploader } from './components/importer/CsvUploader';
 import { Toast } from './components/common/Toast';
 import { ChangelogModal } from './components/common/ChangelogModal';
@@ -20,7 +21,7 @@ function WeddingAppContent() {
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['guests', 'families', 'cards', 'tasks', 'dashboard', 'countdown', 'photos', 'importer'].includes(tabParam)) {
+    if (tabParam && ['guests', 'families', 'tables', 'cards', 'tasks', 'dashboard', 'countdown', 'photos', 'importer'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [setActiveTab]);
@@ -32,6 +33,7 @@ function WeddingAppContent() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3.5 sm:pt-6 pb-24 md:pb-10">
         {activeTab === 'guests' && <GuestView />}
         {activeTab === 'families' && <FamilyView />}
+        {activeTab === 'tables' && <TablesView />}
         {activeTab === 'cards' && <CardsView />}
         {activeTab === 'tasks' && <TaskView />}
         {activeTab === 'dashboard' && <DashboardView />}

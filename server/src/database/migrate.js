@@ -170,6 +170,25 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_photos_guest_id ON photos(guest_id);
     `);
 
+    // 8. Crear tabla wedding_tables si no existe y columna table_id en guests
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS wedding_tables (
+        id SERIAL PRIMARY KEY,
+        table_number INTEGER NOT NULL,
+        name VARCHAR(150),
+        capacity INTEGER DEFAULT 10,
+        shape VARCHAR(50) DEFAULT 'round',
+        notes TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      ALTER TABLE guests ADD COLUMN IF NOT EXISTS table_id INTEGER REFERENCES wedding_tables(id) ON DELETE SET NULL;
+      
+      CREATE INDEX IF NOT EXISTS idx_guests_table_id ON guests(table_id);
+      CREATE INDEX IF NOT EXISTS idx_wedding_tables_number ON wedding_tables(table_number);
+    `);
+
     console.log('✅ Migraciones completadas exitosamente en Neon PostgreSQL.');
   } catch (error) {
     console.error('❌ Error ejecutando migraciones:', error);
