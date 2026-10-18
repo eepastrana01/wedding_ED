@@ -46,7 +46,7 @@ function WeddingAppContent() {
     <div className="min-h-screen flex flex-col bg-wedding-bg">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3.5 sm:pt-6 pb-24 md:pb-10">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 xl:px-10 pt-3.5 sm:pt-6 pb-24 md:pb-10">
         <div key={activeTab} className="animate-in fade-in duration-200">
           {activeTab === 'guests' && <GuestView />}
           {activeTab === 'families' && <FamilyView />}

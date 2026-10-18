@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Utensils, Hash, Users, Sparkles } from 'lucide-react';
 
 export function TableModal({ isOpen, onClose, onSave, editingTable }) {
@@ -42,7 +43,7 @@ export function TableModal({ isOpen, onClose, onSave, editingTable }) {
     onClose();
   };
 
-  return (
+  return createPortal(
     <div onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div 
         className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200/80 overflow-hidden animate-in zoom-in-95 duration-200"
@@ -185,6 +186,7 @@ export function TableModal({ isOpen, onClose, onSave, editingTable }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

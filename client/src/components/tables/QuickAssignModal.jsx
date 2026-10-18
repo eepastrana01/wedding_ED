@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Search, Users, Check, Sparkles, Home } from 'lucide-react';
 import { matchesSearch } from '../../utils/textUtils';
 
@@ -96,7 +97,7 @@ export function QuickAssignModal({
   const currentSeated = currentTable?.guests?.length || 0;
   const availableSeats = Math.max(0, capacity - currentSeated);
 
-  return (
+  return createPortal(
     <div onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div 
         className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
@@ -279,6 +280,7 @@ export function QuickAssignModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

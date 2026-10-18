@@ -23,7 +23,7 @@ export function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-wedding-border/80 shadow-2xs">
-        <div className="max-w-[1440px] mx-auto px-3 sm:px-5 lg:px-6">
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
             
             {/* 1. Logo / Monograma E & D compacto y elegante */}

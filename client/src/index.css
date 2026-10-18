@@ -98,7 +98,7 @@ button:active:not(:disabled) {
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: none;
   }
 }
 
@@ -118,7 +118,7 @@ button:active:not(:disabled) {
   }
   100% {
     opacity: 1;
-    transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
+    transform: none;
   }
 }
 
@@ -129,32 +129,31 @@ button:active:not(:disabled) {
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: none;
   }
 }
 
 .animate-in {
-  animation: smoothFadeUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
+  animation: smoothFadeUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .animate-in.fixed.inset-0 {
-  animation: smoothBackdropIn 0.16s ease-out both;
+  animation: smoothBackdropIn 0.15s ease-out backwards;
 }
 
 .animate-in.zoom-in-95,
 .animate-in.zoom-in {
-  animation: smoothModalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: smoothModalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .animate-in.slide-in-from-bottom-6,
 .animate-in.slide-in-from-bottom {
-  animation: smoothSheetUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: smoothSheetUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 @media (min-width: 640px) {
   .animate-in.sm\:zoom-in-95 {
-    animation: smoothModalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: smoothModalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
 }
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Printer, Utensils, Users, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export function TablePrintModal({ isOpen, onClose, tables, guests }) {
@@ -25,7 +26,7 @@ export function TablePrintModal({ isOpen, onClose, tables, guests }) {
     window.print();
   };
 
-  return (
+  return createPortal(
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={onClose}
@@ -204,6 +205,7 @@ export function TablePrintModal({ isOpen, onClose, tables, guests }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
