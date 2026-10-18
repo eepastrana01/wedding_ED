@@ -19,7 +19,7 @@ export function Modal({ isOpen, onClose, title, subtitle, children, maxWidth = '
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs transition-opacity overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs transition-opacity overflow-y-auto animate-in fade-in duration-150">
       {/* Backdrop */}
       <div
         className="fixed inset-0"

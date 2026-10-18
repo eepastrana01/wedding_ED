@@ -58,9 +58,120 @@
   scrollbar-width: none;  /* Firefox */
 }
 
-/* Fast tap response */
+/* Fast tap response & snappy interactive transitions */
 button, a, input, select, textarea {
   touch-action: manipulation;
+}
+
+button {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.15s ease,
+              border-color 0.15s ease,
+              color 0.15s ease,
+              box-shadow 0.15s ease,
+              opacity 0.15s ease;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Smooth hover elevation for cards */
+.shadow-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .shadow-card:hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 8px 22px -4px rgba(31, 58, 46, 0.07), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+  }
+}
+
+/* Snappy & Fluid Hardware-Accelerated Animations */
+@keyframes smoothFadeUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 7px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes smoothBackdropIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes smoothModalPop {
+  0% {
+    opacity: 0;
+    transform: scale3d(0.95, 0.95, 1) translate3d(0, 6px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes smoothSheetUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-in {
+  animation: smoothFadeUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.animate-in.fixed.inset-0 {
+  animation: smoothBackdropIn 0.16s ease-out both;
+}
+
+.animate-in.zoom-in-95,
+.animate-in.zoom-in {
+  animation: smoothModalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-in.slide-in-from-bottom-6,
+.animate-in.slide-in-from-bottom {
+  animation: smoothSheetUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (min-width: 640px) {
+  .animate-in.sm\:zoom-in-95 {
+    animation: smoothModalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+.animate-in.duration-100 {
+  animation-duration: 0.12s;
+}
+
+.animate-in.duration-150 {
+  animation-duration: 0.15s;
+}
+
+.animate-in.duration-200 {
+  animation-duration: 0.18s;
+}
+
+.animate-in.duration-300 {
+  animation-duration: 0.22s;
 }
 
 /* Monotype Corsiva font utility with elegant web fallbacks */

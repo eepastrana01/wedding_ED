@@ -47,15 +47,17 @@ function WeddingAppContent() {
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3.5 sm:pt-6 pb-24 md:pb-10">
-        {activeTab === 'guests' && <GuestView />}
-        {activeTab === 'families' && <FamilyView />}
-        {activeTab === 'tables' && <TablesView />}
-        {activeTab === 'cards' && <CardsView />}
-        {activeTab === 'tasks' && <TaskView />}
-        {activeTab === 'dashboard' && <DashboardView />}
-        {activeTab === 'countdown' && <CountdownView />}
-        {activeTab === 'photos' && <PhotoWallView />}
-        {activeTab === 'importer' && <CsvUploader />}
+        <div key={activeTab} className="animate-in fade-in duration-200">
+          {activeTab === 'guests' && <GuestView />}
+          {activeTab === 'families' && <FamilyView />}
+          {activeTab === 'tables' && <TablesView />}
+          {activeTab === 'cards' && <CardsView />}
+          {activeTab === 'tasks' && <TaskView />}
+          {activeTab === 'dashboard' && <DashboardView />}
+          {activeTab === 'countdown' && <CountdownView />}
+          {activeTab === 'photos' && <PhotoWallView />}
+          {activeTab === 'importer' && <CsvUploader />}
+        </div>
       </main>
 
       <MobileBottomNav />
