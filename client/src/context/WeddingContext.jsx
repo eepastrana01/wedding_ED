@@ -432,6 +432,8 @@ export function WeddingProvider({ children }) {
     const totalSeatsRequired = all.reduce((sum, c) => sum + c.seats, 0);
     const deliveredCount = all.filter((c) => c.delivered).length;
     const pendingDeliveryCount = totalCards - deliveredCount;
+    const confirmedCardsCount = all.filter((c) => c.statusSummary?.isAllConfirmed).length;
+    const pendingConfirmCardsCount = all.filter((c) => !c.statusSummary?.isAllConfirmed && !c.statusSummary?.isAllDeclined).length;
 
     return {
       all,
@@ -444,6 +446,8 @@ export function WeddingProvider({ children }) {
         totalSeatsRequired,
         deliveredCount,
         pendingDeliveryCount,
+        confirmedCardsCount,
+        pendingConfirmCardsCount,
         deliveryRate: totalCards > 0 ? Math.round((deliveredCount / totalCards) * 100) : 0,
       }
     };
@@ -454,13 +458,15 @@ export function WeddingProvider({ children }) {
     const previousGuests = [...guests];
 
     // Immediate optimistic local update (0ms perceived latency!)
-    setGuests((prev) =>
-      prev.map((g) => (g.id === guestId ? { ...g, status: newStatus } : g))
-    );
+    setGuests((prev) => {
+      const updated = prev.map((g) => (g.id === guestId ? { ...g, status: newStatus } : g));
+      try { localStorage.setItem('wedding_guests_cache', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
 
     // Also update family members list if present
-    setFamilies((prev) =>
-      prev.map((f) => {
+    setFamilies((prev) => {
+      const updated = prev.map((f) => {
         if (f.members && f.members.some((m) => m.id === guestId)) {
           const updatedMembers = f.members.map((m) => (m.id === guestId ? { ...m, status: newStatus } : m));
           const confirmed = updatedMembers.filter((m) => m.status === 'confirmed').length;
@@ -475,8 +481,10 @@ export function WeddingProvider({ children }) {
           };
         }
         return f;
-      })
-    );
+      });
+      try { localStorage.setItem('wedding_families_cache', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
 
     if (newStatus === 'confirmed') {
       triggerCelebration();
@@ -501,12 +509,14 @@ export function WeddingProvider({ children }) {
     const previousFamilies = [...families];
 
     // Immediate optimistic update for all family members
-    setGuests((prev) =>
-      prev.map((g) => (g.family_id === familyId ? { ...g, status: newStatus } : g))
-    );
+    setGuests((prev) => {
+      const updated = prev.map((g) => (g.family_id === familyId ? { ...g, status: newStatus } : g));
+      try { localStorage.setItem('wedding_guests_cache', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
 
-    setFamilies((prev) =>
-      prev.map((f) => {
+    setFamilies((prev) => {
+      const updated = prev.map((f) => {
         if (f.id === familyId) {
           const updatedMembers = (f.members || []).map((m) => ({ ...m, status: newStatus }));
           return {
@@ -518,8 +528,10 @@ export function WeddingProvider({ children }) {
           };
         }
         return f;
-      })
-    );
+      });
+      try { localStorage.setItem('wedding_families_cache', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
 
     if (newStatus === 'confirmed') {
       triggerCelebration();

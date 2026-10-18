@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useWedding } from '../../context/WeddingContext';
-import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown, Ticket, FileText, Tag } from 'lucide-react';
+import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown, Ticket, FileText, Tag, UserCheck, UserX } from 'lucide-react';
 import { openWhatsApp } from '../../utils/whatsapp';
 import { generateInvitationCardsPDF } from '../../utils/pdfGenerator';
 import { LabelsPrintModal } from './LabelsPrintModal';
 import { matchesSearch } from '../../utils/textUtils';
 
 export function CardsView() {
-  const { invitationCards, toggleDeliveryStatus, showToast } = useWedding();
-  const [filterType, setFilterType] = useState('all'); // 'all', 'family', 'individual', 'pending', 'delivered'
+  const { invitationCards, toggleDeliveryStatus, setFamilyStatus, setGuestStatus, showToast } = useWedding();
+  const [filterType, setFilterType] = useState('all'); // 'all', 'family', 'individual', 'pending', 'delivered', 'confirmed_rsvp', 'pending_rsvp'
   const [search, setSearch] = useState('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isLabelsModalOpen, setIsLabelsModalOpen] = useState(false);
@@ -17,8 +17,6 @@ export function CardsView() {
 
   // Filter cards based on type and search query
   const filteredCards = useMemo(() => {
-    const q = search.trim().toLowerCase();
-
     return all.filter((card) => {
       // Search filter (insensible a acentos/diacríticos)
       if (search && search.trim()) {
@@ -39,10 +37,48 @@ export function CardsView() {
       if (filterType === 'individual') return card.type === 'individual' || card.type === 'couple';
       if (filterType === 'pending') return !card.delivered;
       if (filterType === 'delivered') return card.delivered;
+      if (filterType === 'confirmed_rsvp') return Boolean(card.statusSummary?.isAllConfirmed);
+      if (filterType === 'pending_rsvp') return !card.statusSummary?.isAllConfirmed && !card.statusSummary?.isAllDeclined;
 
       return true;
     });
   }, [all, search, filterType]);
+
+  // Confirmar o desconfirmar todos los invitados de una tarjeta de invitación en 1 clic
+  const handleConfirmCard = (card) => {
+    const isAllConfirmed = Boolean(card.statusSummary?.isAllConfirmed);
+    const nextStatus = isAllConfirmed ? 'pending' : 'confirmed';
+
+    if (card.type === 'family') {
+      setFamilyStatus(card.familyId, nextStatus);
+    } else {
+      setGuestStatus(card.guestId, nextStatus);
+    }
+  };
+
+  // Marcar todos los invitados de una tarjeta como "No Asisten" o revertir a Pendiente
+  const handleDeclineCard = (card) => {
+    const isAllDeclined = Boolean(card.statusSummary?.isAllDeclined);
+    const nextStatus = isAllDeclined ? 'pending' : 'declined';
+
+    if (card.type === 'family') {
+      setFamilyStatus(card.familyId, nextStatus);
+    } else {
+      setGuestStatus(card.guestId, nextStatus);
+    }
+  };
+
+  // Cambiar estado de un integrante individual dentro de la tarjeta
+  const handleToggleMemberStatus = (card, member) => {
+    const realGuestId = String(member.id).startsWith('p-') ? card.guestId : member.id;
+    const nextStatus =
+      member.status === 'pending'
+        ? 'confirmed'
+        : member.status === 'confirmed'
+        ? 'declined'
+        : 'pending';
+    setGuestStatus(realGuestId, nextStatus);
+  };
 
   const handleDownloadPdf = () => {
     try {
@@ -255,7 +291,7 @@ export function CardsView() {
 
           <button
             onClick={() => setFilterType('pending')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${
               filterType === 'pending'
                 ? 'bg-amber-600 text-white font-semibold shadow-xs'
                 : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200/50'
@@ -267,7 +303,7 @@ export function CardsView() {
 
           <button
             onClick={() => setFilterType('delivered')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${
               filterType === 'delivered'
                 ? 'bg-emerald-600 text-white font-semibold shadow-xs'
                 : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/50'
@@ -275,6 +311,30 @@ export function CardsView() {
           >
             <CheckCircle2 size={13} />
             Entregadas ({summary.deliveredCount || 0})
+          </button>
+
+          <button
+            onClick={() => setFilterType('pending_rsvp')}
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${
+              filterType === 'pending_rsvp'
+                ? 'bg-teal-700 text-white font-semibold shadow-xs'
+                : 'bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200/50'
+            }`}
+          >
+            <UserCheck size={13} />
+            Por Confirmar ({summary.pendingConfirmCardsCount || 0})
+          </button>
+
+          <button
+            onClick={() => setFilterType('confirmed_rsvp')}
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${
+              filterType === 'confirmed_rsvp'
+                ? 'bg-wedding-primary text-white font-semibold shadow-xs'
+                : 'bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200/60'
+            }`}
+          >
+            <UserCheck size={13} />
+            Confirmadas ({summary.confirmedCardsCount || 0})
           </button>
         </div>
 
@@ -297,133 +357,189 @@ export function CardsView() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-          {filteredCards.map((card, idx) => (
-            <div
-              key={card.id}
-              className={`bg-white rounded-2xl border transition-all duration-200 shadow-card flex flex-col justify-between overflow-hidden ${
-                card.delivered
-                  ? 'border-emerald-200/90 bg-gradient-to-b from-emerald-50/20 to-white'
-                  : 'border-wedding-border hover:border-wedding-accent/60'
-              }`}
-            >
-              {/* Card Header & Content */}
-              <div className="p-4 sm:p-5 space-y-3">
-                
-                {/* Type Badge + Pass Count Badge */}
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-                      card.type === 'family'
-                        ? 'bg-blue-50 text-blue-800 border-blue-200'
-                        : card.type === 'couple'
-                        ? 'bg-pink-50 text-pink-800 border-pink-200'
-                        : 'bg-purple-50 text-purple-800 border-purple-200'
-                    }`}
-                  >
-                    {card.type === 'family' ? (
-                      <Users size={12} />
-                    ) : card.type === 'couple' ? (
-                      <Heart size={12} className="text-pink-600 fill-pink-600" />
-                    ) : (
-                      <User size={12} />
-                    )}
-                    <span>
-                      {card.type === 'family' ? 'Tarjeta Familiar' : card.type === 'couple' ? 'Tarjeta Pareja' : 'Tarjeta Individual'}
+          {filteredCards.map((card) => {
+            const isAllConfirmed = Boolean(card.statusSummary?.isAllConfirmed);
+            const isAllDeclined = Boolean(card.statusSummary?.isAllDeclined);
+
+            return (
+              <div
+                key={card.id}
+                className={`bg-white rounded-2xl border transition-all duration-200 shadow-card flex flex-col justify-between overflow-hidden ${
+                  isAllConfirmed
+                    ? 'border-emerald-300/90 bg-gradient-to-b from-emerald-50/30 to-white'
+                    : card.delivered
+                    ? 'border-emerald-200/80 bg-gradient-to-b from-emerald-50/15 to-white'
+                    : 'border-wedding-border hover:border-wedding-accent/60'
+                }`}
+              >
+                {/* Card Header & Content */}
+                <div className="p-4 sm:p-5 space-y-3">
+                  
+                  {/* Type Badge + Pass Count Badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+                        card.type === 'family'
+                          ? 'bg-blue-50 text-blue-800 border-blue-200'
+                          : card.type === 'couple'
+                          ? 'bg-pink-50 text-pink-800 border-pink-200'
+                          : 'bg-purple-50 text-purple-800 border-purple-200'
+                      }`}
+                    >
+                      {card.type === 'family' ? (
+                        <Users size={12} />
+                      ) : card.type === 'couple' ? (
+                        <Heart size={12} className="text-pink-600 fill-pink-600" />
+                      ) : (
+                        <User size={12} />
+                      )}
+                      <span>
+                        {card.type === 'family' ? 'Tarjeta Familiar' : card.type === 'couple' ? 'Tarjeta Pareja' : 'Tarjeta Individual'}
+                      </span>
                     </span>
-                  </span>
 
-                  {/* Badges de Pases Requeridos */}
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-wedding-accentLight text-wedding-primaryDark border border-wedding-accent/40 shadow-2xs">
-                    <Ticket size={13} className="text-wedding-primary shrink-0" />
-                    <span>{card.seats} {card.seats === 1 ? 'Pase' : 'Pases'}</span>
-                  </span>
+                    {/* Badges de Pases Requeridos */}
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-wedding-accentLight text-wedding-primaryDark border border-wedding-accent/40 shadow-2xs">
+                      <Ticket size={13} className="text-wedding-primary shrink-0" />
+                      <span>{card.seats} {card.seats === 1 ? 'Pase' : 'Pases'}</span>
+                    </span>
+                  </div>
+
+                  {/* Rotulación / Título del Sobre */}
+                  <div>
+                    <h3 className="font-editorial text-lg sm:text-xl font-bold text-stone-900 leading-snug">
+                      {card.salutation}
+                    </h3>
+                    <p className="text-[11px] text-stone-500 mt-0.5">
+                      Grupo: <span className="font-medium text-stone-700">{card.group}</span> • Prioridad {card.priority}
+                    </p>
+                  </div>
+
+                  {/* Lista de Integrantes Cubiertos (Interactivos) */}
+                  <div className="bg-stone-50/90 rounded-xl p-2.5 border border-stone-200/70 space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                        Personas contempladas ({card.membersCount}):
+                      </span>
+                      <span className="text-[9px] text-stone-400 italic">
+                        Toca estado para cambiar
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {card.members.map((m, i) => (
+                        <div key={m.id || i} className="flex items-center justify-between text-stone-700 text-[11px] py-0.5">
+                          <span className="truncate pr-2 font-medium">• {m.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleMemberStatus(card, m)}
+                            title="Cambiar estado de asistencia individual"
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0 transition-all cursor-pointer active:scale-95 border ${
+                              m.status === 'confirmed'
+                                ? 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                                : m.status === 'declined'
+                                ? 'text-rose-700 bg-rose-50 border-rose-200 hover:bg-rose-100'
+                                : 'text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100'
+                            }`}
+                          >
+                            {m.status === 'confirmed' ? '✓ Confirmado' : m.status === 'declined' ? '✕ No Asiste' : '⏳ Pendiente'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {card.notes && (
+                    <div className="flex items-start gap-1 text-[11px] text-stone-600 italic bg-amber-50/60 p-2 rounded-lg border border-amber-200/50">
+                      <FileText size={12} className="text-amber-700/80 shrink-0 mt-0.5" />
+                      <span>{card.notes}</span>
+                    </div>
+                  )}
+
                 </div>
 
-                {/* Rotulación / Título del Sobre */}
-                <div>
-                  <h3 className="font-editorial text-lg sm:text-xl font-bold text-stone-900 leading-snug">
-                    {card.salutation}
-                  </h3>
-                  <p className="text-[11px] text-stone-500 mt-0.5">
-                    Grupo: <span className="font-medium text-stone-700">{card.group}</span> • Prioridad {card.priority}
-                  </p>
-                </div>
+                {/* Bottom Actions Bar (Confirmación de Invitados + Entrega de Sobre) */}
+                <div className="px-4 py-3 bg-stone-50/80 border-t border-stone-200/80 space-y-2">
+                  
+                  {/* Fila 1: Confirmar Invitados de toda la tarjeta en 1 clic */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmCard(card)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold border transition-all duration-150 active:scale-95 cursor-pointer ${
+                        isAllConfirmed
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-xs'
+                          : 'bg-wedding-primary hover:bg-wedding-primaryLight text-white border-wedding-primary shadow-xs'
+                      }`}
+                      title={isAllConfirmed ? 'Clic para volver a marcar como pendiente' : 'Confirmar asistencia de todos los invitados de esta tarjeta'}
+                    >
+                      <UserCheck size={15} className={isAllConfirmed ? 'text-white' : 'text-wedding-accent'} />
+                      <span>
+                        {isAllConfirmed
+                          ? `✓ Invitados Confirmados (${card.membersCount})`
+                          : card.membersCount > 1
+                          ? `Confirmar Invitados (${card.membersCount})`
+                          : 'Confirmar Invitado'}
+                      </span>
+                    </button>
 
-                {/* Lista de Integrantes Cubiertos */}
-                <div className="bg-stone-50/90 rounded-xl p-2.5 border border-stone-200/70 space-y-1 text-xs">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 block">
-                    Personas contempladas ({card.membersCount}):
-                  </span>
-                  <div className="space-y-1">
-                    {card.members.map((m, i) => (
-                      <div key={m.id || i} className="flex items-center justify-between text-stone-700 text-[11px]">
-                        <span className="truncate pr-2 font-medium">• {m.name}</span>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded-sm shrink-0 ${
-                          m.status === 'confirmed'
-                            ? 'text-emerald-700 bg-emerald-50'
-                            : m.status === 'declined'
-                            ? 'text-rose-700 bg-rose-50'
-                            : 'text-amber-700 bg-amber-50'
-                        }`}>
-                          {m.status === 'confirmed' ? 'Confirmado' : m.status === 'declined' ? 'No Asiste' : 'Pendiente'}
-                        </span>
-                      </div>
-                    ))}
+                    <button
+                      type="button"
+                      onClick={() => handleDeclineCard(card)}
+                      className={`p-2 rounded-xl text-xs font-semibold border transition-all duration-150 active:scale-95 cursor-pointer shrink-0 ${
+                        isAllDeclined
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                          : 'bg-white text-stone-500 border-stone-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200'
+                      }`}
+                      title={isAllDeclined ? 'Todos marcados como No Asisten (Clic para restaurar a Pendiente)' : 'Marcar tarjeta como No Asiste'}
+                    >
+                      <UserX size={15} />
+                    </button>
+                  </div>
+
+                  {/* Fila 2: Control de Entrega de Tarjeta Física + Contacto */}
+                  <div className="flex items-center justify-between gap-2">
+                    {/* Delivery Checklist Toggle Button */}
+                    <button
+                      type="button"
+                      onClick={() => toggleDeliveryStatus(card)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold border transition-all duration-150 active:scale-95 cursor-pointer ${
+                        card.delivered
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                          : 'bg-white text-stone-700 border-stone-300 hover:border-stone-400 hover:bg-stone-50'
+                      }`}
+                    >
+                      <CheckCircle2 size={14} className={card.delivered ? 'text-emerald-600' : 'text-stone-400'} />
+                      <span>{card.delivered ? 'Sobre Entregado' : 'Sobre Por Entregar'}</span>
+                    </button>
+
+                    {/* WhatsApp button */}
+                    {card.phone && (
+                      <button
+                        type="button"
+                        onClick={() => handleWhatsAppDelivery(card)}
+                        className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl transition-colors shrink-0 cursor-pointer"
+                        title="Enviar recordatorio de invitación por WhatsApp"
+                      >
+                        <MessageCircle size={15} />
+                      </button>
+                    )}
+
+                    {/* Direct Call button */}
+                    {card.phone && (
+                      <a
+                        href={`tel:${card.phone}`}
+                        className="p-1.5 bg-stone-200/70 hover:bg-stone-300/70 text-stone-700 rounded-xl transition-colors shrink-0"
+                        title="Llamar"
+                      >
+                        <Phone size={14} />
+                      </a>
+                    )}
                   </div>
                 </div>
 
-                {card.notes && (
-                  <div className="flex items-start gap-1 text-[11px] text-stone-600 italic bg-amber-50/60 p-2 rounded-lg border border-amber-200/50">
-                    <FileText size={12} className="text-amber-700/80 shrink-0 mt-0.5" />
-                    <span>{card.notes}</span>
-                  </div>
-                )}
-
               </div>
-
-              {/* Bottom Actions Bar */}
-              <div className="px-4 py-3 bg-stone-50/80 border-t border-stone-200/80 flex items-center justify-between gap-2">
-                
-                {/* Delivery Checklist Toggle Button */}
-                <button
-                  type="button"
-                  onClick={() => toggleDeliveryStatus(card)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold border transition-all duration-150 active:scale-95 ${
-                    card.delivered
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                      : 'bg-white text-stone-700 border-stone-300 hover:border-stone-400 hover:bg-stone-50'
-                  }`}
-                >
-                  <CheckCircle2 size={15} className={card.delivered ? 'text-white' : 'text-stone-400'} />
-                  <span>{card.delivered ? 'Entregada' : 'Por Entregar'}</span>
-                </button>
-
-                {/* WhatsApp button */}
-                {card.phone && (
-                  <button
-                    type="button"
-                    onClick={() => handleWhatsAppDelivery(card)}
-                    className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl transition-colors shrink-0"
-                    title="Enviar recordatorio de invitación por WhatsApp"
-                  >
-                    <MessageCircle size={16} />
-                  </button>
-                )}
-
-                {/* Direct Call button */}
-                {card.phone && (
-                  <a
-                    href={`tel:${card.phone}`}
-                    className="p-2 bg-stone-200/70 hover:bg-stone-300/70 text-stone-700 rounded-xl transition-colors shrink-0"
-                    title="Llamar"
-                  >
-                    <Phone size={15} />
-                  </a>
-                )}
-              </div>
-
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
