@@ -7,6 +7,7 @@ import { taskApi } from '../services/taskApi';
 import { photoApi } from '../services/photoApi';
 import { tableApi } from '../services/tableApi';
 import { normalizeText, matchesSearch, areStringsEqualNormalized } from '../utils/textUtils';
+import { checkAndPersistAdminAccess } from '../utils/invitationToken';
 
 const WeddingContext = createContext();
 
@@ -277,7 +278,17 @@ export function WeddingProvider({ children }) {
   }, [fetchAllGuests, fetchFamilies, fetchStats, fetchTasks, fetchPhotos, fetchTables]);
 
   useEffect(() => {
-    // Carga inicial
+    const isPublicInvitationView =
+      typeof window !== 'undefined' &&
+      (window.location.pathname.startsWith('/invitacion') ||
+        new URLSearchParams(window.location.search).has('k') ||
+        new URLSearchParams(window.location.search).has('invitacion') ||
+        !checkAndPersistAdminAccess());
+
+    if (isPublicInvitationView) {
+      return;
+    }
+
     refreshAll(true);
 
     // Sincronización inteligente entre dispositivos (PC <-> Celular)

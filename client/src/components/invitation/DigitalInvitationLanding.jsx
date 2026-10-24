@@ -30,6 +30,33 @@ function subProgress(progress, start, end) {
   return easeOutCubic((progress - start) / (end - start));
 }
 
+// Reloj regresivo aislado (corre 100% en el navegador sin consultar la base de datos ni re-renderizar las tarjetas)
+const LiveCountdownGrid = React.memo(function LiveCountdownGrid() {
+  const { days, hours, minutes, seconds } = useWeddingCountdown();
+  return (
+    <div className="grid grid-cols-4 gap-2.5 sm:gap-4 max-w-md mx-auto">
+      {[
+        { label: 'Días', value: days },
+        { label: 'Horas', value: hours },
+        { label: 'Minutos', value: minutes },
+        { label: 'Segundos', value: seconds },
+      ].map((item) => (
+        <div
+          key={item.label}
+          className="bg-[#F3F6F1] border border-[#4C8B54]/20 rounded-2xl py-3 px-2 flex flex-col items-center justify-center"
+        >
+          <span className="font-serif text-2xl sm:text-3xl font-bold text-[#243B2B] tabular-nums">
+            {String(item.value).padStart(2, '0')}
+          </span>
+          <span className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold mt-0.5">
+            {item.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+});
+
 export function DigitalInvitationLanding({
   onBackToAdmin,
   isAdminUnlocked = false,
@@ -40,7 +67,6 @@ export function DigitalInvitationLanding({
     setFamilyStatus,
     setGuestStatus,
   } = useWedding();
-  const { days, hours, minutes, seconds } = useWeddingCountdown();
 
   // Decodificación segura del enlace (?k=TOKEN_FIRMADO o compatibilidad con enlaces previos ?card=...)
   const urlData = useMemo(() => {
@@ -163,15 +189,21 @@ export function DigitalInvitationLanding({
     }
   };
 
-  const handleDirectConfirmCard = async (card) => {
-    if (!card) return;
+  const handleDirectConfirmCard = async () => {
+    const targetId = activeCard?.id || urlData.cardId;
+    if (!targetId) return;
     try {
-      if (card.type === 'family') {
-        await setFamilyStatus(card.familyId, 'confirmed');
-      } else {
-        await setGuestStatus(card.guestId, 'confirmed');
+      if (String(targetId).startsWith('fam-')) {
+        const famId = Number(String(targetId).replace('fam-', ''));
+        await setFamilyStatus(famId, 'confirmed');
+      } else if (String(targetId).startsWith('guest-')) {
+        const gId = Number(String(targetId).replace('guest-', ''));
+        await setGuestStatus(gId, 'confirmed');
       }
       setRsvpSubmitted(true);
+      try {
+        localStorage.setItem(`wedding_rsvp_done_${targetId}`, 'true');
+      } catch {}
       confetti({
         particleCount: 100,
         spread: 80,
@@ -970,26 +1002,7 @@ export function DigitalInvitationLanding({
             </h3>
           </div>
 
-          <div className="grid grid-cols-4 gap-2.5 sm:gap-4 max-w-md mx-auto">
-            {[
-              { label: 'Días', value: days },
-              { label: 'Horas', value: hours },
-              { label: 'Minutos', value: minutes },
-              { label: 'Segundos', value: seconds },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="bg-[#F3F6F1] border border-[#4C8B54]/20 rounded-2xl py-3 px-2 flex flex-col items-center justify-center"
-              >
-                <span className="font-serif text-2xl sm:text-3xl font-bold text-[#243B2B] tabular-nums">
-                  {String(item.value).padStart(2, '0')}
-                </span>
-                <span className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold mt-0.5">
-                  {item.label}
-                </span>
-              </div>
-            ))}
-          </div>
+          <LiveCountdownGrid />
 
           <div className="pt-4 border-t border-stone-200/70 space-y-3">
             <div className="flex items-center justify-center gap-1.5 text-[#3B6E42] font-bold text-xs uppercase tracking-wider">
@@ -1037,7 +1050,7 @@ export function DigitalInvitationLanding({
             </p>
           </div>
 
-          {activeCard && (
+          {(activeCard || urlData.cardId) && (
             <div className="bg-[#F3F6F1] border border-[#4C8B54]/30 rounded-2xl p-4 sm:p-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#4C8B54]/15 pb-3">
                 <div>
@@ -1045,65 +1058,29 @@ export function DigitalInvitationLanding({
                     Tu Invitación
                   </span>
                   <h4 className="font-serif text-lg sm:text-xl font-bold text-[#243B2B]">
-                    {activeCard.salutation}
+                    {displaySalutation}
                   </h4>
                 </div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#4C8B54]/30 text-xs font-bold text-[#3B6E42] self-start sm:self-auto">
                   <Ticket size={13} />
-                  {activeCard.seats} {activeCard.seats === 1 ? 'Pase' : 'Pases'}
+                  {displaySeats} {displaySeats === 1 ? 'Pase' : 'Pases'}
                 </span>
               </div>
 
-              {activeCard.members && activeCard.members.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-semibold text-stone-600">
-                    Integrantes contemplados en tu pase:
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {activeCard.members.map((m, i) => {
-                      const isConfirmed = m.status === 'confirmed';
-                      return (
-                        <button
-                          key={m.id || i}
-                          type="button"
-                          onClick={() => handleToggleMember(activeCard, m)}
-                          className={`flex items-center justify-between px-3 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                            isConfirmed
-                              ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                              : 'bg-white border-stone-200 text-stone-700 hover:border-[#4C8B54]/50'
-                          }`}
-                        >
-                          <span className="truncate pr-2">{m.name}</span>
-                          <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${
-                              isConfirmed
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-stone-100 text-stone-600'
-                            }`}
-                          >
-                            {isConfirmed ? '✓ Confirmado' : 'Confirmar'}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               <button
                 type="button"
-                onClick={() => handleDirectConfirmCard(activeCard)}
+                onClick={handleDirectConfirmCard}
                 className={`w-full py-3.5 px-5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer ${
-                  activeCard.statusSummary?.isAllConfirmed || rsvpSubmitted
+                  activeCard?.statusSummary?.isAllConfirmed || rsvpSubmitted
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                     : 'bg-[#2F4838] hover:bg-[#23372A] text-white'
                 }`}
               >
                 <CheckCircle2 size={18} className="text-[#C5A880]" />
                 <span>
-                  {activeCard.statusSummary?.isAllConfirmed || rsvpSubmitted
-                    ? `¡Asistencia Confirmada para ${activeCard.salutation}!`
-                    : `Confirmar Asistencia de ${activeCard.salutation} (${activeCard.seats} ${activeCard.seats === 1 ? 'Pase' : 'Pases'})`}
+                  {activeCard?.statusSummary?.isAllConfirmed || rsvpSubmitted
+                    ? `¡Asistencia Confirmada para ${displaySalutation}!`
+                    : `Confirmar Asistencia de ${displaySalutation} (${displaySeats} ${displaySeats === 1 ? 'Pase' : 'Pases'})`}
                 </span>
               </button>
             </div>
