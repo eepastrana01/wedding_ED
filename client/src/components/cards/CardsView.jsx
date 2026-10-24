@@ -5,6 +5,7 @@ import { openWhatsApp } from '../../utils/whatsapp';
 import { generateInvitationCardsPDF } from '../../utils/pdfGenerator';
 import { LabelsPrintModal } from './LabelsPrintModal';
 import { matchesSearch } from '../../utils/textUtils';
+import { encodeInvitationToken } from '../../utils/invitationToken';
 
 export function CardsView() {
   const { invitationCards, toggleDeliveryStatus, setFamilyStatus, setGuestStatus, showToast } = useWedding();
@@ -97,18 +98,14 @@ export function CardsView() {
     window.print();
   };
 
-  // Construye el enlace personalizado de la Landing Page de invitación digital para esta tarjeta
+  // Construye el enlace firmado y protegido de la Landing Page de invitación digital para esta tarjeta
   const getCardInvitationUrl = (card) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://wedding-ed.vercel.app';
     if (!card) {
       return `${origin}/invitacion`;
     }
-    const params = new URLSearchParams({
-      card: String(card.id),
-      para: card.salutation || card.title || 'Invitado Especial',
-      pases: String(card.seats || 1),
-    });
-    return `${origin}/invitacion?${params.toString()}`;
+    const token = encodeInvitationToken(card);
+    return `${origin}/invitacion?k=${encodeURIComponent(token)}`;
   };
 
   const handleCopyCardLink = async (card) => {

@@ -3,16 +3,15 @@ import confetti from 'canvas-confetti';
 import { useWedding } from '../../context/WeddingContext';
 import { useWeddingCountdown } from '../../hooks/useWeddingCountdown';
 import { openWhatsApp } from '../../utils/whatsapp';
+import { decodeInvitationToken } from '../../utils/invitationToken';
 import {
   Heart,
-  Sparkles,
   MapPin,
   CheckCircle2,
   MessageCircle,
   ChevronDown,
   Ticket,
   Mail,
-  Search,
   ExternalLink,
   UserCheck,
   ArrowLeft,
@@ -31,7 +30,11 @@ function subProgress(progress, start, end) {
   return easeOutCubic((progress - start) / (end - start));
 }
 
-export function DigitalInvitationLanding({ onBackToAdmin }) {
+export function DigitalInvitationLanding({
+  onBackToAdmin,
+  isAdminUnlocked = false,
+  onUnlockAdmin,
+}) {
   const {
     invitationCards,
     setFamilyStatus,
@@ -39,49 +42,71 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
   } = useWedding();
   const { days, hours, minutes, seconds } = useWeddingCountdown();
 
-  // Parámetros de la URL (?invitacion=fam-12 o ?card=fam-12&para=Familia+Pastrana&pases=4)
-  const urlParams = useMemo(() => {
+  // Decodificación segura del enlace (?k=TOKEN_FIRMADO o compatibilidad con enlaces previos ?card=...)
+  const urlData = useMemo(() => {
     if (typeof window === 'undefined') return {};
     const p = new URLSearchParams(window.location.search);
+    const token = p.get('k');
+    const verified = token ? decodeInvitationToken(token) : null;
+
+    if (verified) {
+      return {
+        cardId: verified.cardId,
+        salutation: verified.salutation,
+        seats: verified.seats,
+      };
+    }
+
+    // Compatibilidad con enlaces anteriores (?card=fam-51), pero los pases reales los dicta la BD
+    const legacyCardId = p.get('card') || p.get('invitacion') || '';
     return {
-      cardId: p.get('card') || p.get('invitacion') || '',
-      guestNameParam: p.get('para') || '',
-      seatsParam: parseInt(p.get('pases'), 10) || null,
-      isAdminPreview: p.get('preview') === 'true',
+      cardId:
+        legacyCardId && legacyCardId !== 'true' && legacyCardId !== 'general'
+          ? legacyCardId
+          : '',
+      salutation: '',
+      seats: null,
     };
   }, []);
 
   const allCards = invitationCards?.all || [];
 
-  const [selectedCardId, setSelectedCardId] = useState(() => {
-    if (
-      urlParams.cardId &&
-      urlParams.cardId !== 'true' &&
-      urlParams.cardId !== 'general'
-    ) {
-      return urlParams.cardId;
-    }
-    return '';
-  });
-
+  // Tarjeta oficial desde la base de datos (inmune a manipulaciones en la URL)
   const activeCard = useMemo(() => {
-    if (!selectedCardId) return null;
-    return allCards.find((c) => String(c.id) === String(selectedCardId)) || null;
-  }, [allCards, selectedCardId]);
+    if (!urlData.cardId) return null;
+    return allCards.find((c) => String(c.id) === String(urlData.cardId)) || null;
+  }, [allCards, urlData.cardId]);
 
+  // Prioriza siempre los datos reales de la base de datos o del token firmado (nunca parámetros editables)
   const displaySalutation =
     activeCard?.salutation ||
-    urlParams.guestNameParam ||
+    urlData.salutation ||
     'Invitado Especial';
 
   const displaySeats =
     activeCard?.seats ||
-    urlParams.seatsParam ||
+    urlData.seats ||
     2;
 
-  const [guestSearch, setGuestSearch] = useState('');
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
   const [isEnvelopeOpened, setIsEnvelopeOpened] = useState(false);
+
+  // Gesto secreto de 5 toques en el sello E & D para desbloquear el panel en dispositivos de Edis/Dania
+  const secretTapCountRef = useRef(0);
+  const secretTapTimerRef = useRef(null);
+
+  const handleSecretMonogramTap = () => {
+    secretTapCountRef.current += 1;
+    if (secretTapTimerRef.current) clearTimeout(secretTapTimerRef.current);
+    if (secretTapCountRef.current >= 5) {
+      secretTapCountRef.current = 0;
+      if (onUnlockAdmin) onUnlockAdmin();
+      return;
+    }
+    secretTapTimerRef.current = setTimeout(() => {
+      secretTapCountRef.current = 0;
+    }, 1800);
+  };
 
   const stage1Ref = useRef(null);
   const stage2Ref = useRef(null);
@@ -99,7 +124,6 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
     const updateScrollProgress = () => {
       const vh = window.innerHeight || 800;
 
-      // Calcula el progreso [0..1] a medida que la tarjeta entra desde abajo hasta posicionarse en pantalla
       const calcSectionProgress = (el, startFactor = 0.95, travelFactor = 0.68) => {
         if (!el) return 0;
         const rect = el.getBoundingClientRect();
@@ -177,52 +201,32 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
     openWhatsApp('+50487788207', msg);
   };
 
-  const matchingCards = useMemo(() => {
-    if (!guestSearch || guestSearch.trim().length < 2) return [];
-    const q = guestSearch.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return allCards
-      .filter((c) => {
-        const hay = [
-          c.salutation,
-          c.title,
-          ...(c.members || []).map((m) => m.name),
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '');
-        return hay.includes(q);
-      })
-      .slice(0, 6);
-  }, [allCards, guestSearch]);
-
   // =========================================================================
   // PROGRESOS DE ENSAMBLAJE POR CAPA REAL DE CANVA (STAGE 1: INVITACIÓN)
   // =========================================================================
   const p1 = scrollState.p1;
-  const s1Watercolors = subProgress(p1, 0.0, 0.38);  // 1. Manchas de acuarela verde salvia
-  const s1TopLeaves = subProgress(p1, 0.08, 0.50);   // 2. Rama de olivo superior izquierda
-  const s1TopRoses = subProgress(p1, 0.12, 0.54);    // 3. Rosas blancas superior derecha
-  const s1LeftRoses = subProgress(p1, 0.16, 0.58);   // 4. Ramo de rosas blancas izquierda
-  const s1BotLeaves = subProgress(p1, 0.20, 0.62);   // 5. Rama de olivo inferior derecha
-  const s1Names = subProgress(p1, 0.24, 0.66);       // 6. Caligrafía "Edis y Dania"
-  const s1Subtitle = subProgress(p1, 0.34, 0.72);    // 7. "TE INVITAMOS A NUESTRA BODA"
-  const s1Verse = subProgress(p1, 0.40, 0.77);       // 8. Versículo Mateo 19:6
-  const s1Date = subProgress(p1, 0.48, 0.84);        // 9. NOV | 21 | 4:30 P.M.
-  const s1Venue = subProgress(p1, 0.56, 0.90);       // 10. Dirección Calan Park + Confirmación
-  const s1Dress = subProgress(p1, 0.64, 0.94);       // 11. Código de Vestimenta: FORMAL
-  const s1Sign = subProgress(p1, 0.72, 1.0);         // 12. Firma "Te esperamos"
+  const s1Watercolors = subProgress(p1, 0.0, 0.38);
+  const s1TopLeaves = subProgress(p1, 0.08, 0.50);
+  const s1TopRoses = subProgress(p1, 0.12, 0.54);
+  const s1LeftRoses = subProgress(p1, 0.16, 0.58);
+  const s1BotLeaves = subProgress(p1, 0.20, 0.62);
+  const s1Names = subProgress(p1, 0.24, 0.66);
+  const s1Subtitle = subProgress(p1, 0.34, 0.72);
+  const s1Verse = subProgress(p1, 0.40, 0.77);
+  const s1Date = subProgress(p1, 0.48, 0.84);
+  const s1Venue = subProgress(p1, 0.56, 0.90);
+  const s1Dress = subProgress(p1, 0.64, 0.94);
+  const s1Sign = subProgress(p1, 0.72, 1.0);
 
   // =========================================================================
   // PROGRESOS DE ENSAMBLAJE POR CAPA REAL (STAGE 2: PASES RESERVADOS)
   // =========================================================================
   const p2 = scrollState.p2;
-  const s2LeafTL = subProgress(p2, 0.04, 0.55);      // Rama eucalipto superior izquierda
-  const s2LeafBR = subProgress(p2, 0.08, 0.58);      // Rama eucalipto inferior derecha
-  const s2Header = subProgress(p2, 0.18, 0.68);      // Título "PASES RESERVADOS"
-  const s2Box = subProgress(p2, 0.28, 0.80);         // Cuadro verde central + número dinámico
-  const s2Body = subProgress(p2, 0.40, 0.94);        // Párrafo inferior de agradecimiento
+  const s2LeafTL = subProgress(p2, 0.04, 0.55);
+  const s2LeafBR = subProgress(p2, 0.08, 0.58);
+  const s2Header = subProgress(p2, 0.18, 0.68);
+  const s2Box = subProgress(p2, 0.28, 0.80);
+  const s2Body = subProgress(p2, 0.40, 0.94);
 
   // =========================================================================
   // PROGRESOS DE ENSAMBLAJE POR CAPA REAL (STAGE 3: TARJETA DE REGALO)
@@ -235,9 +239,9 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
 
   return (
     <div className="min-h-screen bg-[#EEF2EC] text-[#2F352E] font-sans overflow-x-hidden selection:bg-[#7A8F76]/25">
-      {/* Barra flotante superior */}
+      {/* Barra flotante superior (El botón "Volver a la App" SOLO existe en los dispositivos desbloqueados de Edis/Dania) */}
       <div className="fixed top-3 left-0 right-0 z-50 px-3 sm:px-6 pointer-events-none flex items-center justify-between max-w-5xl mx-auto">
-        {onBackToAdmin || urlParams.isAdminPreview ? (
+        {isAdminUnlocked ? (
           <button
             type="button"
             onClick={() => {
@@ -250,7 +254,7 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/90 backdrop-blur-md text-stone-700 hover:text-wedding-primaryDark text-xs font-semibold shadow-md border border-stone-200/80 transition-all cursor-pointer"
           >
             <ArrowLeft size={14} />
-            <span>Volver a la App</span>
+            <span>Ir al Panel de Boda</span>
           </button>
         ) : (
           <div className="pointer-events-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 backdrop-blur-md shadow-sm border border-[#7A8F76]/25">
@@ -272,7 +276,6 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
           PORTADA DE BIENVENIDA (SOBRE BOTÁNICO INTERACTIVO)
       ===================================================================== */}
       <section className="relative min-h-[86vh] flex flex-col items-center justify-center px-4 pt-16 pb-8 overflow-hidden bg-gradient-to-b from-[#E3EBE0] via-[#EEF2EC] to-[#EEF2EC]">
-        {/* Ramas de eucalipto transparentes y limpias en las esquinas */}
         <img
           src="/invitacion/leaf-top-left.png"
           alt=""
@@ -291,8 +294,11 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
         />
 
         <div className="relative z-10 max-w-lg w-full text-center space-y-5 bg-white/85 backdrop-blur-md rounded-3xl p-7 sm:p-10 shadow-[0_20px_60px_-15px_rgba(47,72,56,0.15)] border border-[#7A8F76]/25">
-          {/* Sello Monograma E & D */}
-          <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-[#52795C] via-[#3A5A43] to-[#243B2B] p-[2px] shadow-lg flex items-center justify-center">
+          {/* Sello Monograma E & D (5 toques desbloquean el panel para Edis) */}
+          <div
+            onClick={handleSecretMonogramTap}
+            className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-[#52795C] via-[#3A5A43] to-[#243B2B] p-[2px] shadow-lg flex items-center justify-center select-none"
+          >
             <div className="w-full h-full rounded-full bg-[#FAF9F5] border border-[#C5A880]/60 flex flex-col items-center justify-center">
               <span className="font-serif text-xl font-bold text-[#243B2B] tracking-wider leading-none">
                 E<span className="text-[#C5A880] italic font-serif text-base mx-0.5">&</span>D
@@ -358,12 +364,11 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
         ref={stage1Ref}
         className="relative py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto flex flex-col items-center"
       >
-        {/* LIENZO A6 OFICIAL (Proporción exacta 4572000 : 6400800 = 5 : 7) */}
         <div
           className="relative w-full max-w-[500px] aspect-[5/7] rounded-2xl sm:rounded-3xl shadow-[0_25px_70px_-15px_rgba(31,58,46,0.28)] border border-[#7A8F76]/35 overflow-hidden select-none bg-[#FAF9F6]"
           style={{ containerType: 'inline-size' }}
         >
-          {/* 1. FONDO DE PAPEL ACUARELA (image1.jpeg de Canva) */}
+          {/* 1. FONDO DE PAPEL ACUARELA */}
           <img
             src="/invitacion/layers/paper-bg.jpg"
             alt=""
@@ -371,7 +376,7 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           />
 
-          {/* 2. MANCHAS DE ACUARELA VERDE SALVIA (image2.png en sus 6 posiciones exactas de Canva) */}
+          {/* 2. MANCHAS DE ACUARELA VERDE SALVIA */}
           <img
             src="/invitacion/layers/watercolor-splash.png"
             alt=""
@@ -462,7 +467,7 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             }}
           />
 
-          {/* 3. FLORES Y HOJAS BOTÁNICAS TRANSPARENTES ENTRANDO DESDE LOS BORDES */}
+          {/* 3. FLORES Y HOJAS BOTÁNICAS TRANSPARENTES */}
           <img
             src="/invitacion/layers/olive-branch.png"
             alt=""
@@ -538,7 +543,7 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             }}
           />
 
-          {/* 5. TEXTOS VECTORIALES EN FUENTE ORIGINAL DE CANVA (SIMONETTA) */}
+          {/* 5. TEXTOS VECTORIALES EN FUENTE SIMONETTA */}
           <div
             className="absolute left-[10%] w-[80%] text-center pointer-events-none will-change-transform"
             style={{
@@ -570,7 +575,6 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             <p className="mt-[0.5cqw]">Mateo 19:6</p>
           </div>
 
-          {/* FECHA EN 3 PIEZAS QUE SE UNEN DESDE LOS COSTADOS: NOV | 21 | 4:30 P.M. */}
           <div
             className="absolute text-center pointer-events-none will-change-transform"
             style={{
@@ -698,12 +702,10 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
           </h2>
         </div>
 
-        {/* Lienzo de Pases Reservados (1600 x 889) con ramas transparentes impecables y cuadro verde dinámico */}
         <div
           className="relative w-full max-w-[620px] aspect-[1600/889] rounded-2xl sm:rounded-3xl shadow-[0_22px_55px_-12px_rgba(31,58,46,0.18)] border border-[#4C8B54]/25 bg-white overflow-hidden select-none"
           style={{ containerType: 'inline-size' }}
         >
-          {/* Rama de Eucalipto Transparente Superior Izquierda */}
           <img
             src="/invitacion/leaf-top-left.png"
             alt=""
@@ -715,7 +717,6 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             }}
           />
 
-          {/* Rama de Eucalipto Transparente Inferior Derecha (100% limpia sin texto) */}
           <img
             src="/invitacion/leaf-bottom-right.png"
             alt=""
@@ -727,7 +728,6 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             }}
           />
 
-          {/* Encabezado "PASES RESERVADOS" */}
           <div
             className="absolute left-[12%] w-[76%] text-center pointer-events-none will-change-transform font-sans font-normal tracking-[0.22em]"
             style={{
@@ -741,7 +741,6 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             PASES RESERVADOS
           </div>
 
-          {/* Cuadro Verde Central + Número Dinámico de Pases */}
           <div
             className="absolute flex items-center justify-center pointer-events-none will-change-transform border-[2.5px] sm:border-[3px] border-[#4C8B54] bg-white/90"
             style={{
@@ -764,7 +763,6 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             </span>
           </div>
 
-          {/* Texto de agradecimiento inferior */}
           <div
             className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform font-sans font-normal leading-[1.52]"
             style={{
@@ -820,12 +818,10 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
           </h2>
         </div>
 
-        {/* Lienzo de Tarjeta de Regalo (1875 x 3281) armado con las mismas capas reales de Canva */}
         <div
           className="relative w-full max-w-[420px] aspect-[1875/3281] rounded-2xl sm:rounded-3xl shadow-[0_25px_65px_-15px_rgba(31,58,46,0.22)] border border-[#7A8F76]/30 bg-white overflow-hidden select-none"
           style={{ containerType: 'inline-size' }}
         >
-          {/* Manchas de Acuarela */}
           <img
             src="/invitacion/layers/watercolor-splash.png"
             alt=""
@@ -869,7 +865,6 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             }}
           />
 
-          {/* Ramas de Olivo y Rosas Blancas Transparentes */}
           <img
             src="/invitacion/layers/olive-branch.png"
             alt=""
@@ -927,7 +922,6 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             }}
           />
 
-          {/* Mensaje Central */}
           <img
             src="/invitacion/layers/text-regalo-quote.png"
             alt="Nuestro mejor regalo es tu presencia, pero si tu deseo es tener un detalle con nosotros puedes hacerlo dentro de un sobre"
@@ -942,7 +936,6 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             }}
           />
 
-          {/* Ícono del Sobre (✉) que sube flotando al centro */}
           <img
             src="/invitacion/layers/icon-regalo-envelope.png"
             alt="Sobre de regalo"
@@ -1030,7 +1023,7 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
           </div>
         </div>
 
-        {/* 2. Tarjeta de Confirmación de Asistencia (RSVP Directo en Base de Datos + WhatsApp) */}
+        {/* 2. Tarjeta de Confirmación de Asistencia (Solo muestra la tarjeta asignada al invitado, sin buscador público) */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_20px_55px_-15px_rgba(31,58,46,0.18)] border border-[#4C8B54]/30 space-y-6">
           <div className="text-center space-y-2">
             <div className="w-12 h-12 rounded-2xl bg-[#F3F6F1] border border-[#4C8B54]/25 text-[#3B6E42] flex items-center justify-center mx-auto">
@@ -1040,58 +1033,16 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
               Confirmar Asistencia
             </h3>
             <p className="text-xs sm:text-sm text-stone-600 max-w-md mx-auto">
-              Para nosotros es muy importante contar contigo. Puedes confirmar tu asistencia aquí mismo en 1 clic o enviarnos un mensaje por WhatsApp.
+              Para nosotros es muy importante contar contigo. Confirma tu asistencia aquí mismo en 1 clic o envíanos un mensaje por WhatsApp.
             </p>
           </div>
-
-          {!activeCard && (
-            <div className="bg-[#F8FAF7] border border-stone-200/80 rounded-2xl p-4 space-y-3">
-              <label className="block text-xs font-semibold text-stone-700 text-center">
-                ¿Quieres confirmar directamente en nuestra lista oficial? Busca tu nombre o familia:
-              </label>
-              <div className="relative max-w-md mx-auto">
-                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
-                <input
-                  type="text"
-                  value={guestSearch}
-                  onChange={(e) => setGuestSearch(e.target.value)}
-                  placeholder="Escribe tu nombre o apellido (ej. Pastrana)..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm focus:outline-hidden focus:border-[#4C8B54]"
-                />
-              </div>
-
-              {matchingCards.length > 0 && (
-                <div className="space-y-1.5 max-w-md mx-auto pt-1">
-                  {matchingCards.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCardId(c.id);
-                        setGuestSearch('');
-                      }}
-                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white hover:bg-[#F3F6F1] border border-stone-200 hover:border-[#4C8B54]/40 text-left transition-all cursor-pointer"
-                    >
-                      <div>
-                        <p className="text-xs sm:text-sm font-bold text-[#243B2B]">{c.salutation}</p>
-                        <p className="text-[11px] text-stone-500">
-                          {c.seats} {c.seats === 1 ? 'Pase reservado' : 'Pases reservados'}
-                        </p>
-                      </div>
-                      <span className="text-xs font-semibold text-[#4C8B54]">Seleccionar →</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {activeCard && (
             <div className="bg-[#F3F6F1] border border-[#4C8B54]/30 rounded-2xl p-4 sm:p-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#4C8B54]/15 pb-3">
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#4C8B54]">
-                    Invitación Seleccionada
+                    Tu Invitación
                   </span>
                   <h4 className="font-serif text-lg sm:text-xl font-bold text-[#243B2B]">
                     {activeCard.salutation}

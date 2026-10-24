@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { WeddingProvider, useWedding } from './context/WeddingContext';
 import { Navbar } from './components/layout/Navbar';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
@@ -15,18 +15,22 @@ import { DigitalInvitationLanding } from './components/invitation/DigitalInvitat
 import { CsvUploader } from './components/importer/CsvUploader';
 import { Toast } from './components/common/Toast';
 import { ChangelogModal } from './components/common/ChangelogModal';
+import { checkAndPersistAdminAccess } from './utils/invitationToken';
 
 function WeddingAppContent() {
   const { activeTab, setActiveTab, isChangelogOpen, closeChangelog } = useWedding();
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => checkAndPersistAdminAccess());
 
   const isStandalone = typeof window !== 'undefined' && (
     new URLSearchParams(window.location.search).get('standalone') === 'true' ||
     window.location.pathname === '/tables-studio'
   );
 
-  const isDigitalInvitation = typeof window !== 'undefined' && (
+  const isDigitalInvitationRoute = typeof window !== 'undefined' && (
     window.location.pathname.startsWith('/invitacion') ||
-    new URLSearchParams(window.location.search).has('invitacion')
+    new URLSearchParams(window.location.search).has('invitacion') ||
+    new URLSearchParams(window.location.search).has('k') ||
+    new URLSearchParams(window.location.search).has('card')
   );
 
   // Soporte para enlaces directos por código QR (ej. ?tab=photos)
@@ -38,17 +42,29 @@ function WeddingAppContent() {
     }
   }, [setActiveTab]);
 
-  // Landing Page pública de Invitación Digital (estilo Canva con ensamblaje por scroll)
-  if (isDigitalInvitation) {
+  // PROTECCIÓN DE SEGURIDAD SIN LOGIN:
+  // Si el visitante NO ha desbloqueado este dispositivo con /panel-edis (es un invitado curioso
+  // que borró "/invitacion?..." de la URL para intentar entrar a la raíz "/"),
+  // SIEMPRE verá únicamente la Landing Page de la Invitación Digital y jamás el panel administrativo.
+  if (!isAdminUnlocked || isDigitalInvitationRoute) {
     return (
       <>
-        <DigitalInvitationLanding />
+        <DigitalInvitationLanding
+          isAdminUnlocked={isAdminUnlocked}
+          onUnlockAdmin={() => {
+            try {
+              localStorage.setItem('wedding_ed_admin_unlocked', 'true');
+            } catch {}
+            setIsAdminUnlocked(true);
+            window.history.replaceState({}, '', '/');
+          }}
+        />
         <Toast />
       </>
     );
   }
 
-  // Si se abre en una pestaña independiente para diseño de mesas, ocupa el 100% de la ventana del navegador
+  // Si se abre en una pestaña independiente para diseño de mesas (solo para admin desbloqueado)
   if (isStandalone) {
     return (
       <div className="w-screen h-screen overflow-hidden bg-[#F8F9FA] fixed inset-0 select-none">
