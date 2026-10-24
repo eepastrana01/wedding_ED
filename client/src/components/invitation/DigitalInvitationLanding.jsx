@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   MessageCircle,
   ChevronDown,
+  ChevronUp,
   Ticket,
   Mail,
   ExternalLink,
@@ -20,17 +21,22 @@ import {
   Music,
 } from 'lucide-react';
 
-// Curva suave estilo Canva para interpolar el ensamblaje con el scroll
+// Curva suave para transiciones secundarias
 function easeOutCubic(t) {
   const clamped = Math.max(0, Math.min(1, t));
   return 1 - Math.pow(1 - clamped, 3);
 }
 
-// Calcula progreso [0..1] para un sub-rango dentro del progreso de la sección [start..end]
-function subProgress(progress, start, end) {
+// Interpolación lineal acotada [0..1] para seguimiento físico 1:1 con el dedo/scroll
+function linearProgress(progress, start, end) {
   if (progress <= start) return 0;
   if (progress >= end) return 1;
-  return easeOutCubic((progress - start) / (end - start));
+  return (progress - start) / (end - start);
+}
+
+// Calcula progreso [0..1] suavizado para un sub-rango [start..end]
+function subProgress(progress, start, end) {
+  return easeOutCubic(linearProgress(progress, start, end));
 }
 
 // Partículas doradas y hojas botánicas mecidas por la brisa (100% GPU CSS, 0 costo de red/BD)
@@ -59,7 +65,6 @@ const FloatingBreezeAtmosphere = React.memo(function FloatingBreezeAtmosphere() 
       className="fixed inset-0 pointer-events-none z-20 overflow-hidden select-none"
       aria-hidden="true"
     >
-      {/* Destellos dorados y salvia ascendentes */}
       {GOLD_PARTICLES.map((pt) => (
         <span
           key={`pt-${pt.id}`}
@@ -78,7 +83,6 @@ const FloatingBreezeAtmosphere = React.memo(function FloatingBreezeAtmosphere() 
         />
       ))}
 
-      {/* Hojitas de olivo y pétalos suaves llevados por la brisa */}
       {BREEZE_PETALS.map((leaf) => (
         <svg
           key={`leaf-${leaf.id}`}
@@ -171,385 +175,6 @@ const LiveCountdownGrid = React.memo(function LiveCountdownGrid() {
   );
 });
 
-// Sobre 3D Verde Salvia con Interior Marfil Acuarela y Sello de Lacre Dorado "E & D"
-function LuxurySageEnvelopeOverlay({
-  phase,
-  flapBehind,
-  displaySalutation,
-  displaySeats,
-  onOpenEnvelope,
-  isAdminUnlocked,
-  onBackToAdmin,
-}) {
-  if (phase === 'done') return null;
-
-  const isFlapOpen = phase === 'flap' || phase === 'card' || phase === 'reveal';
-  const isCardRising = phase === 'card' || phase === 'reveal';
-  const isRevealing = phase === 'reveal';
-
-  return (
-    <div
-      className={`fixed inset-0 z-[70] flex flex-col items-center justify-center px-4 py-6 overflow-hidden transition-all duration-700 ${
-        isRevealing ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
-      }`}
-      style={{
-        backgroundColor: '#EEF2EB',
-      }}
-    >
-      {/* Fondo de papel acuarela e iluminación cálida */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-55"
-        style={{
-          backgroundImage: 'url(/invitacion/layers/paper-bg.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      />
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(circle at 50% 42%, rgba(255,255,255,0.75) 0%, rgba(197,168,128,0.14) 55%, rgba(36,59,43,0.12) 100%)',
-        }}
-      />
-
-      {/* Ramas botánicas en las esquinas mecidas por la brisa */}
-      <div className="pointer-events-none select-none absolute -top-5 -left-6 w-44 sm:w-64 opacity-90">
-        <img
-          src="/invitacion/leaf-top-left.png"
-          alt=""
-          className="w-full h-auto animate-breeze-a"
-        />
-      </div>
-      <div className="pointer-events-none select-none absolute -bottom-5 -right-6 w-44 sm:w-64 opacity-90">
-        <img
-          src="/invitacion/leaf-bottom-right.png"
-          alt=""
-          className="w-full h-auto animate-breeze-b"
-        />
-      </div>
-
-      {/* Acceso rápido para Edis/Dania si tienen el panel desbloqueado */}
-      {isAdminUnlocked && (
-        <div className="fixed top-3 left-3 sm:left-6 z-50">
-          <button
-            type="button"
-            onClick={() => {
-              if (onBackToAdmin) onBackToAdmin();
-              else window.location.href = '/';
-            }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 backdrop-blur-md text-stone-700 hover:text-wedding-primaryDark text-xs font-semibold shadow-md border border-[#C5A880]/50 cursor-pointer"
-          >
-            <ArrowLeft size={14} />
-            <span>Panel de Boda</span>
-          </button>
-        </div>
-      )}
-
-      {/* Encabezado personalizado encima del sobre */}
-      <div
-        className={`relative z-20 text-center mb-5 sm:mb-7 space-y-1.5 transition-all duration-500 ${
-          isCardRising ? 'opacity-0 -translate-y-4' : 'opacity-100 translate-y-0'
-        }`}
-      >
-        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.32em] text-[#7A6B53] font-bold">
-          Nuestra Boda • 21 Nov 2026
-        </p>
-        <h1 className="font-serif text-xl sm:text-2xl font-bold text-[#243B2B] px-2">
-          {displaySalutation}
-        </h1>
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#C5A880]/60 text-[#34593C] text-[11px] font-bold shadow-sm">
-          <Ticket size={12} className="text-[#B38E5D]" />
-          <span>
-            {displaySeats} {displaySeats === 1 ? 'Pase Reservado' : 'Pases Reservados'}
-          </span>
-        </div>
-      </div>
-
-      {/* ESCENARIO 3D DEL SOBRE VERDE SALVIA */}
-      <div
-        onClick={phase === 'idle' ? onOpenEnvelope : undefined}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (phase === 'idle' && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault();
-            onOpenEnvelope();
-          }
-        }}
-        aria-label="Abrir sobre de invitación de boda"
-        className={`relative z-20 w-[90vw] max-w-[430px] aspect-[440/300] select-none ${
-          phase === 'idle' ? 'cursor-pointer group' : 'cursor-default'
-        }`}
-        style={{ perspective: '1500px' }}
-      >
-        {/* 1. Interior Marfil Acuarela del Sobre (visible cuando la solapa se abre) */}
-        <div className="absolute inset-0 rounded-[18px] bg-[#FAF8F2] border border-[#C5A880]/70 shadow-[0_32px_70px_-14px_rgba(24,42,30,0.42)] overflow-hidden">
-          <img
-            src="/invitacion/layers/paper-bg.jpg"
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-90"
-          />
-          <img
-            src="/invitacion/layers/watercolor-splash.png"
-            alt=""
-            className="absolute -left-16 -top-8 w-56 h-44 opacity-35"
-          />
-          <img
-            src="/invitacion/layers/watercolor-splash.png"
-            alt=""
-            className="absolute -right-12 bottom-0 w-52 h-40 opacity-30"
-          />
-          <div className="absolute inset-2 rounded-[13px] border border-[#C5A880]/45" />
-        </div>
-
-        {/* 2. Tarjeta Interior de Invitación que se desliza hacia arriba al abrir el sobre */}
-        <div
-          className="absolute left-[6%] right-[6%] top-[7%] bottom-[8%] z-10 rounded-2xl bg-[#FAF9F5] border border-[#C5A880]/75 shadow-[0_14px_35px_-8px_rgba(24,42,30,0.28)] overflow-hidden flex flex-col items-center justify-center px-4 text-center"
-          style={{
-            transition: 'transform 880ms cubic-bezier(0.22, 1, 0.36, 1)',
-            transform: isCardRising
-              ? 'translate3d(0, -50%, 0) scale(1.03)'
-              : isFlapOpen
-                ? 'translate3d(0, -8%, 0) scale(0.99)'
-                : 'translate3d(0, 4%, 0) scale(0.96)',
-          }}
-        >
-          <img
-            src="/invitacion/layers/paper-bg.jpg"
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-85"
-          />
-          <div className="absolute inset-2 rounded-xl border border-[#C5A880]/50 pointer-events-none" />
-          <img
-            src="/invitacion/layers/olive-branch.png"
-            alt=""
-            className="absolute -top-3 -left-5 w-20 opacity-85 pointer-events-none"
-          />
-          <img
-            src="/invitacion/layers/roses-top-right.png"
-            alt=""
-            className="absolute -top-2 -right-4 w-20 opacity-85 pointer-events-none"
-          />
-          <p className="relative z-10 text-[9px] sm:text-[10px] uppercase tracking-[0.28em] text-[#8C7756] font-bold mb-1">
-            Nos Casamos
-          </p>
-          <img
-            src="/invitacion/layers/text-edis-dania.png"
-            alt="Edis y Dania"
-            className="relative z-10 w-44 sm:w-52 mx-auto"
-          />
-          <p className="relative z-10 font-serif text-[11px] sm:text-xs text-[#2F4838] tracking-[0.18em] uppercase mt-1 font-semibold">
-            21 de Noviembre, 2026
-          </p>
-        </div>
-
-        {/* 3. Bolsillo Frontal del Sobre Verde Salvia con Filetes Dorados (SVG de alta precisión) */}
-        <svg
-          viewBox="0 0 440 300"
-          preserveAspectRatio="none"
-          className="absolute inset-0 w-full h-full z-20 pointer-events-none rounded-[18px] overflow-hidden"
-        >
-          <defs>
-            <linearGradient id="sageLeftFold" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#43644D" />
-              <stop offset="100%" stopColor="#2B4433" />
-            </linearGradient>
-            <linearGradient id="sageRightFold" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#40604A" />
-              <stop offset="100%" stopColor="#283F30" />
-            </linearGradient>
-            <linearGradient id="sageBottomPocket" x1="50%" y1="0%" x2="50%" y2="100%">
-              <stop offset="0%" stopColor="#4A6D55" />
-              <stop offset="55%" stopColor="#35523E" />
-              <stop offset="100%" stopColor="#263D2E" />
-            </linearGradient>
-          </defs>
-
-          {/* Pliegue lateral izquierdo */}
-          <polygon
-            points="0,0 228,158 0,300"
-            fill="url(#sageLeftFold)"
-            stroke="#C5A880"
-            strokeOpacity="0.45"
-            strokeWidth="1.2"
-          />
-
-          {/* Pliegue lateral derecho */}
-          <polygon
-            points="440,0 212,158 440,300"
-            fill="url(#sageRightFold)"
-            stroke="#C5A880"
-            strokeOpacity="0.45"
-            strokeWidth="1.2"
-          />
-
-          {/* Pliegue inferior principal estilo Euro-Baronial */}
-          <path
-            d="M 0,300 L 188,144 Q 220,122 252,144 L 440,300 Z"
-            fill="url(#sageBottomPocket)"
-            stroke="#D8BE96"
-            strokeOpacity="0.65"
-            strokeWidth="1.5"
-          />
-
-          {/* Doble hilo dorado editorial en el bolsillo inferior */}
-          <path
-            d="M 14,296 L 193,151 Q 220,131 247,151 L 426,296"
-            fill="none"
-            stroke="#E5CFA9"
-            strokeOpacity="0.32"
-            strokeWidth="1"
-          />
-        </svg>
-
-        {/* Etiqueta caligráfica sutil en la parte baja del sobre */}
-        <div className="absolute bottom-3.5 inset-x-6 z-20 pointer-events-none text-center">
-          <span className="text-[9px] sm:text-[10px] uppercase tracking-[0.26em] text-[#EAD6B5]/90 font-medium">
-            Edis & Dania • Calan Park
-          </span>
-        </div>
-
-        {/* 4. Solapa Superior 3D (Exterior Verde Salvia / Interior Marfil Acuarela) */}
-        <div
-          className="absolute top-0 inset-x-0 h-[62%] pointer-events-none"
-          style={{
-            zIndex: flapBehind ? 5 : 30,
-            transformOrigin: 'top center',
-            transformStyle: 'preserve-3d',
-            transition: 'transform 780ms cubic-bezier(0.33, 1, 0.68, 1)',
-            transform: isFlapOpen ? 'rotateX(180deg)' : 'rotateX(0deg)',
-          }}
-        >
-          {/* Cara exterior de la solapa (Verde Salvia con borde dorado) */}
-          <div
-            className="absolute inset-0"
-            style={{
-              backfaceVisibility: 'hidden',
-              WebkitBackfaceVisibility: 'hidden',
-            }}
-          >
-            <svg
-              viewBox="0 0 440 186"
-              preserveAspectRatio="none"
-              className="w-full h-full drop-shadow-[0_10px_14px_rgba(18,32,23,0.32)]"
-            >
-              <defs>
-                <linearGradient id="sageTopFlap" x1="50%" y1="0%" x2="50%" y2="100%">
-                  <stop offset="0%" stopColor="#4F745B" />
-                  <stop offset="65%" stopColor="#385742" />
-                  <stop offset="100%" stopColor="#2B4433" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M 0,14 Q 0,0 14,0 L 426,0 Q 440,0 440,14 L 246,166 Q 220,185 194,166 Z"
-                fill="url(#sageTopFlap)"
-                stroke="#D8BE96"
-                strokeOpacity="0.75"
-                strokeWidth="1.6"
-              />
-              <path
-                d="M 12,8 L 428,8 L 241,157 Q 220,173 199,157 Z"
-                fill="none"
-                stroke="#E8D3B0"
-                strokeOpacity="0.38"
-                strokeWidth="1"
-              />
-            </svg>
-          </div>
-
-          {/* Cara interior de la solapa (Forro Marfil Acuarela al abrirse a 180°) */}
-          <div
-            className="absolute inset-0"
-            style={{
-              backfaceVisibility: 'hidden',
-              WebkitBackfaceVisibility: 'hidden',
-              transform: 'rotateX(180deg)',
-            }}
-          >
-            <svg
-              viewBox="0 0 440 186"
-              preserveAspectRatio="none"
-              className="w-full h-full drop-shadow-[0_-6px_14px_rgba(24,42,30,0.16)]"
-            >
-              <defs>
-                <linearGradient id="ivoryFlapLiner" x1="50%" y1="0%" x2="50%" y2="100%">
-                  <stop offset="0%" stopColor="#FAF8F2" />
-                  <stop offset="100%" stopColor="#EFECE2" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M 0,14 Q 0,0 14,0 L 426,0 Q 440,0 440,14 L 246,166 Q 220,185 194,166 Z"
-                fill="url(#ivoryFlapLiner)"
-                stroke="#C5A880"
-                strokeOpacity="0.7"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M 16,10 L 424,10 L 240,155 Q 220,170 200,155 Z"
-                fill="none"
-                stroke="#7E9E78"
-                strokeOpacity="0.35"
-                strokeWidth="1"
-              />
-            </svg>
-          </div>
-        </div>
-
-        {/* 5. Sello de Lacre Dorado Artesanal "E & D" */}
-        <div
-          className={`absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 z-40 transition-all duration-500 ${
-            isFlapOpen
-              ? 'opacity-0 scale-125 -translate-y-12 pointer-events-none'
-              : 'opacity-100 group-hover:scale-105'
-          }`}
-        >
-          {/* Halo dorado pulsante */}
-          <span className="absolute -inset-2.5 rounded-full border-2 border-[#DFC59B] animate-seal-halo pointer-events-none" />
-
-          {/* Disco de lacre con relieve orgánico */}
-          <div className="relative w-[82px] h-[82px] sm:w-[90px] sm:h-[90px] rounded-full bg-gradient-to-br from-[#F0D9B5] via-[#C69F68] to-[#876435] p-[5px] shadow-[0_12px_28px_rgba(18,32,23,0.48),inset_0_2px_4px_rgba(255,255,255,0.65)] flex items-center justify-center overflow-hidden">
-            {/* Barrido de brillo metálico */}
-            <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/55 to-transparent animate-golden-shimmer pointer-events-none" />
-
-            {/* Anillo interior grabado en el lacre */}
-            <div className="w-full h-full rounded-full bg-gradient-to-b from-[#DEC094] via-[#B89058] to-[#96713E] border-2 border-[#F3E1C3]/75 shadow-inner flex flex-col items-center justify-center">
-              <span className="font-serif text-lg sm:text-xl font-bold text-[#FFFDF9] drop-shadow-[0_1px_2px_rgba(74,50,19,0.65)] tracking-wider leading-none">
-                E<span className="italic text-sm mx-0.5 text-[#FAF0DF]">&</span>D
-              </span>
-              <Heart
-                size={10}
-                className="text-[#FFFDF9] fill-[#FFFDF9] mt-1 opacity-90 drop-shadow-sm"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Instrucción inferior + botón de abrir con música */}
-      <div
-        className={`relative z-20 mt-6 sm:mt-8 flex flex-col items-center gap-2.5 transition-all duration-500 ${
-          isFlapOpen ? 'opacity-0 translate-y-4 pointer-events-none' : 'opacity-100'
-        }`}
-      >
-        <button
-          type="button"
-          onClick={onOpenEnvelope}
-          className="relative overflow-hidden inline-flex items-center gap-2 px-7 py-3 rounded-full bg-gradient-to-r from-[#243B2B] via-[#35553F] to-[#243B2B] hover:brightness-110 text-white text-xs sm:text-sm font-semibold tracking-wide shadow-lg border border-[#C5A880]/65 cursor-pointer"
-        >
-          <span className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent animate-golden-shimmer pointer-events-none" />
-          <Music size={14} className="text-[#E5CFA9]" />
-          <span>Toca el Sello para Abrir tu Invitación</span>
-        </button>
-        <span className="text-[11px] text-[#6E624E] font-medium flex items-center gap-1.5">
-          <Volume2 size={13} className="text-[#4C8B54]" />
-          Incluye música romántica de fondo
-        </span>
-      </div>
-    </div>
-  );
-}
-
 export function DigitalInvitationLanding({
   onBackToAdmin,
   isAdminUnlocked = false,
@@ -615,12 +240,15 @@ export function DigitalInvitationLanding({
     }
   });
 
-  // Estado del Sobre 3D: 'idle' -> 'flap' -> 'card' -> 'reveal' -> 'done'
-  const [envelopePhase, setEnvelopePhase] = useState('idle');
+  // =========================================================================
+  // ESTADO DEL SOBRE INTERACTIVO + EXTRACCIÓN FÍSICA POR SCROLL
+  // =========================================================================
+  const [isSealBroken, setIsSealBroken] = useState(false);
   const [flapBehind, setFlapBehind] = useState(false);
-  const envelopeTimersRef = useRef([]);
+  const [isPeekReady, setIsPeekReady] = useState(false);
+  const sealTimersRef = useRef([]);
 
-  // Audio romántico de fondo (Canon in D - Cuerdas & Arpa) servido estáticamente desde public/
+  // Audio romántico de fondo (Canon in D - Cuerdas & Arpa) servido estáticamente
   const audioRef = useRef(null);
   const fadeIntervalRef = useRef(null);
   const userMutedRef = useRef(false);
@@ -684,7 +312,7 @@ export function DigitalInvitationLanding({
           audio.pause();
           setIsMusicPlaying(false);
         }
-      } else if (!userMutedRef.current && envelopePhase !== 'idle') {
+      } else if (!userMutedRef.current && isSealBroken) {
         audio
           .play()
           .then(() => setIsMusicPlaying(true))
@@ -696,11 +324,24 @@ export function DigitalInvitationLanding({
       document.removeEventListener('visibilitychange', handleVisibility);
       clearAudioFade();
     };
-  }, [envelopePhase]);
+  }, [isSealBroken]);
 
-  // Bloquear scroll del fondo únicamente mientras el sobre está cerrado
+  // Asegurar que la invitación siempre inicie arriba frente al sobre cerrado
   useEffect(() => {
-    if (envelopePhase === 'idle' || envelopePhase === 'flap' || envelopePhase === 'card') {
+    if (typeof window !== 'undefined') {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
+      window.scrollTo(0, 0);
+    }
+    return () => {
+      sealTimersRef.current.forEach((t) => clearTimeout(t));
+    };
+  }, []);
+
+  // Bloquear scroll únicamente antes de tocar el sello del sobre
+  useEffect(() => {
+    if (!isSealBroken) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -708,58 +349,42 @@ export function DigitalInvitationLanding({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [envelopePhase]);
+  }, [isSealBroken]);
 
-  // Limpiar timers al desmontar
-  useEffect(() => {
-    return () => {
-      envelopeTimersRef.current.forEach((t) => clearTimeout(t));
-    };
-  }, []);
+  // Al dar clic en el sobre: se abre la solapa 3D, inicia la música y la tarjeta asoma lista para que el usuario la estire/saque con scroll
+  const handleBreakSeal = useCallback(() => {
+    if (isSealBroken) return;
 
-  const handleOpenEnvelope = useCallback(() => {
-    if (envelopePhase !== 'idle') return;
-
-    // 1. Iniciar la música dentro del gesto directo del usuario (compatible con iPhone Safari y Android)
     startMusicWithFadeIn();
+    setIsSealBroken(true);
 
-    // 2. Abrir la solapa 3D del sobre y levantar el sello de lacre
-    setEnvelopePhase('flap');
+    confetti({
+      particleCount: 38,
+      spread: 58,
+      origin: { y: 0.56 },
+      colors: ['#C5A880', '#EAD3AA', '#4C8B54', '#FAF8F5'],
+    });
 
-    envelopeTimersRef.current.forEach((t) => clearTimeout(t));
+    sealTimersRef.current.forEach((t) => clearTimeout(t));
+    // Justo cuando la solapa pasa de 90°, pasa detrás de la tarjeta y ésta asoma ligeramente del bolsillo
     const t1 = setTimeout(() => {
       setFlapBehind(true);
-    }, 350);
+      setIsPeekReady(true);
+    }, 340);
 
-    const t2 = setTimeout(() => {
-      setEnvelopePhase('card');
-      confetti({
-        particleCount: 45,
-        spread: 65,
-        origin: { y: 0.55 },
-        colors: ['#C5A880', '#E5CFA9', '#4C8B54', '#FAF8F5'],
-      });
-    }, 430);
+    sealTimersRef.current = [t1];
+  }, [isSealBroken, startMusicWithFadeIn]);
 
-    const t3 = setTimeout(() => {
-      setEnvelopePhase('reveal');
-    }, 1600);
-
-    const t4 = setTimeout(() => {
-      setEnvelopePhase('done');
-    }, 2300);
-
-    envelopeTimersRef.current = [t1, t2, t3, t4];
-  }, [envelopePhase, startMusicWithFadeIn]);
-
-  const handleReplayEnvelope = useCallback(() => {
-    envelopeTimersRef.current.forEach((t) => clearTimeout(t));
+  const handleResetEnvelope = useCallback(() => {
+    sealTimersRef.current.forEach((t) => clearTimeout(t));
     window.scrollTo({ top: 0, behavior: 'instant' });
+    setIsPeekReady(false);
     setFlapBehind(false);
-    setEnvelopePhase('idle');
+    setIsSealBroken(false);
+    setScrollState((prev) => ({ ...prev, pull: 0 }));
   }, []);
 
-  // Gesto secreto de 5 toques en el sello E & D para desbloquear el panel en dispositivos de Edis/Dania
+  // Gesto secreto de 5 toques en el sello E & D superior para desbloquear el panel en dispositivos de Edis/Dania
   const secretTapCountRef = useRef(0);
   const secretTapTimerRef = useRef(null);
 
@@ -776,13 +401,13 @@ export function DigitalInvitationLanding({
     }, 1800);
   };
 
-  const stage1Ref = useRef(null);
+  const heroPullSectionRef = useRef(null);
   const stage2Ref = useRef(null);
   const stage3Ref = useRef(null);
   const stage4Ref = useRef(null);
 
   const [scrollState, setScrollState] = useState({
-    p1: 0.15,
+    pull: 0,
     p2: 0,
     p3: 0,
     p4: 0,
@@ -794,7 +419,16 @@ export function DigitalInvitationLanding({
     const updateScrollProgress = () => {
       const vh = window.innerHeight || 800;
 
-      const calcSectionProgress = (el, startFactor = 0.95, travelFactor = 0.68) => {
+      // Progreso [0..1] de extracción física de la tarjeta fuera del sobre (primeros 132vh de scroll)
+      let pullProg = 0;
+      if (heroPullSectionRef.current) {
+        const heroRect = heroPullSectionRef.current.getBoundingClientRect();
+        const scrolledInHero = Math.max(0, -heroRect.top);
+        const pullDistance = vh * 1.32;
+        pullProg = Math.max(0, Math.min(1, scrolledInHero / pullDistance));
+      }
+
+      const calcSectionProgress = (el, startFactor = 0.95, travelFactor = 0.65) => {
         if (!el) return 0;
         const rect = el.getBoundingClientRect();
         const startY = vh * startFactor;
@@ -804,7 +438,7 @@ export function DigitalInvitationLanding({
       };
 
       setScrollState({
-        p1: calcSectionProgress(stage1Ref.current, 0.95, 0.66),
+        pull: pullProg,
         p2: calcSectionProgress(stage2Ref.current, 0.95, 0.62),
         p3: calcSectionProgress(stage3Ref.current, 0.95, 0.64),
         p4: calcSectionProgress(stage4Ref.current, 0.96, 0.55),
@@ -826,12 +460,6 @@ export function DigitalInvitationLanding({
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, []);
-
-  const handleStartJourney = () => {
-    if (stage1Ref.current) {
-      stage1Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
 
   const handleDirectConfirmCard = async () => {
     const targetId = activeCard?.id || urlData.cardId;
@@ -871,21 +499,52 @@ export function DigitalInvitationLanding({
   };
 
   // =========================================================================
-  // PROGRESOS DE ENSAMBLAJE POR CAPA REAL DE CANVA (STAGE 1: INVITACIÓN)
+  // MATEMÁTICA FÍSICA DE EXTRACCIÓN DE LA TARJETA DESDE EL SOBRE (pull: 0..1)
   // =========================================================================
-  const p1 = scrollState.p1;
-  const s1Watercolors = subProgress(p1, 0.0, 0.38);
-  const s1TopLeaves = subProgress(p1, 0.08, 0.50);
-  const s1TopRoses = subProgress(p1, 0.12, 0.54);
-  const s1LeftRoses = subProgress(p1, 0.16, 0.58);
-  const s1BotLeaves = subProgress(p1, 0.20, 0.62);
-  const s1Names = subProgress(p1, 0.24, 0.66);
-  const s1Subtitle = subProgress(p1, 0.34, 0.72);
-  const s1Verse = subProgress(p1, 0.40, 0.77);
-  const s1Date = subProgress(p1, 0.48, 0.84);
-  const s1Venue = subProgress(p1, 0.56, 0.90);
-  const s1Dress = subProgress(p1, 0.64, 0.94);
-  const s1Sign = subProgress(p1, 0.72, 1.0);
+  const pull = isSealBroken ? scrollState.pull : 0;
+
+  // Fase 1 (pull 0.00 -> 0.68): El invitado estira/saca la tarjeta hacia arriba mientras el sobre baja
+  const tPull = linearProgress(pull, 0.0, 0.68);
+  // Fase 2 (pull 0.65 -> 1.00): La tarjeta ya salió completa de la boca del sobre y crece al 100%
+  const tSettle = subProgress(pull, 0.65, 1.0);
+
+  // Coordenadas del Sobre (en % de la altura de la tarjeta A6):
+  // Cerrado: centrado en top 26%. Al abrir solapa: baja suavemente a 30%. Al hacer scroll: baja hasta 112% y desaparece.
+  const envTopPct = !isSealBroken
+    ? 26
+    : 30 + 82 * tPull + 14 * tSettle;
+  const envOpacity = 1 - subProgress(pull, 0.66, 0.94);
+
+  // Coordenadas de la Tarjeta A6 (en % de su propia altura):
+  // Cerrado: guardada en +23% (100% dentro del sobre).
+  // Al romper el sello (peek): asoma a +12% mostrando "Edis y Dania" fuera del bolsillo.
+  // Al hacer scroll: sube hasta -5% (saliendo por completo del bolsillo) y luego se centra en 0% a escala 1.0.
+  const cardTranslateYPct = !isPeekReady
+    ? 23
+    : pull <= 0.68
+      ? 12 - 17 * tPull
+      : -5 + 5 * tSettle;
+
+  const cardScale = !isPeekReady
+    ? 0.82
+    : pull <= 0.68
+      ? 0.84 + 0.03 * tPull
+      : 0.87 + 0.13 * tSettle;
+
+  // Recorte inferior invisible detrás del bolsillo verde mientras la tarjeta aún está guardada (evita que asome por debajo del sobre)
+  const clipBottomPct = !isPeekReady
+    ? 44
+    : Math.max(0, 32 * (1 - linearProgress(tPull, 0.0, 0.42)));
+
+  const isActivelyScrollingPull = pull > 0.008;
+
+  // Aparición progresiva de los textos internos conforme cada parte de la tarjeta sale del bolsillo verde
+  const s1Subtitle = isPeekReady ? Math.max(0.25, subProgress(pull, 0.02, 0.34)) : 0;
+  const s1Verse = isPeekReady ? Math.max(0.15, subProgress(pull, 0.08, 0.42)) : 0;
+  const s1Date = isPeekReady ? subProgress(pull, 0.16, 0.52) : 0;
+  const s1Venue = isPeekReady ? subProgress(pull, 0.26, 0.62) : 0;
+  const s1Dress = isPeekReady ? subProgress(pull, 0.34, 0.70) : 0;
+  const s1Sign = isPeekReady ? subProgress(pull, 0.42, 0.78) : 0;
 
   // =========================================================================
   // PROGRESOS DE ENSAMBLAJE POR CAPA REAL (STAGE 2: PASES RESERVADOS)
@@ -914,24 +573,16 @@ export function DigitalInvitationLanding({
   const s4Card2 = subProgress(p4, 0.22, 0.95);
 
   return (
-    <div className="relative min-h-screen bg-[#F2F5EF] text-[#2F352E] font-sans overflow-x-hidden selection:bg-[#7A8F76]/25">
+    <div
+      className="relative min-h-screen bg-[#F2F5EF] text-[#2F352E] font-sans selection:bg-[#7A8F76]/25"
+      style={{ overflowX: 'clip' }}
+    >
       {/* Reproductor de audio estático (0 consultas a Neon DB) */}
       <audio
         ref={audioRef}
         src="/invitacion/musica-boda.mp3"
         loop
         preload="auto"
-      />
-
-      {/* SOBRE 3D INTERACTIVO DE BIENVENIDA */}
-      <LuxurySageEnvelopeOverlay
-        phase={envelopePhase}
-        flapBehind={flapBehind}
-        displaySalutation={displaySalutation}
-        displaySeats={displaySeats}
-        onOpenEnvelope={handleOpenEnvelope}
-        isAdminUnlocked={isAdminUnlocked}
-        onBackToAdmin={onBackToAdmin}
       />
 
       {/* Textura editorial sutil de papel acuarela fija en el fondo + iluminación cálida dorada */}
@@ -956,8 +607,8 @@ export function DigitalInvitationLanding({
       {/* Brisa de partículas doradas y hojitas de olivo flotantes */}
       <FloatingBreezeAtmosphere />
 
-      {/* Botón flotante de Música (esquina inferior derecha, accesible con el pulgar) */}
-      {envelopePhase !== 'idle' && (
+      {/* Botón flotante de Música (esquina inferior derecha) */}
+      {isSealBroken && (
         <button
           type="button"
           onClick={toggleMusic}
@@ -1006,17 +657,20 @@ export function DigitalInvitationLanding({
               <span>Ir al Panel</span>
             </button>
           ) : (
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-[#C5A880]/45">
+            <div
+              onClick={handleSecretMonogramTap}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-[#C5A880]/45 select-none"
+            >
               <span className="font-serif font-bold text-xs text-[#2F4838]">E & D</span>
               <span className="text-[11px] text-[#8C7756] font-medium">• 21 Nov 2026</span>
             </div>
           )}
 
-          {envelopePhase === 'done' && (
+          {isSealBroken && pull > 0.25 && (
             <button
               type="button"
-              onClick={handleReplayEnvelope}
-              title="Volver a ver el sobre"
+              onClick={handleResetEnvelope}
+              title="Guardar en el sobre"
               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white/90 backdrop-blur-md text-[#6E624E] hover:text-[#243B2B] text-[11px] font-semibold shadow-sm border border-[#C5A880]/45 transition-all cursor-pointer"
             >
               <Mail size={13} className="text-[#B38E5D]" />
@@ -1025,469 +679,767 @@ export function DigitalInvitationLanding({
           )}
         </div>
 
-        <a
-          href="#confirmar-asistencia"
-          className="pointer-events-auto relative overflow-hidden inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-[#243B2B] via-[#2F4838] to-[#243B2B] hover:brightness-110 text-white text-xs font-semibold shadow-md border border-[#C5A880]/45 transition-all"
-        >
-          <CheckCircle2 size={14} className="text-[#E0C59B]" />
-          <span>Confirmar Asistencia</span>
-        </a>
+        {isSealBroken && (
+          <a
+            href="#confirmar-asistencia"
+            className="pointer-events-auto relative overflow-hidden inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-[#243B2B] via-[#2F4838] to-[#243B2B] hover:brightness-110 text-white text-xs font-semibold shadow-md border border-[#C5A880]/45 transition-all"
+          >
+            <CheckCircle2 size={14} className="text-[#E0C59B]" />
+            <span>Confirmar Asistencia</span>
+          </a>
+        )}
       </div>
 
       {/* =====================================================================
-          PORTADA DE BIENVENIDA CON BRISA VIVA & MARCO DORADO EDITORIAL
-      ===================================================================== */}
-      <section className="relative z-10 min-h-[88vh] flex flex-col items-center justify-center px-4 pt-16 pb-6 overflow-hidden">
-        {/* Ramas de eucalipto en las esquinas con movimiento continuo de brisa */}
-        <div className="pointer-events-none select-none absolute -top-4 -left-6 w-48 sm:w-64 md:w-80 opacity-95">
-          <img
-            src="/invitacion/leaf-top-left.png"
-            alt=""
-            className="w-full h-auto animate-breeze-a"
-          />
-        </div>
-
-        <div className="pointer-events-none select-none absolute -bottom-4 -right-6 w-48 sm:w-64 md:w-80 opacity-95">
-          <img
-            src="/invitacion/leaf-bottom-right.png"
-            alt=""
-            className="w-full h-auto animate-breeze-b"
-          />
-        </div>
-
-        {/* Tarjeta Editorial de Bienvenida con Doble Marco Dorado */}
-        <div className="relative z-10 max-w-lg w-full text-center space-y-5 bg-white/90 backdrop-blur-md rounded-3xl p-8 sm:p-11 shadow-[0_25px_70px_-15px_rgba(36,59,43,0.18)] border border-[#C5A880]/55 animate-in fade-in duration-300">
-          <EditorialInnerFrame insetClass="inset-3 sm:inset-4" />
-
-          {/* Sello de Lacre Dorado con Destello Animado (5 toques desbloquean el panel para Edis) */}
-          <div
-            onClick={handleSecretMonogramTap}
-            className="relative mx-auto w-[88px] h-[88px] rounded-full bg-gradient-to-br from-[#DFC59B] via-[#B89668] to-[#8C6D43] p-[3px] shadow-[0_10px_25px_-5px_rgba(140,109,67,0.45)] flex items-center justify-center select-none overflow-hidden"
-          >
-            <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-golden-shimmer pointer-events-none" />
-            <div className="w-full h-full rounded-full bg-gradient-to-b from-[#FAF8F3] to-[#F2ECE1] border border-[#C5A880]/80 flex flex-col items-center justify-center">
-              <span className="font-serif text-xl font-bold text-[#243B2B] tracking-wider leading-none">
-                E<span className="text-[#B38E5D] italic font-serif text-base mx-0.5">&</span>D
-              </span>
-              <span className="text-[8px] uppercase tracking-[0.22em] text-[#8C7756] font-semibold mt-1">
-                21 • 11 • 26
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-1.5 pt-1">
-            <p className="text-[11px] sm:text-xs uppercase tracking-[0.32em] text-[#8C7756] font-bold">
-              Nuestra Boda
-            </p>
-            <img
-              src="/invitacion/layers/text-edis-dania.png"
-              alt="Edis y Dania"
-              className="w-56 sm:w-64 mx-auto select-none pointer-events-none"
-            />
-          </div>
-
-          <GoldenBotanicalDivider progress={1} />
-
-          {/* Destinatario personalizado */}
-          <div className="relative bg-gradient-to-b from-[#F7F9F5] to-[#EFF4EC] border border-[#C5A880]/45 rounded-2xl px-5 py-4 space-y-1.5 shadow-sm">
-            <span className="text-[10px] uppercase tracking-[0.22em] text-[#7A6B53] font-semibold block">
-              Invitación Especial Para
-            </span>
-            <p className="font-serif text-xl sm:text-2xl font-bold text-[#243B2B]">
-              {displaySalutation}
-            </p>
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white border border-[#C5A880]/55 text-[#3B6E42] text-xs font-bold shadow-sm mt-1">
-              <Ticket size={13} className="text-[#B38E5D]" />
-              <span>
-                {displaySeats} {displaySeats === 1 ? 'Pase Reservado' : 'Pases Reservados'}
-              </span>
-            </div>
-          </div>
-
-          <p className="text-xs sm:text-sm text-stone-600 leading-relaxed max-w-sm mx-auto italic font-serif">
-            “Con la bendición de Dios, tenemos la alegría de invitarte a compartir con nosotros el inicio de nuestra vida juntos.”
-          </p>
-
-          <button
-            type="button"
-            onClick={handleStartJourney}
-            className="relative overflow-hidden w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full bg-gradient-to-r from-[#243B2B] via-[#32513C] to-[#243B2B] hover:brightness-110 text-white text-xs sm:text-sm font-semibold tracking-wide shadow-lg hover:shadow-xl border border-[#C5A880]/50 transition-all cursor-pointer group"
-          >
-            <span className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-golden-shimmer pointer-events-none" />
-            <Heart size={15} className="text-[#E0C59B] fill-[#E0C59B]" />
-            <span>Ver Nuestra Invitación</span>
-            <ChevronDown size={16} className="group-hover:translate-y-0.5 transition-transform text-[#E0C59B]" />
-          </button>
-        </div>
-
-        <div className="mt-5 flex flex-col items-center gap-1 text-[#7A6B53]">
-          <span className="text-[10px] uppercase tracking-[0.26em] font-semibold">Desliza hacia abajo</span>
-          <ChevronDown size={18} className="animate-bounce text-[#4C8B54]" />
-        </div>
-      </section>
-
-      {/* =====================================================================
-          STAGE 1: LA INVITACIÓN PRINCIPAL CON MARCO DORADO + BRISA VIVA EN FLORES Y HOJAS
+          EXPERIENCIA INTERACTIVA PRINCIPAL:
+          SOBRE 3D VERDE SALVIA + EXTRACCIÓN REAL DE LA TARJETA A6 CON SCROLL
       ===================================================================== */}
       <section
-        ref={stage1Ref}
-        className="relative z-10 py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto flex flex-col items-center"
+        ref={heroPullSectionRef}
+        className={`relative z-10 w-full ${
+          isSealBroken ? 'h-[255vh]' : 'h-[100dvh] overflow-hidden'
+        }`}
       >
-        <div className="mb-4 text-center space-y-1">
-          <GoldenBotanicalDivider progress={s1Watercolors} />
-        </div>
-
-        {/* Marco exterior de lujo con filo dorado */}
-        <div className="p-1.5 sm:p-2 rounded-[26px] sm:rounded-[30px] bg-gradient-to-br from-[#E5D1B0]/70 via-white/80 to-[#C5A880]/65 shadow-[0_28px_75px_-15px_rgba(31,58,46,0.3)] w-full max-w-[512px]">
-          {/* LIENZO A6 OFICIAL (Proporción exacta 5 : 7) */}
+        <div className="sticky top-0 h-[100dvh] w-full flex flex-col items-center justify-center px-3 pt-11 pb-4 overflow-hidden">
+          {/* Ramas de eucalipto en las esquinas de la pantalla mecidas por la brisa */}
           <div
-            className="relative w-full aspect-[5/7] rounded-2xl sm:rounded-3xl border border-[#C5A880]/60 overflow-hidden select-none bg-[#FAF9F6]"
-            style={{ containerType: 'inline-size' }}
+            className="pointer-events-none select-none absolute -top-4 -left-6 w-44 sm:w-60 md:w-72 transition-opacity duration-500"
+            style={{ opacity: Math.max(0.35, 0.92 - pull * 0.45) }}
           >
-            <EditorialInnerFrame insetClass="inset-2.5 sm:inset-3.5" />
-
-            {/* 1. FONDO DE PAPEL ACUARELA */}
             <img
-              src="/invitacion/layers/paper-bg.jpg"
+              src="/invitacion/leaf-top-left.png"
               alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              className="w-full h-auto animate-breeze-a"
             />
+          </div>
 
-            {/* 2. MANCHAS DE ACUARELA VERDE SALVIA CON RESPIRACIÓN ORGÁNICA */}
-            <div
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '-46.75%',
-                top: '-2.06%',
-                width: '94.17%',
-                height: '65.31%',
-                opacity: 0.51 * s1Watercolors,
-                transform: `translate3d(${(1 - s1Watercolors) * -60}px, ${(1 - s1Watercolors) * -40}px, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
-              }}
-            >
-              <img
-                src="/invitacion/layers/watercolor-splash.png"
-                alt=""
-                aria-hidden="true"
-                className="w-full h-full animate-watercolor-breathe"
-              />
-            </div>
-
-            <div
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '80.9%',
-                top: '20.06%',
-                width: '91.14%',
-                height: '63.21%',
-                opacity: 0.51 * s1Watercolors,
-                transform: `translate3d(${(1 - s1Watercolors) * 60}px, 0, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
-              }}
-            >
-              <img
-                src="/invitacion/layers/watercolor-splash.png"
-                alt=""
-                aria-hidden="true"
-                className="w-full h-full animate-watercolor-breathe"
-              />
-            </div>
-
-            <div
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '47.42%',
-                top: '67.61%',
-                width: '92.43%',
-                height: '64.1%',
-                opacity: 0.39 * s1Watercolors,
-                transform: `translate3d(${(1 - s1Watercolors) * 50}px, ${(1 - s1Watercolors) * 50}px, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
-              }}
-            >
-              <img
-                src="/invitacion/layers/watercolor-splash.png"
-                alt=""
-                aria-hidden="true"
-                className="w-full h-full animate-watercolor-breathe"
-              />
-            </div>
-
+          <div
+            className="pointer-events-none select-none absolute -bottom-4 -right-6 w-44 sm:w-60 md:w-72 transition-opacity duration-500"
+            style={{ opacity: Math.max(0.35, 0.92 - pull * 0.45) }}
+          >
             <img
-              src="/invitacion/layers/watercolor-splash.png"
+              src="/invitacion/leaf-bottom-right.png"
               alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '33.58%',
-                top: '-29.87%',
-                width: '94.64%',
-                height: '65.64%',
-                opacity: 0.26 * s1Watercolors,
-                transform: `translate3d(0, ${(1 - s1Watercolors) * -50}px, 0) rotate(59.89deg) scale(${0.75 + 0.25 * s1Watercolors})`,
-              }}
+              className="w-full h-auto animate-breeze-b"
             />
+          </div>
 
-            <img
-              src="/invitacion/layers/watercolor-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '28.73%',
-                top: '50.56%',
-                width: '14.06%',
-                height: '9.75%',
-                opacity: 0.26 * s1Date,
-                transform: `rotate(59.89deg) scale(${0.4 + 0.6 * s1Date})`,
-              }}
-            />
-
-            <img
-              src="/invitacion/layers/watercolor-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '-10.75%',
-                top: '67.01%',
-                width: '35.15%',
-                height: '24.37%',
-                opacity: 0.26 * s1Watercolors,
-                transform: `rotate(59.89deg) scale(${0.7 + 0.3 * s1Watercolors})`,
-              }}
-            />
-
-            {/* 3. FLORES Y HOJAS CON DOBLE ANIMACIÓN: ENSAMBLAJE POR SCROLL + BRISA VIVA CONTINUA */}
+          {/* CONTENEDOR PROPORCIONAL COMPARTIDO (5:7) DONDE LA TARJETA VIVE FÍSICAMENTE DENTRO DEL SOBRE */}
+          <div
+            className="relative select-none"
+            style={{
+              width: 'min(88vw, 455px, calc((100dvh - 102px) * 5 / 7))',
+              aspectRatio: '5 / 7',
+              perspective: '1600px',
+            }}
+          >
+            {/* Destinatario personalizado encima del sobre cerrado */}
             <div
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '-19.35%',
-                top: '3.91%',
-                width: '39.38%',
-                height: '39.13%',
-                opacity: s1TopLeaves,
-                transform: `translate3d(${(1 - s1TopLeaves) * -130}px, ${(1 - s1TopLeaves) * -80}px, 0) rotate(${(1 - s1TopLeaves) * -25}deg) scale(${0.75 + 0.25 * s1TopLeaves})`,
-              }}
+              className={`absolute -top-2 left-[-6%] right-[-6%] z-40 text-center space-y-1.5 transition-all duration-500 ${
+                isSealBroken
+                  ? 'opacity-0 -translate-y-5 pointer-events-none'
+                  : 'opacity-100 translate-y-0'
+              }`}
             >
-              <img
-                src="/invitacion/layers/olive-branch.png"
-                alt=""
-                aria-hidden="true"
-                className="w-full h-full animate-breeze-a"
-              />
+              <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-[#7A6B53] font-bold">
+                Invitación Especial Para
+              </p>
+              <h1 className="font-serif text-xl sm:text-2xl font-bold text-[#243B2B] leading-tight px-2">
+                {displaySalutation}
+              </h1>
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/95 border border-[#C5A880]/60 text-[#34593C] text-[11px] font-bold shadow-sm">
+                <Ticket size={12} className="text-[#B38E5D]" />
+                <span>
+                  {displaySeats} {displaySeats === 1 ? 'Pase Reservado' : 'Pases Reservados'}
+                </span>
+              </div>
             </div>
 
+            {/* ===============================================================
+                CAPA Z-10: FORRO INTERIOR MARFIL ACUARELA DEL SOBRE
+                (Detrás de la tarjeta A6 para que se vea salir de adentro)
+            =============================================================== */}
+            {envOpacity > 0.01 && (
+              <div
+                className="absolute left-[-4%] w-[108%] h-[53%] z-10 pointer-events-none"
+                style={{
+                  top: `${envTopPct}%`,
+                  opacity: envOpacity,
+                  transition: isActivelyScrollingPull
+                    ? 'none'
+                    : 'top 650ms cubic-bezier(0.22, 1, 0.36, 1)',
+                }}
+              >
+                <div className="absolute inset-0 rounded-[18px] bg-[#FAF8F2] border border-[#C5A880]/70 shadow-[0_30px_65px_-14px_rgba(24,42,30,0.42)] overflow-hidden">
+                  <img
+                    src="/invitacion/layers/paper-bg.jpg"
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover opacity-90"
+                  />
+                  <img
+                    src="/invitacion/layers/watercolor-splash.png"
+                    alt=""
+                    className="absolute -left-14 -top-6 w-52 h-40 opacity-35"
+                  />
+                  <img
+                    src="/invitacion/layers/watercolor-splash.png"
+                    alt=""
+                    className="absolute -right-12 bottom-0 w-48 h-36 opacity-30"
+                  />
+                  <div className="absolute inset-2 rounded-[13px] border border-[#C5A880]/45" />
+                </div>
+              </div>
+            )}
+
+            {/* ===============================================================
+                SOLAPA SUPERIOR 3D INDEPENDIENTE (0° -> 180° continuo sin cortes;
+                cambia de z-35 a z-12 justo al pasar por 90° de canto)
+            =============================================================== */}
+            {envOpacity > 0.01 && (
+              <div
+                className="absolute left-[-4%] w-[108%] h-[32.86%] pointer-events-none"
+                style={{
+                  top: `${envTopPct}%`,
+                  opacity: envOpacity,
+                  zIndex: flapBehind ? 12 : 35,
+                  transformOrigin: 'top center',
+                  transformStyle: 'preserve-3d',
+                  transition: isActivelyScrollingPull
+                    ? 'transform 780ms cubic-bezier(0.33, 1, 0.68, 1)'
+                    : 'top 650ms cubic-bezier(0.22, 1, 0.36, 1), transform 780ms cubic-bezier(0.33, 1, 0.68, 1)',
+                  transform: isSealBroken ? 'rotateX(180deg)' : 'rotateX(0deg)',
+                }}
+              >
+                {/* Cara exterior verde salvia (visible de 0° a 90°) */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                  }}
+                >
+                  <svg
+                    viewBox="0 0 440 186"
+                    preserveAspectRatio="none"
+                    className="w-full h-full drop-shadow-[0_10px_14px_rgba(18,32,23,0.32)]"
+                  >
+                    <defs>
+                      <linearGradient id="sageTopFlapClosed" x1="50%" y1="0%" x2="50%" y2="100%">
+                        <stop offset="0%" stopColor="#4F745B" />
+                        <stop offset="65%" stopColor="#385742" />
+                        <stop offset="100%" stopColor="#2B4433" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M 0,14 Q 0,0 14,0 L 426,0 Q 440,0 440,14 L 246,166 Q 220,185 194,166 Z"
+                      fill="url(#sageTopFlapClosed)"
+                      stroke="#D8BE96"
+                      strokeOpacity="0.75"
+                      strokeWidth="1.6"
+                    />
+                    <path
+                      d="M 12,8 L 428,8 L 241,157 Q 220,173 199,157 Z"
+                      fill="none"
+                      stroke="#E8D3B0"
+                      strokeOpacity="0.38"
+                      strokeWidth="1"
+                    />
+                  </svg>
+                </div>
+
+                {/* Cara interior marfil acuarela (visible de 90° a 180°) */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                    transform: 'rotateX(180deg)',
+                  }}
+                >
+                  <svg
+                    viewBox="0 0 440 186"
+                    preserveAspectRatio="none"
+                    className="w-full h-full drop-shadow-[0_-6px_14px_rgba(24,42,30,0.16)]"
+                  >
+                    <defs>
+                      <linearGradient id="ivoryFlapOpenBg" x1="50%" y1="0%" x2="50%" y2="100%">
+                        <stop offset="0%" stopColor="#FAF8F2" />
+                        <stop offset="100%" stopColor="#EFECE2" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M 0,14 Q 0,0 14,0 L 426,0 Q 440,0 440,14 L 246,166 Q 220,185 194,166 Z"
+                      fill="url(#ivoryFlapOpenBg)"
+                      stroke="#C5A880"
+                      strokeOpacity="0.7"
+                      strokeWidth="1.5"
+                    />
+                    <path
+                      d="M 16,10 L 424,10 L 240,155 Q 220,170 200,155 Z"
+                      fill="none"
+                      stroke="#7E9E78"
+                      strokeOpacity="0.35"
+                      strokeWidth="1"
+                    />
+                  </svg>
+                </div>
+              </div>
+            )}
+
+            {/* ===============================================================
+                CAPA Z-20: LA TARJETA DE INVITACIÓN A6 OFICIAL REAL
+                (Emparedada entre el forro trasero z-10 y el bolsillo verde frontal z-30;
+                 el invitado la saca él mismo deslizando con el dedo / rueda)
+            =============================================================== */}
             <div
-              className="absolute pointer-events-none will-change-transform"
+              className="absolute inset-0 z-20 will-change-transform"
               style={{
-                left: '82.07%',
-                top: '-1.06%',
-                width: '38.91%',
-                height: '49.08%',
-                opacity: s1TopRoses,
-                transform: `translate3d(${(1 - s1TopRoses) * 130}px, ${(1 - s1TopRoses) * -75}px, 0) rotate(${-23.9 + (1 - s1TopRoses) * 28}deg) scale(${0.75 + 0.25 * s1TopRoses})`,
+                opacity: isSealBroken ? 1 : 0,
+                transform: `translate3d(0, ${cardTranslateYPct}%, 0) scale(${cardScale})`,
+                clipPath:
+                  clipBottomPct > 0.2
+                    ? `inset(0% 0% ${clipBottomPct.toFixed(2)}% 0% round 18px)`
+                    : 'none',
+                transition: isActivelyScrollingPull
+                  ? 'none'
+                  : 'transform 680ms cubic-bezier(0.22, 1, 0.36, 1), opacity 250ms ease',
               }}
             >
-              <img
-                src="/invitacion/layers/roses-top-right.png"
-                alt=""
-                aria-hidden="true"
-                className="w-full h-full animate-breeze-roses-r"
-              />
+              {/* Halo exterior dorado que cobra vida cuando la tarjeta sale completa */}
+              <div
+                className="w-full h-full rounded-[22px] sm:rounded-[28px] transition-shadow duration-300"
+                style={{
+                  padding: `${4 + 3 * tSettle}px`,
+                  background:
+                    'linear-gradient(135deg, rgba(229,209,176,0.82) 0%, rgba(255,255,255,0.92) 50%, rgba(197,168,128,0.78) 100%)',
+                  boxShadow:
+                    pull > 0.35
+                      ? `0 ${16 + 14 * tSettle}px ${40 + 35 * tSettle}px -14px rgba(31,58,46,${(0.18 + 0.14 * tSettle).toFixed(2)})`
+                      : '0 8px 24px -8px rgba(31,58,46,0.18)',
+                }}
+              >
+                {/* LIENZO A6 OFICIAL DE CANVA (5 : 7) */}
+                <div
+                  className="relative w-full h-full rounded-2xl sm:rounded-3xl border border-[#C5A880]/65 overflow-hidden bg-[#FAF9F6]"
+                  style={{ containerType: 'inline-size' }}
+                >
+                  <EditorialInnerFrame insetClass="inset-2 sm:inset-3" />
+
+                  {/* 1. Papel acuarela original */}
+                  <img
+                    src="/invitacion/layers/paper-bg.jpg"
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                  />
+
+                  {/* 2. Manchas de acuarela verde salvia con respiración orgánica */}
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '-46.75%',
+                      top: '-2.06%',
+                      width: '94.17%',
+                      height: '65.31%',
+                      opacity: 0.51,
+                    }}
+                  >
+                    <img
+                      src="/invitacion/layers/watercolor-splash.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="w-full h-full animate-watercolor-breathe"
+                    />
+                  </div>
+
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '80.9%',
+                      top: '20.06%',
+                      width: '91.14%',
+                      height: '63.21%',
+                      opacity: 0.51,
+                    }}
+                  >
+                    <img
+                      src="/invitacion/layers/watercolor-splash.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="w-full h-full animate-watercolor-breathe"
+                    />
+                  </div>
+
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '47.42%',
+                      top: '67.61%',
+                      width: '92.43%',
+                      height: '64.1%',
+                      opacity: 0.39,
+                    }}
+                  >
+                    <img
+                      src="/invitacion/layers/watercolor-splash.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="w-full h-full animate-watercolor-breathe"
+                    />
+                  </div>
+
+                  <img
+                    src="/invitacion/layers/watercolor-splash.png"
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '33.58%',
+                      top: '-29.87%',
+                      width: '94.64%',
+                      height: '65.64%',
+                      opacity: 0.26,
+                      transform: 'rotate(59.89deg)',
+                    }}
+                  />
+
+                  <img
+                    src="/invitacion/layers/watercolor-splash.png"
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '28.73%',
+                      top: '50.56%',
+                      width: '14.06%',
+                      height: '9.75%',
+                      opacity: 0.26 * s1Date,
+                      transform: 'rotate(59.89deg)',
+                    }}
+                  />
+
+                  <img
+                    src="/invitacion/layers/watercolor-splash.png"
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '-10.75%',
+                      top: '67.01%',
+                      width: '35.15%',
+                      height: '24.37%',
+                      opacity: 0.26,
+                      transform: 'rotate(59.89deg)',
+                    }}
+                  />
+
+                  {/* 3. Ramas de olivo y rosas blancas con Brisa Viva continua */}
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '-19.35%',
+                      top: '3.91%',
+                      width: '39.38%',
+                      height: '39.13%',
+                    }}
+                  >
+                    <img
+                      src="/invitacion/layers/olive-branch.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="w-full h-full animate-breeze-a"
+                    />
+                  </div>
+
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '82.07%',
+                      top: '-1.06%',
+                      width: '38.91%',
+                      height: '49.08%',
+                      transform: 'rotate(-23.9deg)',
+                    }}
+                  >
+                    <img
+                      src="/invitacion/layers/roses-top-right.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="w-full h-full animate-breeze-roses-r"
+                    />
+                  </div>
+
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '-22.56%',
+                      top: '43.05%',
+                      width: '53.17%',
+                      height: '67.07%',
+                      transform: 'rotate(14.96deg)',
+                    }}
+                  >
+                    <img
+                      src="/invitacion/layers/roses-left.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="w-full h-full animate-breeze-roses-l"
+                    />
+                  </div>
+
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '66.66%',
+                      top: '68.76%',
+                      width: '39.38%',
+                      height: '39.13%',
+                    }}
+                  >
+                    <img
+                      src="/invitacion/layers/olive-branch.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="w-full h-full animate-breeze-b"
+                    />
+                  </div>
+
+                  {/* 4. Caligrafía principal "Edis y Dania" (asoma desde el primer instante al abrir el sobre) */}
+                  <img
+                    src="/invitacion/layers/text-edis-dania.png"
+                    alt="Edis y Dania"
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '16.0%',
+                      top: '7.8%',
+                      width: '68.0%',
+                      height: '24.0%',
+                    }}
+                  />
+
+                  {/* 5. Textos en fuente Simonetta que cobran foco conforme salen del bolsillo del sobre */}
+                  <div
+                    className="absolute left-[10%] w-[80%] text-center pointer-events-none will-change-transform"
+                    style={{
+                      top: '36.2%',
+                      fontFamily: "'Simonetta', serif",
+                      color: '#3A3D36',
+                      fontSize: 'clamp(11px, 3.6cqw, 19px)',
+                      letterSpacing: '0.03em',
+                      opacity: s1Subtitle,
+                      transform: `translate3d(0, ${(1 - s1Subtitle) * 18}px, 0)`,
+                    }}
+                  >
+                    TE INVITAMOS A NUESTRA BODA
+                  </div>
+
+                  <div
+                    className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.38]"
+                    style={{
+                      top: '43.1%',
+                      fontFamily: "'Simonetta', serif",
+                      color: '#3A3D36',
+                      fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
+                      opacity: s1Verse,
+                      transform: `translate3d(0, ${(1 - s1Verse) * 20}px, 0)`,
+                    }}
+                  >
+                    <p>Así que ya no son dos, sino uno solo. Por tanto, lo</p>
+                    <p>que Dios ha unido, que no lo separe el hombre.</p>
+                    <p className="mt-[0.5cqw]">Mateo 19:6</p>
+                  </div>
+
+                  <div
+                    className="absolute text-center pointer-events-none will-change-transform"
+                    style={{
+                      left: '25.5%',
+                      top: '56.8%',
+                      width: '18%',
+                      fontFamily: "'Simonetta', serif",
+                      color: '#3A3D36',
+                      fontSize: 'clamp(11px, 3.6cqw, 19px)',
+                      opacity: s1Date,
+                      transform: `translate3d(${(1 - s1Date) * -28}px, 0, 0)`,
+                    }}
+                  >
+                    NOV
+                  </div>
+
+                  <div
+                    className="absolute text-center pointer-events-none will-change-transform leading-none"
+                    style={{
+                      left: '35.23%',
+                      top: '52.2%',
+                      width: '29.54%',
+                      fontFamily: "'Simonetta', serif",
+                      color: '#3A3D36',
+                      fontSize: 'clamp(34px, 11.4cqw, 58px)',
+                      opacity: s1Date,
+                      transform: `scale(${0.78 + 0.22 * s1Date})`,
+                    }}
+                  >
+                    21
+                  </div>
+
+                  <div
+                    className="absolute text-center pointer-events-none will-change-transform"
+                    style={{
+                      left: '56.5%',
+                      top: '56.8%',
+                      width: '24%',
+                      fontFamily: "'Simonetta', serif",
+                      color: '#3A3D36',
+                      fontSize: 'clamp(11px, 3.6cqw, 19px)',
+                      opacity: s1Date,
+                      transform: `translate3d(${(1 - s1Date) * 28}px, 0, 0)`,
+                    }}
+                  >
+                    4:30 P.M.
+                  </div>
+
+                  <div
+                    className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.35]"
+                    style={{
+                      top: '65.6%',
+                      fontFamily: "'Simonetta', serif",
+                      color: '#3A3D36',
+                      fontSize: 'clamp(9.5px, 2.85cqw, 15px)',
+                      opacity: s1Venue,
+                      transform: `translate3d(0, ${(1 - s1Venue) * 22}px, 0)`,
+                    }}
+                  >
+                    <p>CALAN PARK, A 1.5 KM DEL DESVÍO A EL</p>
+                    <p>CALÁN (ZONA ZIP BÚFALO), VILLANUEVA</p>
+                  </div>
+
+                  <div
+                    className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
+                    style={{
+                      top: '73.7%',
+                      fontFamily: "'Simonetta', serif",
+                      color: '#3A3D36',
+                      fontSize: 'clamp(8.5px, 2.25cqw, 12px)',
+                      opacity: s1Venue,
+                      transform: `translate3d(0, ${(1 - s1Venue) * 22}px, 0)`,
+                    }}
+                  >
+                    <p>CONFIRMAR ASISTENCIA:</p>
+                    <p>+504 8778-8207</p>
+                  </div>
+
+                  <div
+                    className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
+                    style={{
+                      top: '80.4%',
+                      fontFamily: "'Simonetta', serif",
+                      color: '#3A3D36',
+                      fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
+                      opacity: s1Dress,
+                      transform: `translate3d(0, ${(1 - s1Dress) * 22}px, 0)`,
+                    }}
+                  >
+                    <p>CODIGO VESTIMENTA:</p>
+                    <p>FORMAL</p>
+                  </div>
+
+                  {/* 6. Firma caligráfica "Te esperamos" */}
+                  <img
+                    src="/invitacion/layers/text-te-esperamos.png"
+                    alt="Te esperamos"
+                    className="absolute pointer-events-none will-change-transform"
+                    style={{
+                      left: '22.0%',
+                      top: '87.0%',
+                      width: '56.0%',
+                      height: '10.0%',
+                      opacity: s1Sign,
+                      transform: `translate3d(0, ${(1 - s1Sign) * 18}px, 0)`,
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
+            {/* ===============================================================
+                CAPA Z-30: BOLSILLO FRONTAL DEL SOBRE VERDE SALVIA + SOLAPA 3D + SELLO DE LACRE
+                (Por delante de la parte inferior de la tarjeta A6 para que la tarjeta salga de adentro)
+            =============================================================== */}
+            {envOpacity > 0.01 && (
+              <div
+                onClick={!isSealBroken ? handleBreakSeal : undefined}
+                role={!isSealBroken ? 'button' : undefined}
+                tabIndex={!isSealBroken ? 0 : undefined}
+                onKeyDown={(e) => {
+                  if (!isSealBroken && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    handleBreakSeal();
+                  }
+                }}
+                aria-label={!isSealBroken ? 'Tocar el sobre para abrir tu invitación' : undefined}
+                className={`absolute left-[-4%] w-[108%] h-[53%] z-30 ${
+                  !isSealBroken ? 'cursor-pointer group' : 'pointer-events-none'
+                }`}
+                style={{
+                  top: `${envTopPct}%`,
+                  opacity: envOpacity,
+                  perspective: '1500px',
+                  transition: isActivelyScrollingPull
+                    ? 'none'
+                    : 'top 650ms cubic-bezier(0.22, 1, 0.36, 1)',
+                }}
+              >
+                {/* Bolsillo frontal verde salvia en SVG con doble hilo dorado */}
+                <svg
+                  viewBox="0 0 440 300"
+                  preserveAspectRatio="none"
+                  className="absolute inset-0 w-full h-full rounded-[18px] overflow-hidden drop-shadow-[0_-4px_12px_rgba(18,32,23,0.18)]"
+                >
+                  <defs>
+                    <linearGradient id="sageLeftFoldMain" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#43644D" />
+                      <stop offset="100%" stopColor="#2B4433" />
+                    </linearGradient>
+                    <linearGradient id="sageRightFoldMain" x1="100%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#40604A" />
+                      <stop offset="100%" stopColor="#283F30" />
+                    </linearGradient>
+                    <linearGradient id="sageBottomPocketMain" x1="50%" y1="0%" x2="50%" y2="100%">
+                      <stop offset="0%" stopColor="#4A6D55" />
+                      <stop offset="55%" stopColor="#35523E" />
+                      <stop offset="100%" stopColor="#263D2E" />
+                    </linearGradient>
+                  </defs>
+
+                  <polygon
+                    points="0,0 228,158 0,300"
+                    fill="url(#sageLeftFoldMain)"
+                    stroke="#C5A880"
+                    strokeOpacity="0.45"
+                    strokeWidth="1.2"
+                  />
+                  <polygon
+                    points="440,0 212,158 440,300"
+                    fill="url(#sageRightFoldMain)"
+                    stroke="#C5A880"
+                    strokeOpacity="0.45"
+                    strokeWidth="1.2"
+                  />
+                  <path
+                    d="M 0,300 L 188,144 Q 220,122 252,144 L 440,300 Z"
+                    fill="url(#sageBottomPocketMain)"
+                    stroke="#D8BE96"
+                    strokeOpacity="0.68"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    d="M 14,296 L 193,151 Q 220,131 247,151 L 426,296"
+                    fill="none"
+                    stroke="#E5CFA9"
+                    strokeOpacity="0.34"
+                    strokeWidth="1"
+                  />
+                </svg>
+
+                {/* Sello tipográfico dorado en el borde inferior del sobre */}
+                <div className="absolute bottom-3 inset-x-6 text-center pointer-events-none">
+                  <span className="text-[9px] sm:text-[10px] uppercase tracking-[0.26em] text-[#EAD6B5]/90 font-medium">
+                    Edis & Dania • 21.11.2026
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* ===============================================================
+                CAPA Z-40: SELLO DE LACRE DORADO ARTESANAL "E & D"
+                (Por encima de la solapa cerrada z-35; al hacer clic abre el sobre)
+            =============================================================== */}
+            {envOpacity > 0.01 && (
+              <div
+                onClick={!isSealBroken ? handleBreakSeal : undefined}
+                role={!isSealBroken ? 'button' : undefined}
+                tabIndex={!isSealBroken ? 0 : undefined}
+                onKeyDown={(e) => {
+                  if (!isSealBroken && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    handleBreakSeal();
+                  }
+                }}
+                aria-label={!isSealBroken ? 'Tocar el sello dorado para abrir el sobre' : undefined}
+                className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 transition-all duration-500 ${
+                  isSealBroken
+                    ? 'opacity-0 scale-125 -translate-y-14 pointer-events-none'
+                    : 'opacity-100 cursor-pointer hover:scale-105'
+                }`}
+                style={{
+                  top: `${envTopPct + 29.6}%`,
+                }}
+              >
+                <span className="absolute -inset-2.5 rounded-full border-2 border-[#DFC59B] animate-seal-halo pointer-events-none" />
+                <div className="relative w-[78px] h-[78px] sm:w-[88px] sm:h-[88px] rounded-full bg-gradient-to-br from-[#F0D9B5] via-[#C69F68] to-[#876435] p-[5px] shadow-[0_12px_28px_rgba(18,32,23,0.48),inset_0_2px_4px_rgba(255,255,255,0.65)] flex items-center justify-center overflow-hidden">
+                  <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/55 to-transparent animate-golden-shimmer pointer-events-none" />
+                  <div className="w-full h-full rounded-full bg-gradient-to-b from-[#DEC094] via-[#B89058] to-[#96713E] border-2 border-[#F3E1C3]/75 shadow-inner flex flex-col items-center justify-center">
+                    <span className="font-serif text-lg sm:text-xl font-bold text-[#FFFDF9] drop-shadow-[0_1px_2px_rgba(74,50,19,0.65)] tracking-wider leading-none">
+                      E<span className="italic text-sm mx-0.5 text-[#FAF0DF]">&</span>D
+                    </span>
+                    <Heart
+                      size={10}
+                      className="text-[#FFFDF9] fill-[#FFFDF9] mt-1 opacity-90 drop-shadow-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Indicador inferior ANTES de dar clic en el sobre */}
             <div
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '-22.56%',
-                top: '43.05%',
-                width: '53.17%',
-                height: '67.07%',
-                opacity: s1LeftRoses,
-                transform: `translate3d(${(1 - s1LeftRoses) * -150}px, ${(1 - s1LeftRoses) * 70}px, 0) rotate(${14.96 - (1 - s1LeftRoses) * 22}deg) scale(${0.75 + 0.25 * s1LeftRoses})`,
-              }}
+              className={`absolute -bottom-3 left-[-8%] right-[-8%] z-40 flex flex-col items-center gap-2 transition-all duration-400 ${
+                isSealBroken
+                  ? 'opacity-0 translate-y-4 pointer-events-none'
+                  : 'opacity-100 translate-y-0'
+              }`}
             >
-              <img
-                src="/invitacion/layers/roses-left.png"
-                alt=""
-                aria-hidden="true"
-                className="w-full h-full animate-breeze-roses-l"
-              />
+              <button
+                type="button"
+                onClick={handleBreakSeal}
+                className="relative overflow-hidden inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#243B2B] via-[#35553F] to-[#243B2B] hover:brightness-110 text-white text-xs sm:text-sm font-semibold tracking-wide shadow-lg border border-[#C5A880]/65 cursor-pointer"
+              >
+                <span className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent animate-golden-shimmer pointer-events-none" />
+                <Music size={14} className="text-[#E5CFA9]" />
+                <span>Toca el Sello para Abrir el Sobre</span>
+              </button>
+              <span className="text-[11px] text-[#6E624E] font-medium flex items-center gap-1.5">
+                <Volume2 size={13} className="text-[#4C8B54]" />
+                Incluye música de fondo
+              </span>
             </div>
 
+            {/* Indicador táctil DESPUÉS de abrir la solapa: invita al usuario a deslizar para sacar él mismo la tarjeta */}
             <div
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '66.66%',
-                top: '68.76%',
-                width: '39.38%',
-                height: '39.13%',
-                opacity: s1BotLeaves,
-                transform: `translate3d(${(1 - s1BotLeaves) * 130}px, ${(1 - s1BotLeaves) * 90}px, 0) rotate(${(1 - s1BotLeaves) * 25}deg) scale(${0.75 + 0.25 * s1BotLeaves})`,
-              }}
+              className={`absolute bottom-1 left-1/2 -translate-x-1/2 z-40 w-max max-w-[92vw] pointer-events-none transition-all duration-300 ${
+                isPeekReady && pull < 0.12
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 translate-y-3'
+              }`}
             >
-              <img
-                src="/invitacion/layers/olive-branch.png"
-                alt=""
-                aria-hidden="true"
-                className="w-full h-full animate-breeze-b"
-              />
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/95 backdrop-blur-md border border-[#C5A880]/80 shadow-[0_10px_28px_rgba(24,42,30,0.28)] text-[#243B2B]">
+                <ChevronUp size={16} className="animate-bounce text-[#4C8B54]" />
+                <span className="text-xs font-bold tracking-wide">
+                  Desliza para sacar tu invitación
+                </span>
+                <ChevronDown size={16} className="animate-bounce text-[#B38E5D]" />
+              </div>
             </div>
+          </div>
 
-            {/* 4. CALIGRAFÍA PRINCIPAL TRANSPARENTE "Edis y Dania" */}
-            <img
-              src="/invitacion/layers/text-edis-dania.png"
-              alt="Edis y Dania"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '16.0%',
-                top: '7.8%',
-                width: '68.0%',
-                height: '24.0%',
-                opacity: s1Names,
-                transform: `translate3d(0, ${(1 - s1Names) * -75}px, 0) scale(${0.72 + 0.28 * s1Names})`,
-              }}
-            />
-
-            {/* 5. TEXTOS VECTORIALES EN FUENTE SIMONETTA */}
-            <div
-              className="absolute left-[10%] w-[80%] text-center pointer-events-none will-change-transform"
-              style={{
-                top: '36.2%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(11px, 3.6cqw, 19px)',
-                letterSpacing: '0.03em',
-                opacity: s1Subtitle,
-                transform: `translate3d(0, ${(1 - s1Subtitle) * 45}px, 0) scale(${0.88 + 0.12 * s1Subtitle})`,
-              }}
-            >
-              TE INVITAMOS A NUESTRA BODA
-            </div>
-
-            <div
-              className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.38]"
-              style={{
-                top: '43.1%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
-                opacity: s1Verse,
-                transform: `translate3d(0, ${(1 - s1Verse) * 55}px, 0)`,
-              }}
-            >
-              <p>Así que ya no son dos, sino uno solo. Por tanto, lo</p>
-              <p>que Dios ha unido, que no lo separe el hombre.</p>
-              <p className="mt-[0.5cqw]">Mateo 19:6</p>
-            </div>
-
-            <div
-              className="absolute text-center pointer-events-none will-change-transform"
-              style={{
-                left: '25.5%',
-                top: '56.8%',
-                width: '18%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(11px, 3.6cqw, 19px)',
-                opacity: s1Date,
-                transform: `translate3d(${(1 - s1Date) * -120}px, 0, 0)`,
-              }}
-            >
-              NOV
-            </div>
-
-            <div
-              className="absolute text-center pointer-events-none will-change-transform leading-none"
-              style={{
-                left: '35.23%',
-                top: '52.2%',
-                width: '29.54%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(34px, 11.4cqw, 58px)',
-                opacity: s1Date,
-                transform: `translate3d(0, ${(1 - s1Date) * 35}px, 0) scale(${0.4 + 0.6 * s1Date})`,
-              }}
-            >
-              21
-            </div>
-
-            <div
-              className="absolute text-center pointer-events-none will-change-transform"
-              style={{
-                left: '56.5%',
-                top: '56.8%',
-                width: '24%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(11px, 3.6cqw, 19px)',
-                opacity: s1Date,
-                transform: `translate3d(${(1 - s1Date) * 120}px, 0, 0)`,
-              }}
-            >
-              4:30 P.M.
-            </div>
-
-            <div
-              className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.35]"
-              style={{
-                top: '65.6%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(9.5px, 2.85cqw, 15px)',
-                opacity: s1Venue,
-                transform: `translate3d(0, ${(1 - s1Venue) * 60}px, 0)`,
-              }}
-            >
-              <p>CALAN PARK, A 1.5 KM DEL DESVÍO A EL</p>
-              <p>CALÁN (ZONA ZIP BÚFALO), VILLANUEVA</p>
-            </div>
-
-            <div
-              className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
-              style={{
-                top: '73.7%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(8.5px, 2.25cqw, 12px)',
-                opacity: s1Venue,
-                transform: `translate3d(0, ${(1 - s1Venue) * 65}px, 0)`,
-              }}
-            >
-              <p>CONFIRMAR ASISTENCIA:</p>
-              <p>+504 8778-8207</p>
-            </div>
-
-            <div
-              className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
-              style={{
-                top: '80.4%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
-                opacity: s1Dress,
-                transform: `translate3d(0, ${(1 - s1Dress) * 65}px, 0)`,
-              }}
-            >
-              <p>CODIGO VESTIMENTA:</p>
-              <p>FORMAL</p>
-            </div>
-
-            {/* 6. FIRMA CALIGRÁFICA TRANSPARENTE "Te esperamos" */}
-            <img
-              src="/invitacion/layers/text-te-esperamos.png"
-              alt="Te esperamos"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '22.0%',
-                top: '87.0%',
-                width: '56.0%',
-                height: '10.0%',
-                opacity: s1Sign,
-                transform: `translate3d(0, ${(1 - s1Sign) * 55}px, 0) scale(${0.78 + 0.22 * s1Sign})`,
-              }}
-            />
+          {/* Indicador sutil para continuar hacia los pases una vez extraída al 100% */}
+          <div
+            className="mt-2.5 flex items-center gap-1.5 text-[#7A6B53] pointer-events-none transition-opacity duration-300"
+            style={{ opacity: pull > 0.92 ? 0.9 : 0 }}
+          >
+            <span className="text-[10px] uppercase tracking-[0.24em] font-semibold">
+              Sigue deslizando para ver tus pases
+            </span>
+            <ChevronDown size={15} className="animate-bounce text-[#4C8B54]" />
           </div>
         </div>
       </section>
