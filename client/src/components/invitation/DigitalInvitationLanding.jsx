@@ -6,6 +6,7 @@ import { openWhatsApp } from '../../utils/whatsapp';
 import { decodeInvitationToken } from '../../utils/invitationToken';
 import {
   Heart,
+  Sparkles,
   MapPin,
   CheckCircle2,
   MessageCircle,
@@ -30,6 +31,87 @@ function subProgress(progress, start, end) {
   return easeOutCubic((progress - start) / (end - start));
 }
 
+// Partículas doradas y salvia flotantes en toda la pantalla (100% GPU CSS, 0 costo de red)
+const GOLD_PARTICLES = Array.from({ length: 22 }, (_, i) => ({
+  id: i,
+  left: `${(i * 19 + 7) % 96}%`,
+  top: `${(i * 29 + 11) % 94}%`,
+  size: i % 3 === 0 ? 5 : i % 2 === 0 ? 3.5 : 2.5,
+  delay: `${(i * 0.45).toFixed(2)}s`,
+  duration: `${(6.5 + (i % 5) * 1.4).toFixed(1)}s`,
+  isGold: i % 4 !== 0,
+}));
+
+const FloatingGoldParticles = React.memo(function FloatingGoldParticles() {
+  return (
+    <div
+      className="fixed inset-0 pointer-events-none z-20 overflow-hidden select-none"
+      aria-hidden="true"
+    >
+      {GOLD_PARTICLES.map((pt) => (
+        <span
+          key={pt.id}
+          className="absolute rounded-full"
+          style={{
+            left: pt.left,
+            top: pt.top,
+            width: `${pt.size}px`,
+            height: `${pt.size}px`,
+            background: pt.isGold
+              ? 'radial-gradient(circle, #E7CFA8 0%, #C5A880 70%, transparent 100%)'
+              : 'radial-gradient(circle, #8FAF89 0%, #5F8559 75%, transparent 100%)',
+            boxShadow: pt.isGold ? '0 0 8px rgba(197, 168, 128, 0.65)' : 'none',
+            animation: `particleDrift ${pt.duration} ease-in-out ${pt.delay} infinite`,
+          }}
+        />
+      ))}
+    </div>
+  );
+});
+
+// Marco editorial dorado interno con esquinas Art-Déco finas
+const EditorialInnerFrame = React.memo(function EditorialInnerFrame({
+  insetClass = 'inset-2.5 sm:inset-3.5',
+}) {
+  return (
+    <div
+      className={`absolute ${insetClass} pointer-events-none z-20 rounded-xl sm:rounded-2xl border border-[#C5A880]/45`}
+      aria-hidden="true"
+    >
+      {/* Esquinas ornamentales doradas */}
+      <span className="absolute -top-1 -left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-[#C5A880]" />
+      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 border-t-2 border-r-2 border-[#C5A880]" />
+      <span className="absolute -bottom-1 -left-1 w-2.5 h-2.5 border-b-2 border-l-2 border-[#C5A880]" />
+      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-[#C5A880]" />
+    </div>
+  );
+});
+
+// Divisor ornamental dorado que se expande al hacer scroll
+function GoldenBotanicalDivider({ progress = 1 }) {
+  const scale = 0.25 + 0.75 * easeOutCubic(progress);
+  return (
+    <div
+      className="flex items-center justify-center gap-3 py-2 max-w-xs mx-auto select-none pointer-events-none"
+      style={{ opacity: Math.max(0.25, progress) }}
+      aria-hidden="true"
+    >
+      <div
+        className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-[#C5A880] to-[#C5A880] origin-right"
+        style={{ transform: `scaleX(${scale})` }}
+      />
+      <div
+        className="w-2.5 h-2.5 rotate-45 border border-[#C5A880] bg-[#FAF8F4] shadow-sm"
+        style={{ transform: `rotate(45deg) scale(${0.6 + 0.4 * progress})` }}
+      />
+      <div
+        className="h-[1px] flex-1 bg-gradient-to-l from-transparent via-[#C5A880] to-[#C5A880] origin-left"
+        style={{ transform: `scaleX(${scale})` }}
+      />
+    </div>
+  );
+}
+
 // Reloj regresivo aislado (corre 100% en el navegador sin consultar la base de datos ni re-renderizar las tarjetas)
 const LiveCountdownGrid = React.memo(function LiveCountdownGrid() {
   const { days, hours, minutes, seconds } = useWeddingCountdown();
@@ -43,12 +125,12 @@ const LiveCountdownGrid = React.memo(function LiveCountdownGrid() {
       ].map((item) => (
         <div
           key={item.label}
-          className="bg-[#F3F6F1] border border-[#4C8B54]/20 rounded-2xl py-3 px-2 flex flex-col items-center justify-center"
+          className="relative bg-gradient-to-b from-[#FAF9F5] to-[#F1F5EE] border border-[#C5A880]/45 rounded-2xl py-3.5 px-2 flex flex-col items-center justify-center shadow-sm overflow-hidden"
         >
           <span className="font-serif text-2xl sm:text-3xl font-bold text-[#243B2B] tabular-nums">
             {String(item.value).padStart(2, '0')}
           </span>
-          <span className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold mt-0.5">
+          <span className="text-[10px] uppercase tracking-[0.16em] text-[#7A6B53] font-bold mt-1">
             {item.label}
           </span>
         </div>
@@ -83,7 +165,6 @@ export function DigitalInvitationLanding({
       };
     }
 
-    // Compatibilidad con enlaces anteriores (?card=fam-51), pero los pases reales los dicta la BD
     const legacyCardId = p.get('card') || p.get('invitacion') || '';
     return {
       cardId:
@@ -97,13 +178,11 @@ export function DigitalInvitationLanding({
 
   const allCards = invitationCards?.all || [];
 
-  // Tarjeta oficial desde la base de datos (inmune a manipulaciones en la URL)
   const activeCard = useMemo(() => {
     if (!urlData.cardId) return null;
     return allCards.find((c) => String(c.id) === String(urlData.cardId)) || null;
   }, [allCards, urlData.cardId]);
 
-  // Prioriza siempre los datos reales de la base de datos o del token firmado (nunca parámetros editables)
   const displaySalutation =
     activeCard?.salutation ||
     urlData.salutation ||
@@ -114,7 +193,16 @@ export function DigitalInvitationLanding({
     urlData.seats ||
     2;
 
-  const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
+  const [rsvpSubmitted, setRsvpSubmitted] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const id = urlData.cardId;
+    if (!id) return false;
+    try {
+      return localStorage.getItem(`wedding_rsvp_done_${id}`) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [isEnvelopeOpened, setIsEnvelopeOpened] = useState(false);
 
   // Gesto secreto de 5 toques en el sello E & D para desbloquear el panel en dispositivos de Edis/Dania
@@ -137,11 +225,13 @@ export function DigitalInvitationLanding({
   const stage1Ref = useRef(null);
   const stage2Ref = useRef(null);
   const stage3Ref = useRef(null);
+  const stage4Ref = useRef(null);
 
   const [scrollState, setScrollState] = useState({
     p1: 0.15,
     p2: 0,
     p3: 0,
+    p4: 0,
   });
 
   useEffect(() => {
@@ -160,9 +250,10 @@ export function DigitalInvitationLanding({
       };
 
       setScrollState({
-        p1: calcSectionProgress(stage1Ref.current, 0.94, 0.66),
-        p2: calcSectionProgress(stage2Ref.current, 0.94, 0.62),
-        p3: calcSectionProgress(stage3Ref.current, 0.94, 0.64),
+        p1: calcSectionProgress(stage1Ref.current, 0.95, 0.66),
+        p2: calcSectionProgress(stage2Ref.current, 0.95, 0.62),
+        p3: calcSectionProgress(stage3Ref.current, 0.95, 0.64),
+        p4: calcSectionProgress(stage4Ref.current, 0.96, 0.55),
       });
     };
 
@@ -205,21 +296,14 @@ export function DigitalInvitationLanding({
         localStorage.setItem(`wedding_rsvp_done_${targetId}`, 'true');
       } catch {}
       confetti({
-        particleCount: 100,
-        spread: 80,
+        particleCount: 110,
+        spread: 85,
         origin: { y: 0.65 },
         colors: ['#4C8B54', '#C5A880', '#1F3A2E', '#FAF8F5'],
       });
     } catch (err) {
       console.error(err);
     }
-  };
-
-  const handleToggleMember = (card, member) => {
-    if (!card || !member) return;
-    const realGuestId = String(member.id).startsWith('p-') ? card.guestId : member.id;
-    const nextStatus = member.status === 'confirmed' ? 'pending' : 'confirmed';
-    setGuestStatus(realGuestId, nextStatus);
   };
 
   const handleWhatsAppRsvp = () => {
@@ -269,9 +353,38 @@ export function DigitalInvitationLanding({
   const s3Quote = subProgress(p3, 0.26, 0.82);
   const s3Envelope = subProgress(p3, 0.42, 0.96);
 
+  // =========================================================================
+  // PROGRESOS STAGE 4 (CONTADOR & RSVP)
+  // =========================================================================
+  const p4 = scrollState.p4;
+  const s4Card1 = subProgress(p4, 0.0, 0.65);
+  const s4Card2 = subProgress(p4, 0.22, 0.95);
+
   return (
-    <div className="min-h-screen bg-[#EEF2EC] text-[#2F352E] font-sans overflow-x-hidden selection:bg-[#7A8F76]/25">
-      {/* Barra flotante superior (El botón "Volver a la App" SOLO existe en los dispositivos desbloqueados de Edis/Dania) */}
+    <div className="relative min-h-screen bg-[#F2F5EF] text-[#2F352E] font-sans overflow-x-hidden selection:bg-[#7A8F76]/25">
+      {/* Textura editorial sutil de papel acuarela fija en el fondo + iluminación cálida dorada */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 opacity-45"
+        style={{
+          backgroundImage: 'url(/invitacion/layers/paper-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+        aria-hidden="true"
+      />
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          background:
+            'radial-gradient(circle at 15% 20%, rgba(197, 168, 128, 0.12) 0%, transparent 45%), radial-gradient(circle at 85% 75%, rgba(76, 139, 84, 0.10) 0%, transparent 50%)',
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Lluvia sutil de partículas doradas y botánicas */}
+      <FloatingGoldParticles />
+
+      {/* Barra flotante superior */}
       <div className="fixed top-3 left-0 right-0 z-50 px-3 sm:px-6 pointer-events-none flex items-center justify-between max-w-5xl mx-auto">
         {isAdminUnlocked ? (
           <button
@@ -283,85 +396,102 @@ export function DigitalInvitationLanding({
                 window.location.href = '/';
               }
             }}
-            className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/90 backdrop-blur-md text-stone-700 hover:text-wedding-primaryDark text-xs font-semibold shadow-md border border-stone-200/80 transition-all cursor-pointer"
+            className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 backdrop-blur-md text-stone-700 hover:text-wedding-primaryDark text-xs font-semibold shadow-md border border-[#C5A880]/50 transition-all cursor-pointer"
           >
             <ArrowLeft size={14} />
             <span>Ir al Panel de Boda</span>
           </button>
         ) : (
-          <div className="pointer-events-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 backdrop-blur-md shadow-sm border border-[#7A8F76]/25">
+          <div className="pointer-events-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-[#C5A880]/45">
             <span className="font-serif font-bold text-xs text-[#2F4838]">E & D</span>
-            <span className="text-[11px] text-stone-500">• 21 Nov 2026</span>
+            <span className="text-[11px] text-[#8C7756] font-medium">• 21 Nov 2026</span>
           </div>
         )}
 
         <a
           href="#confirmar-asistencia"
-          className="pointer-events-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#2F4838] hover:bg-[#23372A] text-white text-xs font-semibold shadow-md transition-all"
+          className="pointer-events-auto relative overflow-hidden inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-[#243B2B] via-[#2F4838] to-[#243B2B] hover:brightness-110 text-white text-xs font-semibold shadow-md border border-[#C5A880]/45 transition-all"
         >
-          <CheckCircle2 size={14} className="text-[#C5A880]" />
+          <CheckCircle2 size={14} className="text-[#E0C59B]" />
           <span>Confirmar Asistencia</span>
         </a>
       </div>
 
       {/* =====================================================================
-          PORTADA DE BIENVENIDA (SOBRE BOTÁNICO INTERACTIVO)
+          PORTADA DE BIENVENIDA CON BRISA VIVA & MARCO DORADO EDITORIAL
       ===================================================================== */}
-      <section className="relative min-h-[86vh] flex flex-col items-center justify-center px-4 pt-16 pb-8 overflow-hidden bg-gradient-to-b from-[#E3EBE0] via-[#EEF2EC] to-[#EEF2EC]">
-        <img
-          src="/invitacion/leaf-top-left.png"
-          alt=""
-          className="pointer-events-none select-none absolute -top-4 -left-6 w-44 sm:w-64 md:w-76 opacity-90 transition-transform duration-700"
+      <section className="relative z-10 min-h-[88vh] flex flex-col items-center justify-center px-4 pt-16 pb-6 overflow-hidden">
+        {/* Ramas de eucalipto en las esquinas con movimiento continuo de brisa */}
+        <div
+          className="pointer-events-none select-none absolute -top-4 -left-6 w-48 sm:w-64 md:w-80 opacity-95 transition-transform duration-700"
           style={{
-            transform: `translate3d(${isEnvelopeOpened ? '-12px' : '0px'}, 0, 0) rotate(-4deg)`,
+            transform: `translate3d(${isEnvelopeOpened ? '-14px' : '0px'}, 0, 0)`,
           }}
-        />
-        <img
-          src="/invitacion/leaf-bottom-right.png"
-          alt=""
-          className="pointer-events-none select-none absolute -bottom-4 -right-6 w-44 sm:w-64 md:w-76 opacity-90 transition-transform duration-700"
-          style={{
-            transform: `translate3d(${isEnvelopeOpened ? '12px' : '0px'}, 0, 0) rotate(4deg)`,
-          }}
-        />
+        >
+          <img
+            src="/invitacion/leaf-top-left.png"
+            alt=""
+            className="w-full h-auto animate-breeze-a"
+          />
+        </div>
 
-        <div className="relative z-10 max-w-lg w-full text-center space-y-5 bg-white/85 backdrop-blur-md rounded-3xl p-7 sm:p-10 shadow-[0_20px_60px_-15px_rgba(47,72,56,0.15)] border border-[#7A8F76]/25">
-          {/* Sello Monograma E & D (5 toques desbloquean el panel para Edis) */}
+        <div
+          className="pointer-events-none select-none absolute -bottom-4 -right-6 w-48 sm:w-64 md:w-80 opacity-95 transition-transform duration-700"
+          style={{
+            transform: `translate3d(${isEnvelopeOpened ? '14px' : '0px'}, 0, 0)`,
+          }}
+        >
+          <img
+            src="/invitacion/leaf-bottom-right.png"
+            alt=""
+            className="w-full h-auto animate-breeze-b"
+          />
+        </div>
+
+        {/* Tarjeta Editorial de Bienvenida con Doble Marco Dorado */}
+        <div className="relative z-10 max-w-lg w-full text-center space-y-5 bg-white/90 backdrop-blur-md rounded-3xl p-8 sm:p-11 shadow-[0_25px_70px_-15px_rgba(36,59,43,0.18)] border border-[#C5A880]/55 animate-in fade-in duration-300">
+          <EditorialInnerFrame insetClass="inset-3 sm:inset-4" />
+
+          {/* Sello de Lacre Dorado con Destello Animado (5 toques desbloquean el panel para Edis) */}
           <div
             onClick={handleSecretMonogramTap}
-            className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-[#52795C] via-[#3A5A43] to-[#243B2B] p-[2px] shadow-lg flex items-center justify-center select-none"
+            className="relative mx-auto w-[88px] h-[88px] rounded-full bg-gradient-to-br from-[#DFC59B] via-[#B89668] to-[#8C6D43] p-[3px] shadow-[0_10px_25px_-5px_rgba(140,109,67,0.45)] flex items-center justify-center select-none overflow-hidden"
           >
-            <div className="w-full h-full rounded-full bg-[#FAF9F5] border border-[#C5A880]/60 flex flex-col items-center justify-center">
+            {/* Barrido de luz dorada */}
+            <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-golden-shimmer pointer-events-none" />
+            <div className="w-full h-full rounded-full bg-gradient-to-b from-[#FAF8F3] to-[#F2ECE1] border border-[#C5A880]/80 flex flex-col items-center justify-center">
               <span className="font-serif text-xl font-bold text-[#243B2B] tracking-wider leading-none">
-                E<span className="text-[#C5A880] italic font-serif text-base mx-0.5">&</span>D
+                E<span className="text-[#B38E5D] italic font-serif text-base mx-0.5">&</span>D
               </span>
-              <span className="text-[8px] uppercase tracking-[0.22em] text-stone-400 mt-1">
+              <span className="text-[8px] uppercase tracking-[0.22em] text-[#8C7756] font-semibold mt-1">
                 21 • 11 • 26
               </span>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <p className="text-[11px] sm:text-xs uppercase tracking-[0.28em] text-[#4C8B54] font-semibold">
+          <div className="space-y-1.5 pt-1">
+            <p className="text-[11px] sm:text-xs uppercase tracking-[0.32em] text-[#8C7756] font-bold">
               Nuestra Boda
             </p>
             <img
               src="/invitacion/layers/text-edis-dania.png"
               alt="Edis y Dania"
-              className="w-52 sm:w-60 mx-auto select-none pointer-events-none"
+              className="w-56 sm:w-64 mx-auto select-none pointer-events-none"
             />
           </div>
 
+          <GoldenBotanicalDivider progress={1} />
+
           {/* Destinatario personalizado */}
-          <div className="bg-[#F3F6F1] border border-[#4C8B54]/25 rounded-2xl px-5 py-4 space-y-1.5">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-stone-500 block">
+          <div className="relative bg-gradient-to-b from-[#F7F9F5] to-[#EFF4EC] border border-[#C5A880]/45 rounded-2xl px-5 py-4 space-y-1.5 shadow-sm">
+            <span className="text-[10px] uppercase tracking-[0.22em] text-[#7A6B53] font-semibold block">
               Invitación Especial Para
             </span>
             <p className="font-serif text-xl sm:text-2xl font-bold text-[#243B2B]">
               {displaySalutation}
             </p>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#4C8B54]/30 text-[#3B6E42] text-xs font-bold shadow-2xs mt-1">
-              <Ticket size={13} />
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white border border-[#C5A880]/55 text-[#3B6E42] text-xs font-bold shadow-sm mt-1">
+              <Ticket size={13} className="text-[#B38E5D]" />
               <span>
                 {displaySeats} {displaySeats === 1 ? 'Pase Reservado' : 'Pases Reservados'}
               </span>
@@ -375,612 +505,719 @@ export function DigitalInvitationLanding({
           <button
             type="button"
             onClick={handleStartJourney}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-full bg-[#2F4838] hover:bg-[#23372A] text-white text-xs sm:text-sm font-semibold tracking-wide shadow-lg hover:shadow-xl transition-all cursor-pointer group"
+            className="relative overflow-hidden w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full bg-gradient-to-r from-[#243B2B] via-[#32513C] to-[#243B2B] hover:brightness-110 text-white text-xs sm:text-sm font-semibold tracking-wide shadow-lg hover:shadow-xl border border-[#C5A880]/50 transition-all cursor-pointer group"
           >
-            <Heart size={15} className="text-[#C5A880] fill-[#C5A880]" />
+            <span className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-golden-shimmer pointer-events-none" />
+            <Heart size={15} className="text-[#E0C59B] fill-[#E0C59B]" />
             <span>Ver Nuestra Invitación</span>
-            <ChevronDown size={16} className="group-hover:translate-y-0.5 transition-transform" />
+            <ChevronDown size={16} className="group-hover:translate-y-0.5 transition-transform text-[#E0C59B]" />
           </button>
         </div>
 
-        <div className="mt-5 flex flex-col items-center gap-1 text-stone-400">
-          <span className="text-[10px] uppercase tracking-[0.25em]">Desliza hacia abajo</span>
+        <div className="mt-5 flex flex-col items-center gap-1 text-[#7A6B53]">
+          <span className="text-[10px] uppercase tracking-[0.26em] font-semibold">Desliza hacia abajo</span>
           <ChevronDown size={18} className="animate-bounce text-[#4C8B54]" />
         </div>
       </section>
 
       {/* =====================================================================
-          STAGE 1: LA INVITACIÓN PRINCIPAL ARMADA PIEZA POR PIEZA CON LAS CAPAS REALES DE CANVA
+          STAGE 1: LA INVITACIÓN PRINCIPAL CON MARCO DORADO + BRISA VIVA EN FLORES Y HOJAS
       ===================================================================== */}
       <section
         ref={stage1Ref}
-        className="relative py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto flex flex-col items-center"
+        className="relative z-10 py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto flex flex-col items-center"
       >
-        <div
-          className="relative w-full max-w-[500px] aspect-[5/7] rounded-2xl sm:rounded-3xl shadow-[0_25px_70px_-15px_rgba(31,58,46,0.28)] border border-[#7A8F76]/35 overflow-hidden select-none bg-[#FAF9F6]"
-          style={{ containerType: 'inline-size' }}
-        >
-          {/* 1. FONDO DE PAPEL ACUARELA */}
-          <img
-            src="/invitacion/layers/paper-bg.jpg"
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          />
+        <div className="mb-4 text-center space-y-1">
+          <GoldenBotanicalDivider progress={s1Watercolors} />
+        </div>
 
-          {/* 2. MANCHAS DE ACUARELA VERDE SALVIA */}
-          <img
-            src="/invitacion/layers/watercolor-splash.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '-46.75%',
-              top: '-2.06%',
-              width: '94.17%',
-              height: '65.31%',
-              opacity: 0.51 * s1Watercolors,
-              transform: `translate3d(${(1 - s1Watercolors) * -60}px, ${(1 - s1Watercolors) * -40}px, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
-            }}
-          />
-
-          <img
-            src="/invitacion/layers/watercolor-splash.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '80.9%',
-              top: '20.06%',
-              width: '91.14%',
-              height: '63.21%',
-              opacity: 0.51 * s1Watercolors,
-              transform: `translate3d(${(1 - s1Watercolors) * 60}px, 0, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
-            }}
-          />
-
-          <img
-            src="/invitacion/layers/watercolor-splash.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '47.42%',
-              top: '67.61%',
-              width: '92.43%',
-              height: '64.1%',
-              opacity: 0.39 * s1Watercolors,
-              transform: `translate3d(${(1 - s1Watercolors) * 50}px, ${(1 - s1Watercolors) * 50}px, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
-            }}
-          />
-
-          <img
-            src="/invitacion/layers/watercolor-splash.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '33.58%',
-              top: '-29.87%',
-              width: '94.64%',
-              height: '65.64%',
-              opacity: 0.26 * s1Watercolors,
-              transform: `translate3d(0, ${(1 - s1Watercolors) * -50}px, 0) rotate(59.89deg) scale(${0.75 + 0.25 * s1Watercolors})`,
-            }}
-          />
-
-          <img
-            src="/invitacion/layers/watercolor-splash.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '28.73%',
-              top: '50.56%',
-              width: '14.06%',
-              height: '9.75%',
-              opacity: 0.26 * s1Date,
-              transform: `rotate(59.89deg) scale(${0.4 + 0.6 * s1Date})`,
-            }}
-          />
-
-          <img
-            src="/invitacion/layers/watercolor-splash.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '-10.75%',
-              top: '67.01%',
-              width: '35.15%',
-              height: '24.37%',
-              opacity: 0.26 * s1Watercolors,
-              transform: `rotate(59.89deg) scale(${0.7 + 0.3 * s1Watercolors})`,
-            }}
-          />
-
-          {/* 3. FLORES Y HOJAS BOTÁNICAS TRANSPARENTES */}
-          <img
-            src="/invitacion/layers/olive-branch.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '-19.35%',
-              top: '3.91%',
-              width: '39.38%',
-              height: '39.13%',
-              opacity: s1TopLeaves,
-              transform: `translate3d(${(1 - s1TopLeaves) * -130}px, ${(1 - s1TopLeaves) * -80}px, 0) rotate(${(1 - s1TopLeaves) * -25}deg) scale(${0.75 + 0.25 * s1TopLeaves})`,
-            }}
-          />
-
-          <img
-            src="/invitacion/layers/roses-top-right.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '82.07%',
-              top: '-1.06%',
-              width: '38.91%',
-              height: '49.08%',
-              opacity: s1TopRoses,
-              transform: `translate3d(${(1 - s1TopRoses) * 130}px, ${(1 - s1TopRoses) * -75}px, 0) rotate(${-23.9 + (1 - s1TopRoses) * 28}deg) scale(${0.75 + 0.25 * s1TopRoses})`,
-            }}
-          />
-
-          <img
-            src="/invitacion/layers/roses-left.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '-22.56%',
-              top: '43.05%',
-              width: '53.17%',
-              height: '67.07%',
-              opacity: s1LeftRoses,
-              transform: `translate3d(${(1 - s1LeftRoses) * -150}px, ${(1 - s1LeftRoses) * 70}px, 0) rotate(${14.96 - (1 - s1LeftRoses) * 22}deg) scale(${0.75 + 0.25 * s1LeftRoses})`,
-            }}
-          />
-
-          <img
-            src="/invitacion/layers/olive-branch.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '66.66%',
-              top: '68.76%',
-              width: '39.38%',
-              height: '39.13%',
-              opacity: s1BotLeaves,
-              transform: `translate3d(${(1 - s1BotLeaves) * 130}px, ${(1 - s1BotLeaves) * 90}px, 0) rotate(${(1 - s1BotLeaves) * 25}deg) scale(${0.75 + 0.25 * s1BotLeaves})`,
-            }}
-          />
-
-          {/* 4. CALIGRAFÍA PRINCIPAL TRANSPARENTE "Edis y Dania" */}
-          <img
-            src="/invitacion/layers/text-edis-dania.png"
-            alt="Edis y Dania"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '16.0%',
-              top: '7.8%',
-              width: '68.0%',
-              height: '24.0%',
-              opacity: s1Names,
-              transform: `translate3d(0, ${(1 - s1Names) * -75}px, 0) scale(${0.72 + 0.28 * s1Names})`,
-            }}
-          />
-
-          {/* 5. TEXTOS VECTORIALES EN FUENTE SIMONETTA */}
+        {/* Marco exterior de lujo con filo dorado */}
+        <div className="p-1.5 sm:p-2 rounded-[26px] sm:rounded-[30px] bg-gradient-to-br from-[#E5D1B0]/70 via-white/80 to-[#C5A880]/65 shadow-[0_28px_75px_-15px_rgba(31,58,46,0.3)] w-full max-w-[512px]">
+          {/* LIENZO A6 OFICIAL (Proporción exacta 5 : 7) */}
           <div
-            className="absolute left-[10%] w-[80%] text-center pointer-events-none will-change-transform"
-            style={{
-              top: '36.2%',
-              fontFamily: "'Simonetta', serif",
-              color: '#3A3D36',
-              fontSize: 'clamp(11px, 3.6cqw, 19px)',
-              letterSpacing: '0.03em',
-              opacity: s1Subtitle,
-              transform: `translate3d(0, ${(1 - s1Subtitle) * 45}px, 0) scale(${0.88 + 0.12 * s1Subtitle})`,
-            }}
+            className="relative w-full aspect-[5/7] rounded-2xl sm:rounded-3xl border border-[#C5A880]/60 overflow-hidden select-none bg-[#FAF9F6]"
+            style={{ containerType: 'inline-size' }}
           >
-            TE INVITAMOS A NUESTRA BODA
-          </div>
+            <EditorialInnerFrame insetClass="inset-2.5 sm:inset-3.5" />
 
-          <div
-            className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.38]"
-            style={{
-              top: '43.1%',
-              fontFamily: "'Simonetta', serif",
-              color: '#3A3D36',
-              fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
-              opacity: s1Verse,
-              transform: `translate3d(0, ${(1 - s1Verse) * 55}px, 0)`,
-            }}
-          >
-            <p>Así que ya no son dos, sino uno solo. Por tanto, lo</p>
-            <p>que Dios ha unido, que no lo separe el hombre.</p>
-            <p className="mt-[0.5cqw]">Mateo 19:6</p>
-          </div>
+            {/* 1. FONDO DE PAPEL ACUARELA */}
+            <img
+              src="/invitacion/layers/paper-bg.jpg"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            />
 
-          <div
-            className="absolute text-center pointer-events-none will-change-transform"
-            style={{
-              left: '25.5%',
-              top: '56.8%',
-              width: '18%',
-              fontFamily: "'Simonetta', serif",
-              color: '#3A3D36',
-              fontSize: 'clamp(11px, 3.6cqw, 19px)',
-              opacity: s1Date,
-              transform: `translate3d(${(1 - s1Date) * -120}px, 0, 0)`,
-            }}
-          >
-            NOV
-          </div>
+            {/* 2. MANCHAS DE ACUARELA VERDE SALVIA CON RESPIRACIÓN ORGÁNICA */}
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '-46.75%',
+                top: '-2.06%',
+                width: '94.17%',
+                height: '65.31%',
+                opacity: 0.51 * s1Watercolors,
+                transform: `translate3d(${(1 - s1Watercolors) * -60}px, ${(1 - s1Watercolors) * -40}px, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/watercolor-splash.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-watercolor-breathe"
+              />
+            </div>
 
-          <div
-            className="absolute text-center pointer-events-none will-change-transform leading-none"
-            style={{
-              left: '35.23%',
-              top: '52.2%',
-              width: '29.54%',
-              fontFamily: "'Simonetta', serif",
-              color: '#3A3D36',
-              fontSize: 'clamp(34px, 11.4cqw, 58px)',
-              opacity: s1Date,
-              transform: `translate3d(0, ${(1 - s1Date) * 35}px, 0) scale(${0.4 + 0.6 * s1Date})`,
-            }}
-          >
-            21
-          </div>
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '80.9%',
+                top: '20.06%',
+                width: '91.14%',
+                height: '63.21%',
+                opacity: 0.51 * s1Watercolors,
+                transform: `translate3d(${(1 - s1Watercolors) * 60}px, 0, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/watercolor-splash.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-watercolor-breathe"
+              />
+            </div>
 
-          <div
-            className="absolute text-center pointer-events-none will-change-transform"
-            style={{
-              left: '56.5%',
-              top: '56.8%',
-              width: '24%',
-              fontFamily: "'Simonetta', serif",
-              color: '#3A3D36',
-              fontSize: 'clamp(11px, 3.6cqw, 19px)',
-              opacity: s1Date,
-              transform: `translate3d(${(1 - s1Date) * 120}px, 0, 0)`,
-            }}
-          >
-            4:30 P.M.
-          </div>
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '47.42%',
+                top: '67.61%',
+                width: '92.43%',
+                height: '64.1%',
+                opacity: 0.39 * s1Watercolors,
+                transform: `translate3d(${(1 - s1Watercolors) * 50}px, ${(1 - s1Watercolors) * 50}px, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/watercolor-splash.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-watercolor-breathe"
+              />
+            </div>
 
-          <div
-            className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.35]"
-            style={{
-              top: '65.6%',
-              fontFamily: "'Simonetta', serif",
-              color: '#3A3D36',
-              fontSize: 'clamp(9.5px, 2.85cqw, 15px)',
-              opacity: s1Venue,
-              transform: `translate3d(0, ${(1 - s1Venue) * 60}px, 0)`,
-            }}
-          >
-            <p>CALAN PARK, A 1.5 KM DEL DESVÍO A EL</p>
-            <p>CALÁN (ZONA ZIP BÚFALO), VILLANUEVA</p>
-          </div>
+            <img
+              src="/invitacion/layers/watercolor-splash.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '33.58%',
+                top: '-29.87%',
+                width: '94.64%',
+                height: '65.64%',
+                opacity: 0.26 * s1Watercolors,
+                transform: `translate3d(0, ${(1 - s1Watercolors) * -50}px, 0) rotate(59.89deg) scale(${0.75 + 0.25 * s1Watercolors})`,
+              }}
+            />
 
-          <div
-            className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
-            style={{
-              top: '73.7%',
-              fontFamily: "'Simonetta', serif",
-              color: '#3A3D36',
-              fontSize: 'clamp(8.5px, 2.25cqw, 12px)',
-              opacity: s1Venue,
-              transform: `translate3d(0, ${(1 - s1Venue) * 65}px, 0)`,
-            }}
-          >
-            <p>CONFIRMAR ASISTENCIA:</p>
-            <p>+504 8778-8207</p>
-          </div>
+            <img
+              src="/invitacion/layers/watercolor-splash.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '28.73%',
+                top: '50.56%',
+                width: '14.06%',
+                height: '9.75%',
+                opacity: 0.26 * s1Date,
+                transform: `rotate(59.89deg) scale(${0.4 + 0.6 * s1Date})`,
+              }}
+            />
 
-          <div
-            className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
-            style={{
-              top: '80.4%',
-              fontFamily: "'Simonetta', serif",
-              color: '#3A3D36',
-              fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
-              opacity: s1Dress,
-              transform: `translate3d(0, ${(1 - s1Dress) * 65}px, 0)`,
-            }}
-          >
-            <p>CODIGO VESTIMENTA:</p>
-            <p>FORMAL</p>
-          </div>
+            <img
+              src="/invitacion/layers/watercolor-splash.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '-10.75%',
+                top: '67.01%',
+                width: '35.15%',
+                height: '24.37%',
+                opacity: 0.26 * s1Watercolors,
+                transform: `rotate(59.89deg) scale(${0.7 + 0.3 * s1Watercolors})`,
+              }}
+            />
 
-          {/* 6. FIRMA CALIGRÁFICA TRANSPARENTE "Te esperamos" */}
-          <img
-            src="/invitacion/layers/text-te-esperamos.png"
-            alt="Te esperamos"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '22.0%',
-              top: '87.0%',
-              width: '56.0%',
-              height: '10.0%',
-              opacity: s1Sign,
-              transform: `translate3d(0, ${(1 - s1Sign) * 55}px, 0) scale(${0.78 + 0.22 * s1Sign})`,
-            }}
-          />
+            {/* 3. FLORES Y HOJAS CON DOBLE ANIMACIÓN: ENSAMBLAJE POR SCROLL + BRISA VIVA CONTINUA */}
+            {/* Rama de olivo superior izquierda */}
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '-19.35%',
+                top: '3.91%',
+                width: '39.38%',
+                height: '39.13%',
+                opacity: s1TopLeaves,
+                transform: `translate3d(${(1 - s1TopLeaves) * -130}px, ${(1 - s1TopLeaves) * -80}px, 0) rotate(${(1 - s1TopLeaves) * -25}deg) scale(${0.75 + 0.25 * s1TopLeaves})`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/olive-branch.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-breeze-a"
+              />
+            </div>
+
+            {/* Rosas blancas superior derecha */}
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '82.07%',
+                top: '-1.06%',
+                width: '38.91%',
+                height: '49.08%',
+                opacity: s1TopRoses,
+                transform: `translate3d(${(1 - s1TopRoses) * 130}px, ${(1 - s1TopRoses) * -75}px, 0) rotate(${-23.9 + (1 - s1TopRoses) * 28}deg) scale(${0.75 + 0.25 * s1TopRoses})`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/roses-top-right.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-breeze-roses-r"
+              />
+            </div>
+
+            {/* Ramo rosas blancas izquierda */}
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '-22.56%',
+                top: '43.05%',
+                width: '53.17%',
+                height: '67.07%',
+                opacity: s1LeftRoses,
+                transform: `translate3d(${(1 - s1LeftRoses) * -150}px, ${(1 - s1LeftRoses) * 70}px, 0) rotate(${14.96 - (1 - s1LeftRoses) * 22}deg) scale(${0.75 + 0.25 * s1LeftRoses})`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/roses-left.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-breeze-roses-l"
+              />
+            </div>
+
+            {/* Rama de olivo inferior derecha */}
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '66.66%',
+                top: '68.76%',
+                width: '39.38%',
+                height: '39.13%',
+                opacity: s1BotLeaves,
+                transform: `translate3d(${(1 - s1BotLeaves) * 130}px, ${(1 - s1BotLeaves) * 90}px, 0) rotate(${(1 - s1BotLeaves) * 25}deg) scale(${0.75 + 0.25 * s1BotLeaves})`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/olive-branch.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-breeze-b"
+              />
+            </div>
+
+            {/* 4. CALIGRAFÍA PRINCIPAL TRANSPARENTE "Edis y Dania" */}
+            <img
+              src="/invitacion/layers/text-edis-dania.png"
+              alt="Edis y Dania"
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '16.0%',
+                top: '7.8%',
+                width: '68.0%',
+                height: '24.0%',
+                opacity: s1Names,
+                transform: `translate3d(0, ${(1 - s1Names) * -75}px, 0) scale(${0.72 + 0.28 * s1Names})`,
+              }}
+            />
+
+            {/* 5. TEXTOS VECTORIALES EN FUENTE SIMONETTA */}
+            <div
+              className="absolute left-[10%] w-[80%] text-center pointer-events-none will-change-transform"
+              style={{
+                top: '36.2%',
+                fontFamily: "'Simonetta', serif",
+                color: '#3A3D36',
+                fontSize: 'clamp(11px, 3.6cqw, 19px)',
+                letterSpacing: '0.03em',
+                opacity: s1Subtitle,
+                transform: `translate3d(0, ${(1 - s1Subtitle) * 45}px, 0) scale(${0.88 + 0.12 * s1Subtitle})`,
+              }}
+            >
+              TE INVITAMOS A NUESTRA BODA
+            </div>
+
+            <div
+              className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.38]"
+              style={{
+                top: '43.1%',
+                fontFamily: "'Simonetta', serif",
+                color: '#3A3D36',
+                fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
+                opacity: s1Verse,
+                transform: `translate3d(0, ${(1 - s1Verse) * 55}px, 0)`,
+              }}
+            >
+              <p>Así que ya no son dos, sino uno solo. Por tanto, lo</p>
+              <p>que Dios ha unido, que no lo separe el hombre.</p>
+              <p className="mt-[0.5cqw]">Mateo 19:6</p>
+            </div>
+
+            <div
+              className="absolute text-center pointer-events-none will-change-transform"
+              style={{
+                left: '25.5%',
+                top: '56.8%',
+                width: '18%',
+                fontFamily: "'Simonetta', serif",
+                color: '#3A3D36',
+                fontSize: 'clamp(11px, 3.6cqw, 19px)',
+                opacity: s1Date,
+                transform: `translate3d(${(1 - s1Date) * -120}px, 0, 0)`,
+              }}
+            >
+              NOV
+            </div>
+
+            <div
+              className="absolute text-center pointer-events-none will-change-transform leading-none"
+              style={{
+                left: '35.23%',
+                top: '52.2%',
+                width: '29.54%',
+                fontFamily: "'Simonetta', serif",
+                color: '#3A3D36',
+                fontSize: 'clamp(34px, 11.4cqw, 58px)',
+                opacity: s1Date,
+                transform: `translate3d(0, ${(1 - s1Date) * 35}px, 0) scale(${0.4 + 0.6 * s1Date})`,
+              }}
+            >
+              21
+            </div>
+
+            <div
+              className="absolute text-center pointer-events-none will-change-transform"
+              style={{
+                left: '56.5%',
+                top: '56.8%',
+                width: '24%',
+                fontFamily: "'Simonetta', serif",
+                color: '#3A3D36',
+                fontSize: 'clamp(11px, 3.6cqw, 19px)',
+                opacity: s1Date,
+                transform: `translate3d(${(1 - s1Date) * 120}px, 0, 0)`,
+              }}
+            >
+              4:30 P.M.
+            </div>
+
+            <div
+              className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.35]"
+              style={{
+                top: '65.6%',
+                fontFamily: "'Simonetta', serif",
+                color: '#3A3D36',
+                fontSize: 'clamp(9.5px, 2.85cqw, 15px)',
+                opacity: s1Venue,
+                transform: `translate3d(0, ${(1 - s1Venue) * 60}px, 0)`,
+              }}
+            >
+              <p>CALAN PARK, A 1.5 KM DEL DESVÍO A EL</p>
+              <p>CALÁN (ZONA ZIP BÚFALO), VILLANUEVA</p>
+            </div>
+
+            <div
+              className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
+              style={{
+                top: '73.7%',
+                fontFamily: "'Simonetta', serif",
+                color: '#3A3D36',
+                fontSize: 'clamp(8.5px, 2.25cqw, 12px)',
+                opacity: s1Venue,
+                transform: `translate3d(0, ${(1 - s1Venue) * 65}px, 0)`,
+              }}
+            >
+              <p>CONFIRMAR ASISTENCIA:</p>
+              <p>+504 8778-8207</p>
+            </div>
+
+            <div
+              className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
+              style={{
+                top: '80.4%',
+                fontFamily: "'Simonetta', serif",
+                color: '#3A3D36',
+                fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
+                opacity: s1Dress,
+                transform: `translate3d(0, ${(1 - s1Dress) * 65}px, 0)`,
+              }}
+            >
+              <p>CODIGO VESTIMENTA:</p>
+              <p>FORMAL</p>
+            </div>
+
+            {/* 6. FIRMA CALIGRÁFICA TRANSPARENTE "Te esperamos" */}
+            <img
+              src="/invitacion/layers/text-te-esperamos.png"
+              alt="Te esperamos"
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '22.0%',
+                top: '87.0%',
+                width: '56.0%',
+                height: '10.0%',
+                opacity: s1Sign,
+                transform: `translate3d(0, ${(1 - s1Sign) * 55}px, 0) scale(${0.78 + 0.22 * s1Sign})`,
+              }}
+            />
+          </div>
         </div>
       </section>
 
       {/* =====================================================================
-          STAGE 2: TARJETA DE PASES RESERVADOS ARMADA POR CAPAS + CONTEO DINÁMICO
+          STAGE 2: TARJETA DE PASES RESERVADOS CON MARCO DORADO & BRISA VIVA
       ===================================================================== */}
       <section
         ref={stage2Ref}
-        className="relative py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto flex flex-col items-center"
+        className="relative z-10 py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto flex flex-col items-center"
       >
-        <div className="text-center mb-4 space-y-1">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#4C8B54]/25 text-[#3B6E42] text-[11px] font-bold uppercase tracking-widest shadow-2xs">
-            <Ticket size={13} />
+        <div
+          className="text-center mb-4 space-y-1.5 will-change-transform"
+          style={{
+            opacity: Math.max(0.2, s2Header),
+            transform: `translate3d(0, ${(1 - s2Header) * 24}px, 0)`,
+          }}
+        >
+          <GoldenBotanicalDivider progress={s2LeafTL} />
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#C5A880]/55 text-[#3B6E42] text-[11px] font-bold uppercase tracking-widest shadow-sm">
+            <Ticket size={13} className="text-[#B38E5D]" />
             Tus Pases Reservados
           </span>
-          <h2 className="font-serif text-xl sm:text-2xl text-[#2D332B] font-semibold">
+          <h2 className="font-serif text-xl sm:text-2xl text-[#243B2B] font-bold">
             {displaySalutation}
           </h2>
         </div>
 
-        <div
-          className="relative w-full max-w-[620px] aspect-[1600/889] rounded-2xl sm:rounded-3xl shadow-[0_22px_55px_-12px_rgba(31,58,46,0.18)] border border-[#4C8B54]/25 bg-white overflow-hidden select-none"
-          style={{ containerType: 'inline-size' }}
-        >
-          <img
-            src="/invitacion/leaf-top-left.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute top-0 left-0 w-[28.1%] h-[46.1%] object-contain object-top-left pointer-events-none will-change-transform"
-            style={{
-              opacity: s2LeafTL,
-              transform: `translate3d(${(1 - s2LeafTL) * -110}px, ${(1 - s2LeafTL) * -80}px, 0) rotate(${(1 - s2LeafTL) * -20}deg) scale(${0.75 + 0.25 * s2LeafTL})`,
-            }}
-          />
-
-          <img
-            src="/invitacion/leaf-bottom-right.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute bottom-0 right-0 w-[28.1%] h-[46.1%] object-contain object-bottom-right pointer-events-none will-change-transform"
-            style={{
-              opacity: s2LeafBR,
-              transform: `translate3d(${(1 - s2LeafBR) * 110}px, ${(1 - s2LeafBR) * 80}px, 0) rotate(${(1 - s2LeafBR) * 20}deg) scale(${0.75 + 0.25 * s2LeafBR})`,
-            }}
-          />
-
+        {/* Marco exterior dorado */}
+        <div className="p-1.5 sm:p-2 rounded-[26px] sm:rounded-[30px] bg-gradient-to-br from-[#E5D1B0]/70 via-white/85 to-[#C5A880]/65 shadow-[0_24px_60px_-14px_rgba(31,58,46,0.22)] w-full max-w-[632px]">
           <div
-            className="absolute left-[12%] w-[76%] text-center pointer-events-none will-change-transform font-sans font-normal tracking-[0.22em]"
-            style={{
-              top: '12.2%',
-              color: '#4C8B54',
-              fontSize: 'clamp(13px, 4.4cqw, 28px)',
-              opacity: s2Header,
-              transform: `translate3d(0, ${(1 - s2Header) * -50}px, 0)`,
-            }}
+            className="relative w-full aspect-[1600/889] rounded-2xl sm:rounded-3xl border border-[#C5A880]/55 bg-white overflow-hidden select-none"
+            style={{ containerType: 'inline-size' }}
           >
-            PASES RESERVADOS
-          </div>
+            <EditorialInnerFrame insetClass="inset-2 sm:inset-3" />
 
-          <div
-            className="absolute flex items-center justify-center pointer-events-none will-change-transform border-[2.5px] sm:border-[3px] border-[#4C8B54] bg-white/90"
-            style={{
-              left: '44.3%',
-              top: '24.8%',
-              width: '11.4%',
-              height: '17.2%',
-              opacity: s2Box,
-              transform: `scale(${0.35 + 0.65 * s2Box})`,
-            }}
-          >
-            <span
-              className="font-sans font-semibold leading-none"
+            {/* Rama superior izquierda con brisa viva */}
+            <div
+              className="absolute top-0 left-0 w-[28.1%] h-[46.1%] pointer-events-none will-change-transform"
               style={{
-                color: '#4C8B54',
-                fontSize: 'clamp(20px, 6.2cqw, 40px)',
+                opacity: s2LeafTL,
+                transform: `translate3d(${(1 - s2LeafTL) * -110}px, ${(1 - s2LeafTL) * -80}px, 0) rotate(${(1 - s2LeafTL) * -20}deg) scale(${0.75 + 0.25 * s2LeafTL})`,
               }}
             >
-              {displaySeats}
-            </span>
-          </div>
+              <img
+                src="/invitacion/leaf-top-left.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full object-contain object-top-left animate-breeze-a"
+              />
+            </div>
 
-          <div
-            className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform font-sans font-normal leading-[1.52]"
-            style={{
-              top: '48.5%',
-              color: '#4C8B54',
-              fontSize: 'clamp(11px, 3.55cqw, 22px)',
-              opacity: s2Body,
-              transform: `translate3d(0, ${(1 - s2Body) * 60}px, 0)`,
-            }}
-          >
-            <p>Nos encanta tenerte en nuestra boda.</p>
-            <p>Para que todos disfrutemos de este día,</p>
-            <p>te agradecemos respetar la cantidad</p>
-            <p>de invitados indicada en este pase.</p>
-          </div>
-        </div>
+            {/* Rama inferior derecha con brisa viva */}
+            <div
+              className="absolute bottom-0 right-0 w-[28.1%] h-[46.1%] pointer-events-none will-change-transform"
+              style={{
+                opacity: s2LeafBR,
+                transform: `translate3d(${(1 - s2LeafBR) * 110}px, ${(1 - s2LeafBR) * 80}px, 0) rotate(${(1 - s2LeafBR) * 20}deg) scale(${0.75 + 0.25 * s2LeafBR})`,
+              }}
+            >
+              <img
+                src="/invitacion/leaf-bottom-right.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full object-contain object-bottom-right animate-breeze-b"
+              />
+            </div>
 
-        {/* Listado de integrantes contemplados */}
-        {activeCard && activeCard.members && activeCard.members.length > 0 && (
-          <div className="mt-4 w-full max-w-[620px] bg-white/90 rounded-2xl p-4 border border-[#4C8B54]/25 shadow-sm text-center space-y-2">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-[#4C8B54]">
-              Personas contempladas en esta invitación ({activeCard.seats} {activeCard.seats === 1 ? 'pase' : 'pases'})
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {activeCard.members.map((m, idx) => (
-                <span
-                  key={m.id || idx}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3F6F1] border border-[#4C8B54]/25 text-xs font-semibold text-[#243B2B]"
-                >
-                  <Heart size={11} className="text-[#4C8B54] fill-[#4C8B54]" />
-                  {m.name}
-                </span>
-              ))}
+            <div
+              className="absolute left-[12%] w-[76%] text-center pointer-events-none will-change-transform font-sans font-normal tracking-[0.22em]"
+              style={{
+                top: '12.2%',
+                color: '#4C8B54',
+                fontSize: 'clamp(13px, 4.4cqw, 28px)',
+                opacity: s2Header,
+                transform: `translate3d(0, ${(1 - s2Header) * -50}px, 0)`,
+              }}
+            >
+              PASES RESERVADOS
+            </div>
+
+            {/* Cuadro Verde Central con destello dorado sutil */}
+            <div
+              className="absolute flex items-center justify-center pointer-events-none will-change-transform border-[2.5px] sm:border-[3px] border-[#4C8B54] bg-white/95 shadow-[0_6px_20px_-4px_rgba(76,139,84,0.25)] overflow-hidden"
+              style={{
+                left: '44.3%',
+                top: '24.8%',
+                width: '11.4%',
+                height: '17.2%',
+                opacity: s2Box,
+                transform: `scale(${0.35 + 0.65 * s2Box})`,
+              }}
+            >
+              <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-[#E5D1B0]/40 to-transparent animate-golden-shimmer" />
+              <span
+                className="relative font-sans font-semibold leading-none"
+                style={{
+                  color: '#4C8B54',
+                  fontSize: 'clamp(20px, 6.2cqw, 40px)',
+                }}
+              >
+                {displaySeats}
+              </span>
+            </div>
+
+            <div
+              className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform font-sans font-normal leading-[1.52]"
+              style={{
+                top: '48.5%',
+                color: '#4C8B54',
+                fontSize: 'clamp(11px, 3.55cqw, 22px)',
+                opacity: s2Body,
+                transform: `translate3d(0, ${(1 - s2Body) * 60}px, 0)`,
+              }}
+            >
+              <p>Nos encanta tenerte en nuestra boda.</p>
+              <p>Para que todos disfrutemos de este día,</p>
+              <p>te agradecemos respetar la cantidad</p>
+              <p>de invitados indicada en este pase.</p>
             </div>
           </div>
-        )}
+        </div>
       </section>
 
       {/* =====================================================================
-          STAGE 3: TARJETA DE REGALO / SOBRE ARMADA POR CAPAS TRANSPARENTES
+          STAGE 3: TARJETA DE REGALO / SOBRE CON MARCO DORADO, BRISA VIVA & SOBRE FLOTANTE
       ===================================================================== */}
       <section
         ref={stage3Ref}
-        className="relative py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto flex flex-col items-center"
+        className="relative z-10 py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto flex flex-col items-center"
       >
-        <div className="text-center mb-4 space-y-1">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#4C8B54]/25 text-[#3B6E42] text-[11px] font-bold uppercase tracking-widest shadow-2xs">
-            <Mail size={13} />
+        <div
+          className="text-center mb-4 space-y-1.5 will-change-transform"
+          style={{
+            opacity: Math.max(0.2, s3Botanicals),
+            transform: `translate3d(0, ${(1 - s3Botanicals) * 24}px, 0)`,
+          }}
+        >
+          <GoldenBotanicalDivider progress={s3Watercolors} />
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#C5A880]/55 text-[#3B6E42] text-[11px] font-bold uppercase tracking-widest shadow-sm">
+            <Mail size={13} className="text-[#B38E5D]" />
             Muestras de Cariño
           </span>
-          <h2 className="font-serif text-xl sm:text-2xl text-[#2D332B] font-semibold">
+          <h2 className="font-serif text-xl sm:text-2xl text-[#243B2B] font-bold">
             Detalle de Boda
           </h2>
         </div>
 
-        <div
-          className="relative w-full max-w-[420px] aspect-[1875/3281] rounded-2xl sm:rounded-3xl shadow-[0_25px_65px_-15px_rgba(31,58,46,0.22)] border border-[#7A8F76]/30 bg-white overflow-hidden select-none"
-          style={{ containerType: 'inline-size' }}
-        >
-          <img
-            src="/invitacion/layers/watercolor-splash.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '-46%',
-              top: '5%',
-              width: '94%',
-              height: '55%',
-              opacity: 0.45 * s3Watercolors,
-              transform: `translate3d(${(1 - s3Watercolors) * -55}px, 0, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
-            }}
-          />
-          <img
-            src="/invitacion/layers/watercolor-splash.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '42%',
-              top: '-8%',
-              width: '92%',
-              height: '50%',
-              opacity: 0.32 * s3Watercolors,
-              transform: `translate3d(${(1 - s3Watercolors) * 55}px, 0, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
-            }}
-          />
-          <img
-            src="/invitacion/layers/watercolor-splash.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '48%',
-              top: '65%',
-              width: '90%',
-              height: '50%',
-              opacity: 0.38 * s3Watercolors,
-              transform: `translate3d(${(1 - s3Watercolors) * 55}px, ${(1 - s3Watercolors) * 45}px, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
-            }}
-          />
+        {/* Marco exterior dorado */}
+        <div className="p-1.5 sm:p-2 rounded-[26px] sm:rounded-[30px] bg-gradient-to-br from-[#E5D1B0]/70 via-white/85 to-[#C5A880]/65 shadow-[0_26px_65px_-15px_rgba(31,58,46,0.24)] w-full max-w-[432px]">
+          <div
+            className="relative w-full aspect-[1875/3281] rounded-2xl sm:rounded-3xl border border-[#C5A880]/55 bg-[#FAF9F6] overflow-hidden select-none"
+            style={{ containerType: 'inline-size' }}
+          >
+            <EditorialInnerFrame insetClass="inset-2.5 sm:inset-3.5" />
 
-          <img
-            src="/invitacion/layers/olive-branch.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '-19%',
-              top: '8%',
-              width: '40%',
-              height: '32%',
-              opacity: s3Botanicals,
-              transform: `translate3d(${(1 - s3Botanicals) * -120}px, ${(1 - s3Botanicals) * -60}px, 0) rotate(${(1 - s3Botanicals) * -22}deg)`,
-            }}
-          />
-          <img
-            src="/invitacion/layers/roses-top-right.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '76%',
-              top: '6%',
-              width: '40%',
-              height: '38%',
-              opacity: s3Botanicals,
-              transform: `translate3d(${(1 - s3Botanicals) * 120}px, ${(1 - s3Botanicals) * -60}px, 0) rotate(${-23.9 + (1 - s3Botanicals) * 24}deg)`,
-            }}
-          />
-          <img
-            src="/invitacion/layers/roses-left.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '-22%',
-              top: '41%',
-              width: '54%',
-              height: '54%',
-              opacity: s3Botanicals,
-              transform: `translate3d(${(1 - s3Botanicals) * -130}px, ${(1 - s3Botanicals) * 55}px, 0) rotate(${14.96 - (1 - s3Botanicals) * 20}deg)`,
-            }}
-          />
-          <img
-            src="/invitacion/layers/olive-branch.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '68%',
-              top: '67%',
-              width: '38%',
-              height: '30%',
-              opacity: s3Botanicals,
-              transform: `translate3d(${(1 - s3Botanicals) * 120}px, ${(1 - s3Botanicals) * 70}px, 0) rotate(${(1 - s3Botanicals) * 22}deg)`,
-            }}
-          />
+            <img
+              src="/invitacion/layers/paper-bg.jpg"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-85"
+            />
 
-          <img
-            src="/invitacion/layers/text-regalo-quote.png"
-            alt="Nuestro mejor regalo es tu presencia, pero si tu deseo es tener un detalle con nosotros puedes hacerlo dentro de un sobre"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '10%',
-              top: '37.5%',
-              width: '80%',
-              height: '24.5%',
-              opacity: s3Quote,
-              transform: `translate3d(0, ${(1 - s3Quote) * 65}px, 0) scale(${0.86 + 0.14 * s3Quote})`,
-            }}
-          />
+            {/* Acuarelas con respiración */}
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '-46%',
+                top: '5%',
+                width: '94%',
+                height: '55%',
+                opacity: 0.45 * s3Watercolors,
+                transform: `translate3d(${(1 - s3Watercolors) * -55}px, 0, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/watercolor-splash.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-watercolor-breathe"
+              />
+            </div>
 
-          <img
-            src="/invitacion/layers/icon-regalo-envelope.png"
-            alt="Sobre de regalo"
-            className="absolute pointer-events-none will-change-transform"
-            style={{
-              left: '40%',
-              top: '62.5%',
-              width: '20%',
-              height: '8.5%',
-              opacity: s3Envelope,
-              transform: `translate3d(0, ${(1 - s3Envelope) * 75}px, 0) scale(${0.45 + 0.55 * s3Envelope})`,
-            }}
-          />
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '42%',
+                top: '-8%',
+                width: '92%',
+                height: '50%',
+                opacity: 0.32 * s3Watercolors,
+                transform: `translate3d(${(1 - s3Watercolors) * 55}px, 0, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/watercolor-splash.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-watercolor-breathe"
+              />
+            </div>
+
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '48%',
+                top: '65%',
+                width: '90%',
+                height: '50%',
+                opacity: 0.38 * s3Watercolors,
+                transform: `translate3d(${(1 - s3Watercolors) * 55}px, ${(1 - s3Watercolors) * 45}px, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/watercolor-splash.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-watercolor-breathe"
+              />
+            </div>
+
+            {/* Ramas y Rosas con Brisa Viva */}
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '-19%',
+                top: '8%',
+                width: '40%',
+                height: '32%',
+                opacity: s3Botanicals,
+                transform: `translate3d(${(1 - s3Botanicals) * -120}px, ${(1 - s3Botanicals) * -60}px, 0) rotate(${(1 - s3Botanicals) * -22}deg)`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/olive-branch.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-breeze-a"
+              />
+            </div>
+
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '76%',
+                top: '6%',
+                width: '40%',
+                height: '38%',
+                opacity: s3Botanicals,
+                transform: `translate3d(${(1 - s3Botanicals) * 120}px, ${(1 - s3Botanicals) * -60}px, 0) rotate(${-23.9 + (1 - s3Botanicals) * 24}deg)`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/roses-top-right.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-breeze-roses-r"
+              />
+            </div>
+
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '-22%',
+                top: '41%',
+                width: '54%',
+                height: '54%',
+                opacity: s3Botanicals,
+                transform: `translate3d(${(1 - s3Botanicals) * -130}px, ${(1 - s3Botanicals) * 55}px, 0) rotate(${14.96 - (1 - s3Botanicals) * 20}deg)`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/roses-left.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-breeze-roses-l"
+              />
+            </div>
+
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '68%',
+                top: '67%',
+                width: '38%',
+                height: '30%',
+                opacity: s3Botanicals,
+                transform: `translate3d(${(1 - s3Botanicals) * 120}px, ${(1 - s3Botanicals) * 70}px, 0) rotate(${(1 - s3Botanicals) * 22}deg)`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/olive-branch.png"
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full animate-breeze-b"
+              />
+            </div>
+
+            {/* Frase central */}
+            <img
+              src="/invitacion/layers/text-regalo-quote.png"
+              alt="Nuestro mejor regalo es tu presencia, pero si tu deseo es tener un detalle con nosotros puedes hacerlo dentro de un sobre"
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '10%',
+                top: '37.5%',
+                width: '80%',
+                height: '24.5%',
+                opacity: s3Quote,
+                transform: `translate3d(0, ${(1 - s3Quote) * 65}px, 0) scale(${0.86 + 0.14 * s3Quote})`,
+              }}
+            />
+
+            {/* Ícono del Sobre con flotación continua */}
+            <div
+              className="absolute pointer-events-none will-change-transform"
+              style={{
+                left: '40%',
+                top: '62.5%',
+                width: '20%',
+                height: '8.5%',
+                opacity: s3Envelope,
+                transform: `translate3d(0, ${(1 - s3Envelope) * 75}px, 0) scale(${0.45 + 0.55 * s3Envelope})`,
+              }}
+            >
+              <img
+                src="/invitacion/layers/icon-regalo-envelope.png"
+                alt="Sobre de regalo"
+                className="w-full h-full animate-envelope-float"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -989,13 +1226,24 @@ export function DigitalInvitationLanding({
       ===================================================================== */}
       <section
         id="confirmar-asistencia"
-        className="relative py-8 sm:py-12 px-4 sm:px-6 max-w-3xl mx-auto space-y-6"
+        ref={stage4Ref}
+        className="relative z-10 py-8 sm:py-12 px-4 sm:px-6 max-w-3xl mx-auto space-y-7"
       >
-        {/* 1. Cuenta Regresiva y Ubicación */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_18px_50px_-15px_rgba(31,58,46,0.14)] border border-[#7A8F76]/25 text-center space-y-6">
+        <GoldenBotanicalDivider progress={s4Card1} />
+
+        {/* 1. Cuenta Regresiva y Ubicación con Marco Dorado */}
+        <div
+          className="relative bg-white/95 backdrop-blur-md rounded-3xl p-7 sm:p-9 shadow-[0_22px_55px_-15px_rgba(31,58,46,0.16)] border border-[#C5A880]/55 text-center space-y-6 will-change-transform"
+          style={{
+            opacity: Math.max(0.15, s4Card1),
+            transform: `translate3d(0, ${(1 - s4Card1) * 45}px, 0) scale(${0.96 + 0.04 * s4Card1})`,
+          }}
+        >
+          <EditorialInnerFrame insetClass="inset-2.5 sm:inset-3.5" />
+
           <div className="space-y-1">
-            <span className="text-[11px] uppercase tracking-[0.25em] text-[#4C8B54] font-bold">
-              Cuenta Regresiva
+            <span className="text-[11px] uppercase tracking-[0.28em] text-[#8C7756] font-bold">
+              Falta Muy Poco
             </span>
             <h3 className="font-serif text-2xl sm:text-3xl text-[#243B2B] font-bold">
               Sábado 21 de Noviembre, 2026 • 4:30 P.M.
@@ -1004,22 +1252,22 @@ export function DigitalInvitationLanding({
 
           <LiveCountdownGrid />
 
-          <div className="pt-4 border-t border-stone-200/70 space-y-3">
+          <div className="pt-4 border-t border-[#C5A880]/30 space-y-3">
             <div className="flex items-center justify-center gap-1.5 text-[#3B6E42] font-bold text-xs uppercase tracking-wider">
-              <MapPin size={15} />
+              <MapPin size={15} className="text-[#B38E5D]" />
               <span>Lugar de la Celebración</span>
             </div>
             <p className="font-serif text-base sm:text-lg font-semibold text-stone-800 max-w-lg mx-auto">
               Calan Park, a 1.5 km del desvío a El Calán (Zona Zip Búfalo), Villanueva
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-1 relative z-30">
               <a
                 href="https://www.google.com/maps/search/?api=1&query=Calan+Park+El+Calan+Villanueva+Honduras"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2F4838] hover:bg-[#23372A] text-white text-xs font-semibold shadow-sm transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#243B2B] to-[#34543E] hover:brightness-110 text-white text-xs font-semibold shadow-sm border border-[#C5A880]/45 transition-all"
               >
-                <MapPin size={14} className="text-[#C5A880]" />
+                <MapPin size={14} className="text-[#E0C59B]" />
                 <span>Ver Ubicación en Google Maps</span>
                 <ExternalLink size={12} />
               </a>
@@ -1027,7 +1275,7 @@ export function DigitalInvitationLanding({
                 href="https://waze.com/ul?q=Calan%20Park%20Villanueva"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#F3F6F1] hover:bg-[#E5ECE1] text-[#243B2B] border border-[#4C8B54]/30 text-xs font-semibold transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#FAF8F4] hover:bg-[#F0ECE2] text-[#243B2B] border border-[#C5A880]/55 text-xs font-semibold transition-all"
               >
                 <span>Abrir en Waze</span>
                 <ExternalLink size={12} />
@@ -1036,11 +1284,19 @@ export function DigitalInvitationLanding({
           </div>
         </div>
 
-        {/* 2. Tarjeta de Confirmación de Asistencia (Solo muestra la tarjeta asignada al invitado, sin buscador público) */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_20px_55px_-15px_rgba(31,58,46,0.18)] border border-[#4C8B54]/30 space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-[#F3F6F1] border border-[#4C8B54]/25 text-[#3B6E42] flex items-center justify-center mx-auto">
-              <UserCheck size={24} />
+        {/* 2. Tarjeta de Confirmación de Asistencia con Marco Dorado */}
+        <div
+          className="relative bg-white/95 backdrop-blur-md rounded-3xl p-7 sm:p-9 shadow-[0_24px_60px_-15px_rgba(31,58,46,0.2)] border border-[#C5A880]/55 space-y-6 will-change-transform"
+          style={{
+            opacity: Math.max(0.15, s4Card2),
+            transform: `translate3d(0, ${(1 - s4Card2) * 45}px, 0) scale(${0.96 + 0.04 * s4Card2})`,
+          }}
+        >
+          <EditorialInnerFrame insetClass="inset-2.5 sm:inset-3.5" />
+
+          <div className="text-center space-y-2 relative z-30">
+            <div className="w-12 h-12 rounded-2xl bg-[#FAF8F4] border border-[#C5A880]/55 text-[#3B6E42] flex items-center justify-center mx-auto shadow-sm">
+              <UserCheck size={24} className="text-[#2F4838]" />
             </div>
             <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#243B2B]">
               Confirmar Asistencia
@@ -1051,18 +1307,18 @@ export function DigitalInvitationLanding({
           </div>
 
           {(activeCard || urlData.cardId) && (
-            <div className="bg-[#F3F6F1] border border-[#4C8B54]/30 rounded-2xl p-4 sm:p-5 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#4C8B54]/15 pb-3">
+            <div className="relative z-30 bg-gradient-to-b from-[#F7F9F5] to-[#EFF4EC] border border-[#C5A880]/45 rounded-2xl p-4 sm:p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#C5A880]/30 pb-3">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#4C8B54]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7756]">
                     Tu Invitación
                   </span>
                   <h4 className="font-serif text-lg sm:text-xl font-bold text-[#243B2B]">
                     {displaySalutation}
                   </h4>
                 </div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#4C8B54]/30 text-xs font-bold text-[#3B6E42] self-start sm:self-auto">
-                  <Ticket size={13} />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#C5A880]/50 text-xs font-bold text-[#3B6E42] self-start sm:self-auto">
+                  <Ticket size={13} className="text-[#B38E5D]" />
                   {displaySeats} {displaySeats === 1 ? 'Pase' : 'Pases'}
                 </span>
               </div>
@@ -1070,13 +1326,14 @@ export function DigitalInvitationLanding({
               <button
                 type="button"
                 onClick={handleDirectConfirmCard}
-                className={`w-full py-3.5 px-5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer ${
+                className={`relative overflow-hidden w-full py-3.5 px-5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md border border-[#C5A880]/45 transition-all cursor-pointer ${
                   activeCard?.statusSummary?.isAllConfirmed || rsvpSubmitted
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    : 'bg-[#2F4838] hover:bg-[#23372A] text-white'
+                    : 'bg-gradient-to-r from-[#243B2B] via-[#32513C] to-[#243B2B] hover:brightness-110 text-white'
                 }`}
               >
-                <CheckCircle2 size={18} className="text-[#C5A880]" />
+                <span className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-golden-shimmer pointer-events-none" />
+                <CheckCircle2 size={18} className="text-[#E0C59B]" />
                 <span>
                   {activeCard?.statusSummary?.isAllConfirmed || rsvpSubmitted
                     ? `¡Asistencia Confirmada para ${displaySalutation}!`
@@ -1086,7 +1343,7 @@ export function DigitalInvitationLanding({
             </div>
           )}
 
-          <div className="space-y-2 pt-1">
+          <div className="space-y-2 pt-1 relative z-30">
             <button
               type="button"
               onClick={handleWhatsAppRsvp}
@@ -1095,8 +1352,8 @@ export function DigitalInvitationLanding({
               <MessageCircle size={18} />
               <span>Confirmar por WhatsApp (+504 8778-8207)</span>
             </button>
-            <p className="text-center text-[11px] text-stone-400">
-              Código de Vestimenta: <strong className="text-stone-600">FORMAL</strong> • Teléfono Oficial: <strong className="text-stone-600">+504 8778-8207</strong>
+            <p className="text-center text-[11px] text-stone-500">
+              Código de Vestimenta: <strong className="text-[#243B2B]">FORMAL</strong> • Teléfono Oficial: <strong className="text-[#243B2B]">+504 8778-8207</strong>
             </p>
           </div>
         </div>
@@ -1105,9 +1362,9 @@ export function DigitalInvitationLanding({
           <img
             src="/invitacion/layers/text-te-esperamos.png"
             alt="Te esperamos"
-            className="w-40 mx-auto opacity-85 select-none pointer-events-none"
+            className="w-44 mx-auto opacity-90 select-none pointer-events-none"
           />
-          <p className="text-xs tracking-widest uppercase text-stone-400">
+          <p className="text-xs tracking-[0.22em] uppercase text-[#8C7756] font-semibold">
             Edis & Dania • 21 de Noviembre de 2026
           </p>
         </footer>

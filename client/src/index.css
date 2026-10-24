@@ -186,6 +186,104 @@ button:active:not(:disabled) {
   font-family: 'Monotype Corsiva', 'MonotypeCorsiva', 'Alex Brush', 'Great Vibes', 'Playfair Display', cursive, serif;
 }
 
+/* =====================================================================
+   Animaciones Editoriales para la Landing Page de Invitación Digital
+   (Efecto Brisa Viva, Partículas Doradas y Destellos de Lacre)
+===================================================================== */
+@keyframes breezeSwayA {
+  0%, 100% {
+    transform: rotate(-2.2deg) translate3d(-2px, -2px, 0) scale(1);
+  }
+  50% {
+    transform: rotate(2.4deg) translate3d(3px, 3px, 0) scale(1.018);
+  }
+}
+
+@keyframes breezeSwayB {
+  0%, 100% {
+    transform: rotate(2.2deg) translate3d(2px, -3px, 0) scale(1);
+  }
+  50% {
+    transform: rotate(-2.4deg) translate3d(-3px, 2px, 0) scale(1.02);
+  }
+}
+
+@keyframes watercolorBreathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+
+@keyframes envelopeFloat {
+  0%, 100% {
+    transform: translate3d(0, -4px, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, 5px, 0) scale(1.04);
+  }
+}
+
+@keyframes goldenShimmer {
+  0% {
+    transform: translateX(-140%) skewX(-20deg);
+  }
+  45%, 100% {
+    transform: translateX(220%) skewX(-20deg);
+  }
+}
+
+@keyframes particleDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.7);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.75;
+  }
+  75% {
+    opacity: 0.65;
+  }
+  100% {
+    transform: translate3d(22px, -110px, 0) scale(1.15);
+    opacity: 0;
+  }
+}
+
+.animate-breeze-a {
+  animation: breezeSwayA 6.2s ease-in-out infinite;
+  transform-origin: top left;
+}
+
+.animate-breeze-b {
+  animation: breezeSwayB 7.1s ease-in-out infinite;
+  transform-origin: bottom right;
+}
+
+.animate-breeze-roses-l {
+  animation: breezeSwayA 7.8s ease-in-out infinite;
+  transform-origin: bottom left;
+}
+
+.animate-breeze-roses-r {
+  animation: breezeSwayB 6.6s ease-in-out infinite;
+  transform-origin: top right;
+}
+
+.animate-watercolor-breathe {
+  animation: watercolorBreathe 8.5s ease-in-out infinite;
+}
+
+.animate-envelope-float {
+  animation: envelopeFloat 4.2s ease-in-out infinite;
+}
+
+.animate-golden-shimmer {
+  animation: goldenShimmer 4.8s ease-in-out infinite;
+}
+
 /* Print styles for Cards/Envelope list and Printable Labels */
 @media print {
   /* Hide standard web UI */
