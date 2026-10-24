@@ -188,50 +188,74 @@ button:active:not(:disabled) {
 
 /* =====================================================================
    Animaciones Editoriales para la Landing Page de Invitación Digital
-   (Efecto Brisa Viva, Partículas Doradas y Destellos de Lacre)
+   (Sobre 3D, Efecto Brisa Viva Orgánica, Partículas/Pétalos y Música)
 ===================================================================== */
 @keyframes breezeSwayA {
   0%, 100% {
-    transform: rotate(-2.2deg) translate3d(-2px, -2px, 0) scale(1);
+    transform: rotate(-3.8deg) skewX(-1.2deg) translate3d(-4px, -3px, 0) scale(1);
   }
-  50% {
-    transform: rotate(2.4deg) translate3d(3px, 3px, 0) scale(1.018);
+  35% {
+    transform: rotate(2.8deg) skewX(1deg) translate3d(4px, 2px, 0) scale(1.022);
+  }
+  70% {
+    transform: rotate(4.4deg) skewX(1.5deg) translate3d(6px, 5px, 0) scale(1.03);
   }
 }
 
 @keyframes breezeSwayB {
   0%, 100% {
-    transform: rotate(2.2deg) translate3d(2px, -3px, 0) scale(1);
+    transform: rotate(3.8deg) skewX(1.2deg) translate3d(4px, -4px, 0) scale(1);
+  }
+  40% {
+    transform: rotate(-2.6deg) skewX(-1deg) translate3d(-4px, 2px, 0) scale(1.02);
+  }
+  75% {
+    transform: rotate(-4.5deg) skewX(-1.5deg) translate3d(-6px, 4px, 0) scale(1.032);
+  }
+}
+
+@keyframes breezeRosesLeft {
+  0%, 100% {
+    transform: rotate(-3.2deg) skewY(-1deg) translate3d(-3px, 2px, 0) scale(1);
   }
   50% {
-    transform: rotate(-2.4deg) translate3d(-3px, 2px, 0) scale(1.02);
+    transform: rotate(3.6deg) skewY(1.2deg) translate3d(5px, -4px, 0) scale(1.028);
+  }
+}
+
+@keyframes breezeRosesRight {
+  0%, 100% {
+    transform: rotate(3.4deg) skewY(1deg) translate3d(3px, -2px, 0) scale(1);
+  }
+  50% {
+    transform: rotate(-3.8deg) skewY(-1.2deg) translate3d(-5px, 4px, 0) scale(1.028);
   }
 }
 
 @keyframes watercolorBreathe {
   0%, 100% {
-    transform: scale(1);
+    transform: scale(1) translate3d(0, 0, 0);
   }
   50% {
-    transform: scale(1.045);
+    transform: scale(1.055) translate3d(3px, -3px, 0);
   }
 }
 
 @keyframes envelopeFloat {
   0%, 100% {
-    transform: translate3d(0, -4px, 0) scale(1);
+    transform: translate3d(0, -5px, 0) rotate(-1.5deg) scale(1);
   }
   50% {
-    transform: translate3d(0, 5px, 0) scale(1.04);
+    transform: translate3d(0, 6px, 0) rotate(1.5deg) scale(1.045);
   }
 }
 
 @keyframes goldenShimmer {
   0% {
-    transform: translateX(-140%) skewX(-20deg);
+    transform: translateX(-150%) skewX(-20deg);
   }
   45%, 100% {
-    transform: translateX(220%) skewX(-20deg);
+    transform: translateX(240%) skewX(-20deg);
   }
 }
 
@@ -240,48 +264,114 @@ button:active:not(:disabled) {
     transform: translate3d(0, 0, 0) scale(0.7);
     opacity: 0;
   }
-  25% {
-    opacity: 0.75;
+  20% {
+    opacity: 0.8;
   }
-  75% {
+  80% {
     opacity: 0.65;
   }
   100% {
-    transform: translate3d(22px, -110px, 0) scale(1.15);
+    transform: translate3d(34px, -125px, 0) scale(1.18);
     opacity: 0;
   }
 }
 
+@keyframes breezeLeafDrift {
+  0% {
+    transform: translate3d(-18px, -10vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(28px, 45vh, 0) rotate(165deg);
+    opacity: 0.5;
+  }
+  85% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate3d(-12px, 105vh, 0) rotate(330deg);
+    opacity: 0;
+  }
+}
+
+@keyframes sealPulseHalo {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+}
+
+@keyframes eqBarBounce {
+  0%, 100% {
+    transform: scaleY(0.32);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
 .animate-breeze-a {
-  animation: breezeSwayA 6.2s ease-in-out infinite;
+  animation: breezeSwayA 5.2s ease-in-out infinite;
   transform-origin: top left;
+  will-change: transform;
 }
 
 .animate-breeze-b {
-  animation: breezeSwayB 7.1s ease-in-out infinite;
+  animation: breezeSwayB 5.8s ease-in-out infinite;
   transform-origin: bottom right;
+  will-change: transform;
 }
 
 .animate-breeze-roses-l {
-  animation: breezeSwayA 7.8s ease-in-out infinite;
+  animation: breezeRosesLeft 6.1s ease-in-out infinite;
   transform-origin: bottom left;
+  will-change: transform;
 }
 
 .animate-breeze-roses-r {
-  animation: breezeSwayB 6.6s ease-in-out infinite;
+  animation: breezeRosesRight 5.5s ease-in-out infinite;
   transform-origin: top right;
+  will-change: transform;
 }
 
 .animate-watercolor-breathe {
-  animation: watercolorBreathe 8.5s ease-in-out infinite;
+  animation: watercolorBreathe 7.5s ease-in-out infinite;
 }
 
 .animate-envelope-float {
-  animation: envelopeFloat 4.2s ease-in-out infinite;
+  animation: envelopeFloat 4s ease-in-out infinite;
 }
 
 .animate-golden-shimmer {
-  animation: goldenShimmer 4.8s ease-in-out infinite;
+  animation: goldenShimmer 4.5s ease-in-out infinite;
+}
+
+.animate-seal-halo {
+  animation: sealPulseHalo 2.4s ease-out infinite;
+}
+
+.animate-eq-1 {
+  animation: eqBarBounce 0.75s ease-in-out infinite;
+  transform-origin: bottom;
+}
+.animate-eq-2 {
+  animation: eqBarBounce 0.55s ease-in-out 0.18s infinite;
+  transform-origin: bottom;
+}
+.animate-eq-3 {
+  animation: eqBarBounce 0.85s ease-in-out 0.32s infinite;
+  transform-origin: bottom;
+}
+.animate-eq-4 {
+  animation: eqBarBounce 0.65s ease-in-out 0.1s infinite;
+  transform-origin: bottom;
 }
 
 /* Print styles for Cards/Envelope list and Printable Labels */

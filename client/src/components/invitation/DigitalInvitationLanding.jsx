@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { useWedding } from '../../context/WeddingContext';
 import { useWeddingCountdown } from '../../hooks/useWeddingCountdown';
@@ -6,7 +6,6 @@ import { openWhatsApp } from '../../utils/whatsapp';
 import { decodeInvitationToken } from '../../utils/invitationToken';
 import {
   Heart,
-  Sparkles,
   MapPin,
   CheckCircle2,
   MessageCircle,
@@ -16,6 +15,9 @@ import {
   ExternalLink,
   UserCheck,
   ArrowLeft,
+  Volume2,
+  VolumeX,
+  Music,
 } from 'lucide-react';
 
 // Curva suave estilo Canva para interpolar el ensamblaje con el scroll
@@ -31,26 +33,36 @@ function subProgress(progress, start, end) {
   return easeOutCubic((progress - start) / (end - start));
 }
 
-// Partículas doradas y salvia flotantes en toda la pantalla (100% GPU CSS, 0 costo de red)
-const GOLD_PARTICLES = Array.from({ length: 22 }, (_, i) => ({
+// Partículas doradas y hojas botánicas mecidas por la brisa (100% GPU CSS, 0 costo de red/BD)
+const GOLD_PARTICLES = Array.from({ length: 20 }, (_, i) => ({
   id: i,
   left: `${(i * 19 + 7) % 96}%`,
   top: `${(i * 29 + 11) % 94}%`,
   size: i % 3 === 0 ? 5 : i % 2 === 0 ? 3.5 : 2.5,
   delay: `${(i * 0.45).toFixed(2)}s`,
-  duration: `${(6.5 + (i % 5) * 1.4).toFixed(1)}s`,
+  duration: `${(6.2 + (i % 5) * 1.3).toFixed(1)}s`,
   isGold: i % 4 !== 0,
 }));
 
-const FloatingGoldParticles = React.memo(function FloatingGoldParticles() {
+const BREEZE_PETALS = Array.from({ length: 7 }, (_, i) => ({
+  id: i,
+  left: `${8 + ((i * 14) % 84)}%`,
+  delay: `${(i * 2.1).toFixed(1)}s`,
+  duration: `${(13 + (i % 4) * 2.5).toFixed(1)}s`,
+  size: i % 2 === 0 ? 15 : 12,
+  isGold: i % 3 === 0,
+}));
+
+const FloatingBreezeAtmosphere = React.memo(function FloatingBreezeAtmosphere() {
   return (
     <div
       className="fixed inset-0 pointer-events-none z-20 overflow-hidden select-none"
       aria-hidden="true"
     >
+      {/* Destellos dorados y salvia ascendentes */}
       {GOLD_PARTICLES.map((pt) => (
         <span
-          key={pt.id}
+          key={`pt-${pt.id}`}
           className="absolute rounded-full"
           style={{
             left: pt.left,
@@ -65,6 +77,27 @@ const FloatingGoldParticles = React.memo(function FloatingGoldParticles() {
           }}
         />
       ))}
+
+      {/* Hojitas de olivo y pétalos suaves llevados por la brisa */}
+      {BREEZE_PETALS.map((leaf) => (
+        <svg
+          key={`leaf-${leaf.id}`}
+          viewBox="0 0 24 24"
+          className="absolute top-0"
+          style={{
+            left: leaf.left,
+            width: `${leaf.size}px`,
+            height: `${leaf.size}px`,
+            animation: `breezeLeafDrift ${leaf.duration} linear ${leaf.delay} infinite`,
+          }}
+        >
+          <path
+            d="M19 4C11 4 5 10 5 18C13 18 19 12 19 4Z"
+            fill={leaf.isGold ? '#D6BC94' : '#7E9E78'}
+            fillOpacity={leaf.isGold ? '0.52' : '0.42'}
+          />
+        </svg>
+      ))}
     </div>
   );
 });
@@ -78,7 +111,6 @@ const EditorialInnerFrame = React.memo(function EditorialInnerFrame({
       className={`absolute ${insetClass} pointer-events-none z-20 rounded-xl sm:rounded-2xl border border-[#C5A880]/45`}
       aria-hidden="true"
     >
-      {/* Esquinas ornamentales doradas */}
       <span className="absolute -top-1 -left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-[#C5A880]" />
       <span className="absolute -top-1 -right-1 w-2.5 h-2.5 border-t-2 border-r-2 border-[#C5A880]" />
       <span className="absolute -bottom-1 -left-1 w-2.5 h-2.5 border-b-2 border-l-2 border-[#C5A880]" />
@@ -138,6 +170,385 @@ const LiveCountdownGrid = React.memo(function LiveCountdownGrid() {
     </div>
   );
 });
+
+// Sobre 3D Verde Salvia con Interior Marfil Acuarela y Sello de Lacre Dorado "E & D"
+function LuxurySageEnvelopeOverlay({
+  phase,
+  flapBehind,
+  displaySalutation,
+  displaySeats,
+  onOpenEnvelope,
+  isAdminUnlocked,
+  onBackToAdmin,
+}) {
+  if (phase === 'done') return null;
+
+  const isFlapOpen = phase === 'flap' || phase === 'card' || phase === 'reveal';
+  const isCardRising = phase === 'card' || phase === 'reveal';
+  const isRevealing = phase === 'reveal';
+
+  return (
+    <div
+      className={`fixed inset-0 z-[70] flex flex-col items-center justify-center px-4 py-6 overflow-hidden transition-all duration-700 ${
+        isRevealing ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
+      }`}
+      style={{
+        backgroundColor: '#EEF2EB',
+      }}
+    >
+      {/* Fondo de papel acuarela e iluminación cálida */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-55"
+        style={{
+          backgroundImage: 'url(/invitacion/layers/paper-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(circle at 50% 42%, rgba(255,255,255,0.75) 0%, rgba(197,168,128,0.14) 55%, rgba(36,59,43,0.12) 100%)',
+        }}
+      />
+
+      {/* Ramas botánicas en las esquinas mecidas por la brisa */}
+      <div className="pointer-events-none select-none absolute -top-5 -left-6 w-44 sm:w-64 opacity-90">
+        <img
+          src="/invitacion/leaf-top-left.png"
+          alt=""
+          className="w-full h-auto animate-breeze-a"
+        />
+      </div>
+      <div className="pointer-events-none select-none absolute -bottom-5 -right-6 w-44 sm:w-64 opacity-90">
+        <img
+          src="/invitacion/leaf-bottom-right.png"
+          alt=""
+          className="w-full h-auto animate-breeze-b"
+        />
+      </div>
+
+      {/* Acceso rápido para Edis/Dania si tienen el panel desbloqueado */}
+      {isAdminUnlocked && (
+        <div className="fixed top-3 left-3 sm:left-6 z-50">
+          <button
+            type="button"
+            onClick={() => {
+              if (onBackToAdmin) onBackToAdmin();
+              else window.location.href = '/';
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 backdrop-blur-md text-stone-700 hover:text-wedding-primaryDark text-xs font-semibold shadow-md border border-[#C5A880]/50 cursor-pointer"
+          >
+            <ArrowLeft size={14} />
+            <span>Panel de Boda</span>
+          </button>
+        </div>
+      )}
+
+      {/* Encabezado personalizado encima del sobre */}
+      <div
+        className={`relative z-20 text-center mb-5 sm:mb-7 space-y-1.5 transition-all duration-500 ${
+          isCardRising ? 'opacity-0 -translate-y-4' : 'opacity-100 translate-y-0'
+        }`}
+      >
+        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.32em] text-[#7A6B53] font-bold">
+          Nuestra Boda • 21 Nov 2026
+        </p>
+        <h1 className="font-serif text-xl sm:text-2xl font-bold text-[#243B2B] px-2">
+          {displaySalutation}
+        </h1>
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#C5A880]/60 text-[#34593C] text-[11px] font-bold shadow-sm">
+          <Ticket size={12} className="text-[#B38E5D]" />
+          <span>
+            {displaySeats} {displaySeats === 1 ? 'Pase Reservado' : 'Pases Reservados'}
+          </span>
+        </div>
+      </div>
+
+      {/* ESCENARIO 3D DEL SOBRE VERDE SALVIA */}
+      <div
+        onClick={phase === 'idle' ? onOpenEnvelope : undefined}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (phase === 'idle' && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onOpenEnvelope();
+          }
+        }}
+        aria-label="Abrir sobre de invitación de boda"
+        className={`relative z-20 w-[90vw] max-w-[430px] aspect-[440/300] select-none ${
+          phase === 'idle' ? 'cursor-pointer group' : 'cursor-default'
+        }`}
+        style={{ perspective: '1500px' }}
+      >
+        {/* 1. Interior Marfil Acuarela del Sobre (visible cuando la solapa se abre) */}
+        <div className="absolute inset-0 rounded-[18px] bg-[#FAF8F2] border border-[#C5A880]/70 shadow-[0_32px_70px_-14px_rgba(24,42,30,0.42)] overflow-hidden">
+          <img
+            src="/invitacion/layers/paper-bg.jpg"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover opacity-90"
+          />
+          <img
+            src="/invitacion/layers/watercolor-splash.png"
+            alt=""
+            className="absolute -left-16 -top-8 w-56 h-44 opacity-35"
+          />
+          <img
+            src="/invitacion/layers/watercolor-splash.png"
+            alt=""
+            className="absolute -right-12 bottom-0 w-52 h-40 opacity-30"
+          />
+          <div className="absolute inset-2 rounded-[13px] border border-[#C5A880]/45" />
+        </div>
+
+        {/* 2. Tarjeta Interior de Invitación que se desliza hacia arriba al abrir el sobre */}
+        <div
+          className="absolute left-[6%] right-[6%] top-[7%] bottom-[8%] z-10 rounded-2xl bg-[#FAF9F5] border border-[#C5A880]/75 shadow-[0_14px_35px_-8px_rgba(24,42,30,0.28)] overflow-hidden flex flex-col items-center justify-center px-4 text-center"
+          style={{
+            transition: 'transform 880ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transform: isCardRising
+              ? 'translate3d(0, -50%, 0) scale(1.03)'
+              : isFlapOpen
+                ? 'translate3d(0, -8%, 0) scale(0.99)'
+                : 'translate3d(0, 4%, 0) scale(0.96)',
+          }}
+        >
+          <img
+            src="/invitacion/layers/paper-bg.jpg"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover opacity-85"
+          />
+          <div className="absolute inset-2 rounded-xl border border-[#C5A880]/50 pointer-events-none" />
+          <img
+            src="/invitacion/layers/olive-branch.png"
+            alt=""
+            className="absolute -top-3 -left-5 w-20 opacity-85 pointer-events-none"
+          />
+          <img
+            src="/invitacion/layers/roses-top-right.png"
+            alt=""
+            className="absolute -top-2 -right-4 w-20 opacity-85 pointer-events-none"
+          />
+          <p className="relative z-10 text-[9px] sm:text-[10px] uppercase tracking-[0.28em] text-[#8C7756] font-bold mb-1">
+            Nos Casamos
+          </p>
+          <img
+            src="/invitacion/layers/text-edis-dania.png"
+            alt="Edis y Dania"
+            className="relative z-10 w-44 sm:w-52 mx-auto"
+          />
+          <p className="relative z-10 font-serif text-[11px] sm:text-xs text-[#2F4838] tracking-[0.18em] uppercase mt-1 font-semibold">
+            21 de Noviembre, 2026
+          </p>
+        </div>
+
+        {/* 3. Bolsillo Frontal del Sobre Verde Salvia con Filetes Dorados (SVG de alta precisión) */}
+        <svg
+          viewBox="0 0 440 300"
+          preserveAspectRatio="none"
+          className="absolute inset-0 w-full h-full z-20 pointer-events-none rounded-[18px] overflow-hidden"
+        >
+          <defs>
+            <linearGradient id="sageLeftFold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#43644D" />
+              <stop offset="100%" stopColor="#2B4433" />
+            </linearGradient>
+            <linearGradient id="sageRightFold" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#40604A" />
+              <stop offset="100%" stopColor="#283F30" />
+            </linearGradient>
+            <linearGradient id="sageBottomPocket" x1="50%" y1="0%" x2="50%" y2="100%">
+              <stop offset="0%" stopColor="#4A6D55" />
+              <stop offset="55%" stopColor="#35523E" />
+              <stop offset="100%" stopColor="#263D2E" />
+            </linearGradient>
+          </defs>
+
+          {/* Pliegue lateral izquierdo */}
+          <polygon
+            points="0,0 228,158 0,300"
+            fill="url(#sageLeftFold)"
+            stroke="#C5A880"
+            strokeOpacity="0.45"
+            strokeWidth="1.2"
+          />
+
+          {/* Pliegue lateral derecho */}
+          <polygon
+            points="440,0 212,158 440,300"
+            fill="url(#sageRightFold)"
+            stroke="#C5A880"
+            strokeOpacity="0.45"
+            strokeWidth="1.2"
+          />
+
+          {/* Pliegue inferior principal estilo Euro-Baronial */}
+          <path
+            d="M 0,300 L 188,144 Q 220,122 252,144 L 440,300 Z"
+            fill="url(#sageBottomPocket)"
+            stroke="#D8BE96"
+            strokeOpacity="0.65"
+            strokeWidth="1.5"
+          />
+
+          {/* Doble hilo dorado editorial en el bolsillo inferior */}
+          <path
+            d="M 14,296 L 193,151 Q 220,131 247,151 L 426,296"
+            fill="none"
+            stroke="#E5CFA9"
+            strokeOpacity="0.32"
+            strokeWidth="1"
+          />
+        </svg>
+
+        {/* Etiqueta caligráfica sutil en la parte baja del sobre */}
+        <div className="absolute bottom-3.5 inset-x-6 z-20 pointer-events-none text-center">
+          <span className="text-[9px] sm:text-[10px] uppercase tracking-[0.26em] text-[#EAD6B5]/90 font-medium">
+            Edis & Dania • Calan Park
+          </span>
+        </div>
+
+        {/* 4. Solapa Superior 3D (Exterior Verde Salvia / Interior Marfil Acuarela) */}
+        <div
+          className="absolute top-0 inset-x-0 h-[62%] pointer-events-none"
+          style={{
+            zIndex: flapBehind ? 5 : 30,
+            transformOrigin: 'top center',
+            transformStyle: 'preserve-3d',
+            transition: 'transform 780ms cubic-bezier(0.33, 1, 0.68, 1)',
+            transform: isFlapOpen ? 'rotateX(180deg)' : 'rotateX(0deg)',
+          }}
+        >
+          {/* Cara exterior de la solapa (Verde Salvia con borde dorado) */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+            }}
+          >
+            <svg
+              viewBox="0 0 440 186"
+              preserveAspectRatio="none"
+              className="w-full h-full drop-shadow-[0_10px_14px_rgba(18,32,23,0.32)]"
+            >
+              <defs>
+                <linearGradient id="sageTopFlap" x1="50%" y1="0%" x2="50%" y2="100%">
+                  <stop offset="0%" stopColor="#4F745B" />
+                  <stop offset="65%" stopColor="#385742" />
+                  <stop offset="100%" stopColor="#2B4433" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M 0,14 Q 0,0 14,0 L 426,0 Q 440,0 440,14 L 246,166 Q 220,185 194,166 Z"
+                fill="url(#sageTopFlap)"
+                stroke="#D8BE96"
+                strokeOpacity="0.75"
+                strokeWidth="1.6"
+              />
+              <path
+                d="M 12,8 L 428,8 L 241,157 Q 220,173 199,157 Z"
+                fill="none"
+                stroke="#E8D3B0"
+                strokeOpacity="0.38"
+                strokeWidth="1"
+              />
+            </svg>
+          </div>
+
+          {/* Cara interior de la solapa (Forro Marfil Acuarela al abrirse a 180°) */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'rotateX(180deg)',
+            }}
+          >
+            <svg
+              viewBox="0 0 440 186"
+              preserveAspectRatio="none"
+              className="w-full h-full drop-shadow-[0_-6px_14px_rgba(24,42,30,0.16)]"
+            >
+              <defs>
+                <linearGradient id="ivoryFlapLiner" x1="50%" y1="0%" x2="50%" y2="100%">
+                  <stop offset="0%" stopColor="#FAF8F2" />
+                  <stop offset="100%" stopColor="#EFECE2" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M 0,14 Q 0,0 14,0 L 426,0 Q 440,0 440,14 L 246,166 Q 220,185 194,166 Z"
+                fill="url(#ivoryFlapLiner)"
+                stroke="#C5A880"
+                strokeOpacity="0.7"
+                strokeWidth="1.5"
+              />
+              <path
+                d="M 16,10 L 424,10 L 240,155 Q 220,170 200,155 Z"
+                fill="none"
+                stroke="#7E9E78"
+                strokeOpacity="0.35"
+                strokeWidth="1"
+              />
+            </svg>
+          </div>
+        </div>
+
+        {/* 5. Sello de Lacre Dorado Artesanal "E & D" */}
+        <div
+          className={`absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 z-40 transition-all duration-500 ${
+            isFlapOpen
+              ? 'opacity-0 scale-125 -translate-y-12 pointer-events-none'
+              : 'opacity-100 group-hover:scale-105'
+          }`}
+        >
+          {/* Halo dorado pulsante */}
+          <span className="absolute -inset-2.5 rounded-full border-2 border-[#DFC59B] animate-seal-halo pointer-events-none" />
+
+          {/* Disco de lacre con relieve orgánico */}
+          <div className="relative w-[82px] h-[82px] sm:w-[90px] sm:h-[90px] rounded-full bg-gradient-to-br from-[#F0D9B5] via-[#C69F68] to-[#876435] p-[5px] shadow-[0_12px_28px_rgba(18,32,23,0.48),inset_0_2px_4px_rgba(255,255,255,0.65)] flex items-center justify-center overflow-hidden">
+            {/* Barrido de brillo metálico */}
+            <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/55 to-transparent animate-golden-shimmer pointer-events-none" />
+
+            {/* Anillo interior grabado en el lacre */}
+            <div className="w-full h-full rounded-full bg-gradient-to-b from-[#DEC094] via-[#B89058] to-[#96713E] border-2 border-[#F3E1C3]/75 shadow-inner flex flex-col items-center justify-center">
+              <span className="font-serif text-lg sm:text-xl font-bold text-[#FFFDF9] drop-shadow-[0_1px_2px_rgba(74,50,19,0.65)] tracking-wider leading-none">
+                E<span className="italic text-sm mx-0.5 text-[#FAF0DF]">&</span>D
+              </span>
+              <Heart
+                size={10}
+                className="text-[#FFFDF9] fill-[#FFFDF9] mt-1 opacity-90 drop-shadow-sm"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Instrucción inferior + botón de abrir con música */}
+      <div
+        className={`relative z-20 mt-6 sm:mt-8 flex flex-col items-center gap-2.5 transition-all duration-500 ${
+          isFlapOpen ? 'opacity-0 translate-y-4 pointer-events-none' : 'opacity-100'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={onOpenEnvelope}
+          className="relative overflow-hidden inline-flex items-center gap-2 px-7 py-3 rounded-full bg-gradient-to-r from-[#243B2B] via-[#35553F] to-[#243B2B] hover:brightness-110 text-white text-xs sm:text-sm font-semibold tracking-wide shadow-lg border border-[#C5A880]/65 cursor-pointer"
+        >
+          <span className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent animate-golden-shimmer pointer-events-none" />
+          <Music size={14} className="text-[#E5CFA9]" />
+          <span>Toca el Sello para Abrir tu Invitación</span>
+        </button>
+        <span className="text-[11px] text-[#6E624E] font-medium flex items-center gap-1.5">
+          <Volume2 size={13} className="text-[#4C8B54]" />
+          Incluye música romántica de fondo
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export function DigitalInvitationLanding({
   onBackToAdmin,
@@ -203,7 +614,150 @@ export function DigitalInvitationLanding({
       return false;
     }
   });
-  const [isEnvelopeOpened, setIsEnvelopeOpened] = useState(false);
+
+  // Estado del Sobre 3D: 'idle' -> 'flap' -> 'card' -> 'reveal' -> 'done'
+  const [envelopePhase, setEnvelopePhase] = useState('idle');
+  const [flapBehind, setFlapBehind] = useState(false);
+  const envelopeTimersRef = useRef([]);
+
+  // Audio romántico de fondo (Canon in D - Cuerdas & Arpa) servido estáticamente desde public/
+  const audioRef = useRef(null);
+  const fadeIntervalRef = useRef(null);
+  const userMutedRef = useRef(false);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+
+  const clearAudioFade = () => {
+    if (fadeIntervalRef.current) {
+      clearInterval(fadeIntervalRef.current);
+      fadeIntervalRef.current = null;
+    }
+  };
+
+  const startMusicWithFadeIn = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    clearAudioFade();
+    userMutedRef.current = false;
+    audio.volume = 0.04;
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          setIsMusicPlaying(true);
+          let vol = 0.04;
+          fadeIntervalRef.current = setInterval(() => {
+            vol = Math.min(0.55, vol + 0.03);
+            if (audioRef.current) {
+              audioRef.current.volume = vol;
+            }
+            if (vol >= 0.55) {
+              clearAudioFade();
+            }
+          }, 90);
+        })
+        .catch(() => {
+          setIsMusicPlaying(false);
+        });
+    }
+  }, []);
+
+  const toggleMusic = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    clearAudioFade();
+    if (audio.paused) {
+      startMusicWithFadeIn();
+    } else {
+      userMutedRef.current = true;
+      audio.pause();
+      setIsMusicPlaying(false);
+    }
+  }, [startMusicWithFadeIn]);
+
+  // Pausar suavemente si el invitado sale a WhatsApp/Google Maps y reanudar al volver
+  useEffect(() => {
+    const handleVisibility = () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      if (document.hidden) {
+        if (!audio.paused) {
+          audio.pause();
+          setIsMusicPlaying(false);
+        }
+      } else if (!userMutedRef.current && envelopePhase !== 'idle') {
+        audio
+          .play()
+          .then(() => setIsMusicPlaying(true))
+          .catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearAudioFade();
+    };
+  }, [envelopePhase]);
+
+  // Bloquear scroll del fondo únicamente mientras el sobre está cerrado
+  useEffect(() => {
+    if (envelopePhase === 'idle' || envelopePhase === 'flap' || envelopePhase === 'card') {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [envelopePhase]);
+
+  // Limpiar timers al desmontar
+  useEffect(() => {
+    return () => {
+      envelopeTimersRef.current.forEach((t) => clearTimeout(t));
+    };
+  }, []);
+
+  const handleOpenEnvelope = useCallback(() => {
+    if (envelopePhase !== 'idle') return;
+
+    // 1. Iniciar la música dentro del gesto directo del usuario (compatible con iPhone Safari y Android)
+    startMusicWithFadeIn();
+
+    // 2. Abrir la solapa 3D del sobre y levantar el sello de lacre
+    setEnvelopePhase('flap');
+
+    envelopeTimersRef.current.forEach((t) => clearTimeout(t));
+    const t1 = setTimeout(() => {
+      setFlapBehind(true);
+    }, 350);
+
+    const t2 = setTimeout(() => {
+      setEnvelopePhase('card');
+      confetti({
+        particleCount: 45,
+        spread: 65,
+        origin: { y: 0.55 },
+        colors: ['#C5A880', '#E5CFA9', '#4C8B54', '#FAF8F5'],
+      });
+    }, 430);
+
+    const t3 = setTimeout(() => {
+      setEnvelopePhase('reveal');
+    }, 1600);
+
+    const t4 = setTimeout(() => {
+      setEnvelopePhase('done');
+    }, 2300);
+
+    envelopeTimersRef.current = [t1, t2, t3, t4];
+  }, [envelopePhase, startMusicWithFadeIn]);
+
+  const handleReplayEnvelope = useCallback(() => {
+    envelopeTimersRef.current.forEach((t) => clearTimeout(t));
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    setFlapBehind(false);
+    setEnvelopePhase('idle');
+  }, []);
 
   // Gesto secreto de 5 toques en el sello E & D para desbloquear el panel en dispositivos de Edis/Dania
   const secretTapCountRef = useRef(0);
@@ -274,7 +828,6 @@ export function DigitalInvitationLanding({
   }, []);
 
   const handleStartJourney = () => {
-    setIsEnvelopeOpened(true);
     if (stage1Ref.current) {
       stage1Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -362,6 +915,25 @@ export function DigitalInvitationLanding({
 
   return (
     <div className="relative min-h-screen bg-[#F2F5EF] text-[#2F352E] font-sans overflow-x-hidden selection:bg-[#7A8F76]/25">
+      {/* Reproductor de audio estático (0 consultas a Neon DB) */}
+      <audio
+        ref={audioRef}
+        src="/invitacion/musica-boda.mp3"
+        loop
+        preload="auto"
+      />
+
+      {/* SOBRE 3D INTERACTIVO DE BIENVENIDA */}
+      <LuxurySageEnvelopeOverlay
+        phase={envelopePhase}
+        flapBehind={flapBehind}
+        displaySalutation={displaySalutation}
+        displaySeats={displaySeats}
+        onOpenEnvelope={handleOpenEnvelope}
+        isAdminUnlocked={isAdminUnlocked}
+        onBackToAdmin={onBackToAdmin}
+      />
+
       {/* Textura editorial sutil de papel acuarela fija en el fondo + iluminación cálida dorada */}
       <div
         className="fixed inset-0 pointer-events-none z-0 opacity-45"
@@ -381,32 +953,77 @@ export function DigitalInvitationLanding({
         aria-hidden="true"
       />
 
-      {/* Lluvia sutil de partículas doradas y botánicas */}
-      <FloatingGoldParticles />
+      {/* Brisa de partículas doradas y hojitas de olivo flotantes */}
+      <FloatingBreezeAtmosphere />
+
+      {/* Botón flotante de Música (esquina inferior derecha, accesible con el pulgar) */}
+      {envelopePhase !== 'idle' && (
+        <button
+          type="button"
+          onClick={toggleMusic}
+          aria-label={isMusicPlaying ? 'Pausar música de fondo' : 'Reproducir música de fondo'}
+          className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-50 inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-white/95 backdrop-blur-md text-[#243B2B] shadow-[0_10px_28px_-4px_rgba(31,58,46,0.28)] border border-[#C5A880]/75 hover:scale-105 transition-all cursor-pointer"
+        >
+          {isMusicPlaying ? (
+            <>
+              <span className="flex items-end gap-[2.5px] h-3.5 px-0.5" aria-hidden="true">
+                <span className="w-[2.5px] h-full rounded-full bg-[#B38E5D] animate-eq-1" />
+                <span className="w-[2.5px] h-full rounded-full bg-[#4C8B54] animate-eq-2" />
+                <span className="w-[2.5px] h-full rounded-full bg-[#B38E5D] animate-eq-3" />
+                <span className="w-[2.5px] h-full rounded-full bg-[#4C8B54] animate-eq-4" />
+              </span>
+              <span className="text-[11px] font-bold tracking-wide text-[#243B2B]">
+                Música
+              </span>
+            </>
+          ) : (
+            <>
+              <VolumeX size={15} className="text-stone-400" />
+              <span className="text-[11px] font-semibold text-stone-500">
+                Música
+              </span>
+            </>
+          )}
+        </button>
+      )}
 
       {/* Barra flotante superior */}
       <div className="fixed top-3 left-0 right-0 z-50 px-3 sm:px-6 pointer-events-none flex items-center justify-between max-w-5xl mx-auto">
-        {isAdminUnlocked ? (
-          <button
-            type="button"
-            onClick={() => {
-              if (onBackToAdmin) {
-                onBackToAdmin();
-              } else {
-                window.location.href = '/';
-              }
-            }}
-            className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 backdrop-blur-md text-stone-700 hover:text-wedding-primaryDark text-xs font-semibold shadow-md border border-[#C5A880]/50 transition-all cursor-pointer"
-          >
-            <ArrowLeft size={14} />
-            <span>Ir al Panel de Boda</span>
-          </button>
-        ) : (
-          <div className="pointer-events-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-[#C5A880]/45">
-            <span className="font-serif font-bold text-xs text-[#2F4838]">E & D</span>
-            <span className="text-[11px] text-[#8C7756] font-medium">• 21 Nov 2026</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {isAdminUnlocked ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (onBackToAdmin) {
+                  onBackToAdmin();
+                } else {
+                  window.location.href = '/';
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 backdrop-blur-md text-stone-700 hover:text-wedding-primaryDark text-xs font-semibold shadow-md border border-[#C5A880]/50 transition-all cursor-pointer"
+            >
+              <ArrowLeft size={14} />
+              <span>Ir al Panel</span>
+            </button>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-[#C5A880]/45">
+              <span className="font-serif font-bold text-xs text-[#2F4838]">E & D</span>
+              <span className="text-[11px] text-[#8C7756] font-medium">• 21 Nov 2026</span>
+            </div>
+          )}
+
+          {envelopePhase === 'done' && (
+            <button
+              type="button"
+              onClick={handleReplayEnvelope}
+              title="Volver a ver el sobre"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white/90 backdrop-blur-md text-[#6E624E] hover:text-[#243B2B] text-[11px] font-semibold shadow-sm border border-[#C5A880]/45 transition-all cursor-pointer"
+            >
+              <Mail size={13} className="text-[#B38E5D]" />
+              <span className="hidden sm:inline">Sobre</span>
+            </button>
+          )}
+        </div>
 
         <a
           href="#confirmar-asistencia"
@@ -422,12 +1039,7 @@ export function DigitalInvitationLanding({
       ===================================================================== */}
       <section className="relative z-10 min-h-[88vh] flex flex-col items-center justify-center px-4 pt-16 pb-6 overflow-hidden">
         {/* Ramas de eucalipto en las esquinas con movimiento continuo de brisa */}
-        <div
-          className="pointer-events-none select-none absolute -top-4 -left-6 w-48 sm:w-64 md:w-80 opacity-95 transition-transform duration-700"
-          style={{
-            transform: `translate3d(${isEnvelopeOpened ? '-14px' : '0px'}, 0, 0)`,
-          }}
-        >
+        <div className="pointer-events-none select-none absolute -top-4 -left-6 w-48 sm:w-64 md:w-80 opacity-95">
           <img
             src="/invitacion/leaf-top-left.png"
             alt=""
@@ -435,12 +1047,7 @@ export function DigitalInvitationLanding({
           />
         </div>
 
-        <div
-          className="pointer-events-none select-none absolute -bottom-4 -right-6 w-48 sm:w-64 md:w-80 opacity-95 transition-transform duration-700"
-          style={{
-            transform: `translate3d(${isEnvelopeOpened ? '14px' : '0px'}, 0, 0)`,
-          }}
-        >
+        <div className="pointer-events-none select-none absolute -bottom-4 -right-6 w-48 sm:w-64 md:w-80 opacity-95">
           <img
             src="/invitacion/leaf-bottom-right.png"
             alt=""
@@ -457,7 +1064,6 @@ export function DigitalInvitationLanding({
             onClick={handleSecretMonogramTap}
             className="relative mx-auto w-[88px] h-[88px] rounded-full bg-gradient-to-br from-[#DFC59B] via-[#B89668] to-[#8C6D43] p-[3px] shadow-[0_10px_25px_-5px_rgba(140,109,67,0.45)] flex items-center justify-center select-none overflow-hidden"
           >
-            {/* Barrido de luz dorada */}
             <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-golden-shimmer pointer-events-none" />
             <div className="w-full h-full rounded-full bg-gradient-to-b from-[#FAF8F3] to-[#F2ECE1] border border-[#C5A880]/80 flex flex-col items-center justify-center">
               <span className="font-serif text-xl font-bold text-[#243B2B] tracking-wider leading-none">
@@ -652,7 +1258,6 @@ export function DigitalInvitationLanding({
             />
 
             {/* 3. FLORES Y HOJAS CON DOBLE ANIMACIÓN: ENSAMBLAJE POR SCROLL + BRISA VIVA CONTINUA */}
-            {/* Rama de olivo superior izquierda */}
             <div
               className="absolute pointer-events-none will-change-transform"
               style={{
@@ -672,7 +1277,6 @@ export function DigitalInvitationLanding({
               />
             </div>
 
-            {/* Rosas blancas superior derecha */}
             <div
               className="absolute pointer-events-none will-change-transform"
               style={{
@@ -692,7 +1296,6 @@ export function DigitalInvitationLanding({
               />
             </div>
 
-            {/* Ramo rosas blancas izquierda */}
             <div
               className="absolute pointer-events-none will-change-transform"
               style={{
@@ -712,7 +1315,6 @@ export function DigitalInvitationLanding({
               />
             </div>
 
-            {/* Rama de olivo inferior derecha */}
             <div
               className="absolute pointer-events-none will-change-transform"
               style={{
@@ -914,7 +1516,6 @@ export function DigitalInvitationLanding({
           </h2>
         </div>
 
-        {/* Marco exterior dorado */}
         <div className="p-1.5 sm:p-2 rounded-[26px] sm:rounded-[30px] bg-gradient-to-br from-[#E5D1B0]/70 via-white/85 to-[#C5A880]/65 shadow-[0_24px_60px_-14px_rgba(31,58,46,0.22)] w-full max-w-[632px]">
           <div
             className="relative w-full aspect-[1600/889] rounded-2xl sm:rounded-3xl border border-[#C5A880]/55 bg-white overflow-hidden select-none"
@@ -922,7 +1523,6 @@ export function DigitalInvitationLanding({
           >
             <EditorialInnerFrame insetClass="inset-2 sm:inset-3" />
 
-            {/* Rama superior izquierda con brisa viva */}
             <div
               className="absolute top-0 left-0 w-[28.1%] h-[46.1%] pointer-events-none will-change-transform"
               style={{
@@ -938,7 +1538,6 @@ export function DigitalInvitationLanding({
               />
             </div>
 
-            {/* Rama inferior derecha con brisa viva */}
             <div
               className="absolute bottom-0 right-0 w-[28.1%] h-[46.1%] pointer-events-none will-change-transform"
               style={{
@@ -967,7 +1566,6 @@ export function DigitalInvitationLanding({
               PASES RESERVADOS
             </div>
 
-            {/* Cuadro Verde Central con destello dorado sutil */}
             <div
               className="absolute flex items-center justify-center pointer-events-none will-change-transform border-[2.5px] sm:border-[3px] border-[#4C8B54] bg-white/95 shadow-[0_6px_20px_-4px_rgba(76,139,84,0.25)] overflow-hidden"
               style={{
@@ -1034,7 +1632,6 @@ export function DigitalInvitationLanding({
           </h2>
         </div>
 
-        {/* Marco exterior dorado */}
         <div className="p-1.5 sm:p-2 rounded-[26px] sm:rounded-[30px] bg-gradient-to-br from-[#E5D1B0]/70 via-white/85 to-[#C5A880]/65 shadow-[0_26px_65px_-15px_rgba(31,58,46,0.24)] w-full max-w-[432px]">
           <div
             className="relative w-full aspect-[1875/3281] rounded-2xl sm:rounded-3xl border border-[#C5A880]/55 bg-[#FAF9F6] overflow-hidden select-none"
@@ -1049,7 +1646,6 @@ export function DigitalInvitationLanding({
               className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-85"
             />
 
-            {/* Acuarelas con respiración */}
             <div
               className="absolute pointer-events-none will-change-transform"
               style={{
@@ -1107,7 +1703,6 @@ export function DigitalInvitationLanding({
               />
             </div>
 
-            {/* Ramas y Rosas con Brisa Viva */}
             <div
               className="absolute pointer-events-none will-change-transform"
               style={{
@@ -1184,7 +1779,6 @@ export function DigitalInvitationLanding({
               />
             </div>
 
-            {/* Frase central */}
             <img
               src="/invitacion/layers/text-regalo-quote.png"
               alt="Nuestro mejor regalo es tu presencia, pero si tu deseo es tener un detalle con nosotros puedes hacerlo dentro de un sobre"
@@ -1199,7 +1793,6 @@ export function DigitalInvitationLanding({
               }}
             />
 
-            {/* Ícono del Sobre con flotación continua */}
             <div
               className="absolute pointer-events-none will-change-transform"
               style={{
@@ -1358,7 +1951,7 @@ export function DigitalInvitationLanding({
           </div>
         </div>
 
-        <footer className="text-center pt-4 pb-10 space-y-2 text-stone-500">
+        <footer className="text-center pt-4 pb-16 space-y-2 text-stone-500">
           <img
             src="/invitacion/layers/text-te-esperamos.png"
             alt="Te esperamos"
