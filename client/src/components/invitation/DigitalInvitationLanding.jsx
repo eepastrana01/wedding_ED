@@ -83,13 +83,12 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
   const [isEnvelopeOpened, setIsEnvelopeOpened] = useState(false);
 
-  // Contenedores sticky de cada tarjeta para que mientras el usuario baja, vea cómo se arma frente a sus ojos
   const stage1Ref = useRef(null);
   const stage2Ref = useRef(null);
   const stage3Ref = useRef(null);
 
   const [scrollState, setScrollState] = useState({
-    p1: 0.08,
+    p1: 0.15,
     p2: 0,
     p3: 0,
   });
@@ -100,22 +99,20 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
     const updateScrollProgress = () => {
       const vh = window.innerHeight || 800;
 
-      // Calcula el progreso [0..1] a medida que el contenedor sticky recorre la pantalla
-      const calcStickyProgress = (el) => {
+      // Calcula el progreso [0..1] a medida que la tarjeta entra desde abajo hasta posicionarse en pantalla
+      const calcSectionProgress = (el, startFactor = 0.95, travelFactor = 0.68) => {
         if (!el) return 0;
         const rect = el.getBoundingClientRect();
-        // Empieza a armarse cuando el borde superior entra a 80% de la pantalla
-        // y termina de armarse cuando el usuario ha scrolleado ~75% de la altura de la ventana
-        const startY = vh * 0.82;
-        const travel = vh * 0.88;
+        const startY = vh * startFactor;
+        const travel = vh * travelFactor;
         const raw = (startY - rect.top) / travel;
         return Math.max(0, Math.min(1, raw));
       };
 
       setScrollState({
-        p1: calcStickyProgress(stage1Ref.current),
-        p2: calcStickyProgress(stage2Ref.current),
-        p3: calcStickyProgress(stage3Ref.current),
+        p1: calcSectionProgress(stage1Ref.current, 0.94, 0.66),
+        p2: calcSectionProgress(stage2Ref.current, 0.94, 0.62),
+        p3: calcSectionProgress(stage3Ref.current, 0.94, 0.64),
       });
     };
 
@@ -274,12 +271,12 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
       {/* =====================================================================
           PORTADA DE BIENVENIDA (SOBRE BOTÁNICO INTERACTIVO)
       ===================================================================== */}
-      <section className="relative min-h-[92vh] flex flex-col items-center justify-center px-4 py-16 overflow-hidden bg-gradient-to-b from-[#E3EBE0] via-[#EEF2EC] to-[#EEF2EC]">
-        {/* Ramas de eucalipto transparentes en las esquinas */}
+      <section className="relative min-h-[86vh] flex flex-col items-center justify-center px-4 pt-16 pb-8 overflow-hidden bg-gradient-to-b from-[#E3EBE0] via-[#EEF2EC] to-[#EEF2EC]">
+        {/* Ramas de eucalipto transparentes y limpias en las esquinas */}
         <img
           src="/invitacion/leaf-top-left.png"
           alt=""
-          className="pointer-events-none select-none absolute -top-4 -left-6 w-44 sm:w-64 md:w-80 opacity-90 transition-transform duration-700"
+          className="pointer-events-none select-none absolute -top-4 -left-6 w-44 sm:w-64 md:w-76 opacity-90 transition-transform duration-700"
           style={{
             transform: `translate3d(${isEnvelopeOpened ? '-12px' : '0px'}, 0, 0) rotate(-4deg)`,
           }}
@@ -287,13 +284,13 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
         <img
           src="/invitacion/leaf-bottom-right.png"
           alt=""
-          className="pointer-events-none select-none absolute -bottom-4 -right-6 w-44 sm:w-64 md:w-80 opacity-90 transition-transform duration-700"
+          className="pointer-events-none select-none absolute -bottom-4 -right-6 w-44 sm:w-64 md:w-76 opacity-90 transition-transform duration-700"
           style={{
             transform: `translate3d(${isEnvelopeOpened ? '12px' : '0px'}, 0, 0) rotate(4deg)`,
           }}
         />
 
-        <div className="relative z-10 max-w-lg w-full text-center space-y-6 bg-white/85 backdrop-blur-md rounded-3xl p-7 sm:p-10 shadow-[0_20px_60px_-15px_rgba(47,72,56,0.15)] border border-[#7A8F76]/25">
+        <div className="relative z-10 max-w-lg w-full text-center space-y-5 bg-white/85 backdrop-blur-md rounded-3xl p-7 sm:p-10 shadow-[0_20px_60px_-15px_rgba(47,72,56,0.15)] border border-[#7A8F76]/25">
           {/* Sello Monograma E & D */}
           <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-[#52795C] via-[#3A5A43] to-[#243B2B] p-[2px] shadow-lg flex items-center justify-center">
             <div className="w-full h-full rounded-full bg-[#FAF9F5] border border-[#C5A880]/60 flex flex-col items-center justify-center">
@@ -306,14 +303,14 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <p className="text-[11px] sm:text-xs uppercase tracking-[0.28em] text-[#4C8B54] font-semibold">
               Nuestra Boda
             </p>
             <img
               src="/invitacion/layers/text-edis-dania.png"
               alt="Edis y Dania"
-              className="w-56 sm:w-64 mx-auto select-none pointer-events-none"
+              className="w-52 sm:w-60 mx-auto select-none pointer-events-none"
             />
           </div>
 
@@ -333,8 +330,8 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             </div>
           </div>
 
-          <p className="text-xs sm:text-sm text-stone-600 leading-relaxed max-w-sm mx-auto">
-            Desliza hacia abajo y observa cómo cada flor, acuarela y mensaje se unen para formar nuestra invitación.
+          <p className="text-xs sm:text-sm text-stone-600 leading-relaxed max-w-sm mx-auto italic font-serif">
+            “Con la bendición de Dios, tenemos la alegría de invitarte a compartir con nosotros el inicio de nuestra vida juntos.”
           </p>
 
           <button
@@ -342,376 +339,345 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
             onClick={handleStartJourney}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-full bg-[#2F4838] hover:bg-[#23372A] text-white text-xs sm:text-sm font-semibold tracking-wide shadow-lg hover:shadow-xl transition-all cursor-pointer group"
           >
-            <Sparkles size={16} className="text-[#C5A880]" />
-            <span>Deslizar y Armar Invitación</span>
+            <Heart size={15} className="text-[#C5A880] fill-[#C5A880]" />
+            <span>Ver Nuestra Invitación</span>
             <ChevronDown size={16} className="group-hover:translate-y-0.5 transition-transform" />
           </button>
         </div>
 
-        <div className="mt-8 flex flex-col items-center gap-1.5 text-stone-400">
-          <span className="text-[10px] uppercase tracking-[0.25em]">Baja para armar la invitación</span>
+        <div className="mt-5 flex flex-col items-center gap-1 text-stone-400">
+          <span className="text-[10px] uppercase tracking-[0.25em]">Desliza hacia abajo</span>
           <ChevronDown size={18} className="animate-bounce text-[#4C8B54]" />
         </div>
       </section>
 
       {/* =====================================================================
           STAGE 1: LA INVITACIÓN PRINCIPAL ARMADA PIEZA POR PIEZA CON LAS CAPAS REALES DE CANVA
-          (Coordenadas exactas extraídas de Invitación Boda EdisDania A6 Final.pptx)
       ===================================================================== */}
       <section
         ref={stage1Ref}
-        className="relative min-h-[165vh] py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto"
+        className="relative py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto flex flex-col items-center"
       >
-        <div className="sticky top-12 sm:top-14 flex flex-col items-center">
-          {/* Indicador de progreso de ensamblaje */}
-          <div className="text-center mb-3 sm:mb-4 space-y-1">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#4C8B54]/25 text-[#3B6E42] text-[11px] font-bold uppercase tracking-widest shadow-2xs">
-              <Sparkles size={12} />
-              {p1 >= 0.95
-                ? '✨ Invitación Completa'
-                : `Armando Invitación (${Math.round(p1 * 100)}%)`}
-            </span>
-          </div>
+        {/* LIENZO A6 OFICIAL (Proporción exacta 4572000 : 6400800 = 5 : 7) */}
+        <div
+          className="relative w-full max-w-[500px] aspect-[5/7] rounded-2xl sm:rounded-3xl shadow-[0_25px_70px_-15px_rgba(31,58,46,0.28)] border border-[#7A8F76]/35 overflow-hidden select-none bg-[#FAF9F6]"
+          style={{ containerType: 'inline-size' }}
+        >
+          {/* 1. FONDO DE PAPEL ACUARELA (image1.jpeg de Canva) */}
+          <img
+            src="/invitacion/layers/paper-bg.jpg"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          />
 
-          {/* LIENZO A6 OFICIAL (Proporción exacta 4572000 : 6400800 = 5 : 7) */}
+          {/* 2. MANCHAS DE ACUARELA VERDE SALVIA (image2.png en sus 6 posiciones exactas de Canva) */}
+          <img
+            src="/invitacion/layers/watercolor-splash.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '-46.75%',
+              top: '-2.06%',
+              width: '94.17%',
+              height: '65.31%',
+              opacity: 0.51 * s1Watercolors,
+              transform: `translate3d(${(1 - s1Watercolors) * -60}px, ${(1 - s1Watercolors) * -40}px, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
+            }}
+          />
+
+          <img
+            src="/invitacion/layers/watercolor-splash.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '80.9%',
+              top: '20.06%',
+              width: '91.14%',
+              height: '63.21%',
+              opacity: 0.51 * s1Watercolors,
+              transform: `translate3d(${(1 - s1Watercolors) * 60}px, 0, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
+            }}
+          />
+
+          <img
+            src="/invitacion/layers/watercolor-splash.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '47.42%',
+              top: '67.61%',
+              width: '92.43%',
+              height: '64.1%',
+              opacity: 0.39 * s1Watercolors,
+              transform: `translate3d(${(1 - s1Watercolors) * 50}px, ${(1 - s1Watercolors) * 50}px, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
+            }}
+          />
+
+          <img
+            src="/invitacion/layers/watercolor-splash.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '33.58%',
+              top: '-29.87%',
+              width: '94.64%',
+              height: '65.64%',
+              opacity: 0.26 * s1Watercolors,
+              transform: `translate3d(0, ${(1 - s1Watercolors) * -50}px, 0) rotate(59.89deg) scale(${0.75 + 0.25 * s1Watercolors})`,
+            }}
+          />
+
+          <img
+            src="/invitacion/layers/watercolor-splash.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '28.73%',
+              top: '50.56%',
+              width: '14.06%',
+              height: '9.75%',
+              opacity: 0.26 * s1Date,
+              transform: `rotate(59.89deg) scale(${0.4 + 0.6 * s1Date})`,
+            }}
+          />
+
+          <img
+            src="/invitacion/layers/watercolor-splash.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '-10.75%',
+              top: '67.01%',
+              width: '35.15%',
+              height: '24.37%',
+              opacity: 0.26 * s1Watercolors,
+              transform: `rotate(59.89deg) scale(${0.7 + 0.3 * s1Watercolors})`,
+            }}
+          />
+
+          {/* 3. FLORES Y HOJAS BOTÁNICAS TRANSPARENTES ENTRANDO DESDE LOS BORDES */}
+          <img
+            src="/invitacion/layers/olive-branch.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '-19.35%',
+              top: '3.91%',
+              width: '39.38%',
+              height: '39.13%',
+              opacity: s1TopLeaves,
+              transform: `translate3d(${(1 - s1TopLeaves) * -130}px, ${(1 - s1TopLeaves) * -80}px, 0) rotate(${(1 - s1TopLeaves) * -25}deg) scale(${0.75 + 0.25 * s1TopLeaves})`,
+            }}
+          />
+
+          <img
+            src="/invitacion/layers/roses-top-right.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '82.07%',
+              top: '-1.06%',
+              width: '38.91%',
+              height: '49.08%',
+              opacity: s1TopRoses,
+              transform: `translate3d(${(1 - s1TopRoses) * 130}px, ${(1 - s1TopRoses) * -75}px, 0) rotate(${-23.9 + (1 - s1TopRoses) * 28}deg) scale(${0.75 + 0.25 * s1TopRoses})`,
+            }}
+          />
+
+          <img
+            src="/invitacion/layers/roses-left.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '-22.56%',
+              top: '43.05%',
+              width: '53.17%',
+              height: '67.07%',
+              opacity: s1LeftRoses,
+              transform: `translate3d(${(1 - s1LeftRoses) * -150}px, ${(1 - s1LeftRoses) * 70}px, 0) rotate(${14.96 - (1 - s1LeftRoses) * 22}deg) scale(${0.75 + 0.25 * s1LeftRoses})`,
+            }}
+          />
+
+          <img
+            src="/invitacion/layers/olive-branch.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '66.66%',
+              top: '68.76%',
+              width: '39.38%',
+              height: '39.13%',
+              opacity: s1BotLeaves,
+              transform: `translate3d(${(1 - s1BotLeaves) * 130}px, ${(1 - s1BotLeaves) * 90}px, 0) rotate(${(1 - s1BotLeaves) * 25}deg) scale(${0.75 + 0.25 * s1BotLeaves})`,
+            }}
+          />
+
+          {/* 4. CALIGRAFÍA PRINCIPAL TRANSPARENTE "Edis y Dania" */}
+          <img
+            src="/invitacion/layers/text-edis-dania.png"
+            alt="Edis y Dania"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '16.0%',
+              top: '7.8%',
+              width: '68.0%',
+              height: '24.0%',
+              opacity: s1Names,
+              transform: `translate3d(0, ${(1 - s1Names) * -75}px, 0) scale(${0.72 + 0.28 * s1Names})`,
+            }}
+          />
+
+          {/* 5. TEXTOS VECTORIALES EN FUENTE ORIGINAL DE CANVA (SIMONETTA) */}
           <div
-            className="relative w-full max-w-[490px] aspect-[5/7] rounded-2xl sm:rounded-3xl shadow-[0_25px_70px_-15px_rgba(31,58,46,0.28)] border border-[#7A8F76]/35 overflow-hidden select-none bg-[#FAF9F6]"
-            style={{ containerType: 'inline-size' }}
+            className="absolute left-[10%] w-[80%] text-center pointer-events-none will-change-transform"
+            style={{
+              top: '36.2%',
+              fontFamily: "'Simonetta', serif",
+              color: '#3A3D36',
+              fontSize: 'clamp(11px, 3.6cqw, 19px)',
+              letterSpacing: '0.03em',
+              opacity: s1Subtitle,
+              transform: `translate3d(0, ${(1 - s1Subtitle) * 45}px, 0) scale(${0.88 + 0.12 * s1Subtitle})`,
+            }}
           >
-            {/* 1. FONDO DE PAPEL ACUARELA (image1.jpeg de Canva) */}
-            <img
-              src="/invitacion/layers/paper-bg.jpg"
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-            />
-
-            {/* 2. MANCHAS DE ACUARELA VERDE SALVIA (image2.png en sus 6 posiciones exactas de Canva) */}
-            {/* Wash #1: Top-Left (x=-46.75%, y=-2.06%, w=94.17%, h=65.31%, alpha=51%) */}
-            <img
-              src="/invitacion/layers/watercolor-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '-46.75%',
-                top: '-2.06%',
-                width: '94.17%',
-                height: '65.31%',
-                opacity: 0.51 * s1Watercolors,
-                transform: `translate3d(${(1 - s1Watercolors) * -60}px, ${(1 - s1Watercolors) * -40}px, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
-              }}
-            />
-
-            {/* Wash #2: Middle-Right (x=80.9%, y=20.06%, w=91.14%, h=63.21%, alpha=51%) */}
-            <img
-              src="/invitacion/layers/watercolor-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '80.9%',
-                top: '20.06%',
-                width: '91.14%',
-                height: '63.21%',
-                opacity: 0.51 * s1Watercolors,
-                transform: `translate3d(${(1 - s1Watercolors) * 60}px, 0, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
-              }}
-            />
-
-            {/* Wash #3: Bottom-Right (x=47.42%, y=67.61%, w=92.43%, h=64.1%, alpha=39%) */}
-            <img
-              src="/invitacion/layers/watercolor-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '47.42%',
-                top: '67.61%',
-                width: '92.43%',
-                height: '64.1%',
-                opacity: 0.39 * s1Watercolors,
-                transform: `translate3d(${(1 - s1Watercolors) * 50}px, ${(1 - s1Watercolors) * 50}px, 0) scale(${0.7 + 0.3 * s1Watercolors})`,
-              }}
-            />
-
-            {/* Wash #4: Top-Center/Right (x=33.58%, y=-29.87%, w=94.64%, h=65.64%, rot=59.89deg, alpha=26%) */}
-            <img
-              src="/invitacion/layers/watercolor-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '33.58%',
-                top: '-29.87%',
-                width: '94.64%',
-                height: '65.64%',
-                opacity: 0.26 * s1Watercolors,
-                transform: `translate3d(0, ${(1 - s1Watercolors) * -50}px, 0) rotate(59.89deg) scale(${0.75 + 0.25 * s1Watercolors})`,
-              }}
-            />
-
-            {/* Wash #5: Detalle central junto a NOV (x=28.73%, y=50.56%, w=14.06%, h=9.75%, rot=59.89deg, alpha=26%) */}
-            <img
-              src="/invitacion/layers/watercolor-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '28.73%',
-                top: '50.56%',
-                width: '14.06%',
-                height: '9.75%',
-                opacity: 0.26 * s1Date,
-                transform: `rotate(59.89deg) scale(${0.4 + 0.6 * s1Date})`,
-              }}
-            />
-
-            {/* Wash #6: Bottom-Left (x=-10.75%, y=67.01%, w=35.15%, h=24.37%, rot=59.89deg, alpha=26%) */}
-            <img
-              src="/invitacion/layers/watercolor-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '-10.75%',
-                top: '67.01%',
-                width: '35.15%',
-                height: '24.37%',
-                opacity: 0.26 * s1Watercolors,
-                transform: `rotate(59.89deg) scale(${0.7 + 0.3 * s1Watercolors})`,
-              }}
-            />
-
-            {/* 3. FLORES Y HOJAS BOTÁNICAS TRANSPARENTES ENTRANDO DESDE LOS BORDES */}
-            {/* Rama de Olivo Superior Izquierda (image3.png: x=-19.35%, y=3.91%, w=39.38%, h=39.13%) */}
-            <img
-              src="/invitacion/layers/olive-branch.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '-19.35%',
-                top: '3.91%',
-                width: '39.38%',
-                height: '39.13%',
-                opacity: s1TopLeaves,
-                transform: `translate3d(${(1 - s1TopLeaves) * -130}px, ${(1 - s1TopLeaves) * -80}px, 0) rotate(${(1 - s1TopLeaves) * -25}deg) scale(${0.75 + 0.25 * s1TopLeaves})`,
-              }}
-            />
-
-            {/* Rosas Blancas Superior Derecha (image5.png: x=82.07%, y=-1.06%, w=38.91%, h=49.08%, rot=-23.9deg) */}
-            <img
-              src="/invitacion/layers/roses-top-right.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '82.07%',
-                top: '-1.06%',
-                width: '38.91%',
-                height: '49.08%',
-                opacity: s1TopRoses,
-                transform: `translate3d(${(1 - s1TopRoses) * 130}px, ${(1 - s1TopRoses) * -75}px, 0) rotate(${-23.9 + (1 - s1TopRoses) * 28}deg) scale(${0.75 + 0.25 * s1TopRoses})`,
-              }}
-            />
-
-            {/* Ramo Grande de Rosas Blancas Izquierda (image4.png: x=-22.56%, y=43.05%, w=53.17%, h=67.07%, rot=14.96deg) */}
-            <img
-              src="/invitacion/layers/roses-left.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '-22.56%',
-                top: '43.05%',
-                width: '53.17%',
-                height: '67.07%',
-                opacity: s1LeftRoses,
-                transform: `translate3d(${(1 - s1LeftRoses) * -150}px, ${(1 - s1LeftRoses) * 70}px, 0) rotate(${14.96 - (1 - s1LeftRoses) * 22}deg) scale(${0.75 + 0.25 * s1LeftRoses})`,
-              }}
-            />
-
-            {/* Rama de Olivo Inferior Derecha (image3.png: x=66.66%, y=68.76%, w=39.38%, h=39.13%) */}
-            <img
-              src="/invitacion/layers/olive-branch.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '66.66%',
-                top: '68.76%',
-                width: '39.38%',
-                height: '39.13%',
-                opacity: s1BotLeaves,
-                transform: `translate3d(${(1 - s1BotLeaves) * 130}px, ${(1 - s1BotLeaves) * 90}px, 0) rotate(${(1 - s1BotLeaves) * 25}deg) scale(${0.75 + 0.25 * s1BotLeaves})`,
-              }}
-            />
-
-            {/* 4. CALIGRAFÍA PRINCIPAL TRANSPARENTE "Edis y Dania" (Eyesome Script) */}
-            <img
-              src="/invitacion/layers/text-edis-dania.png"
-              alt="Edis y Dania"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '16.0%',
-                top: '7.8%',
-                width: '68.0%',
-                height: '24.0%',
-                opacity: s1Names,
-                transform: `translate3d(0, ${(1 - s1Names) * -75}px, 0) scale(${0.72 + 0.28 * s1Names})`,
-              }}
-            />
-
-            {/* 5. TEXTOS VECTORIALES EN FUENTE ORIGINAL DE CANVA (SIMONETTA) */}
-            {/* "TE INVITAMOS A NUESTRA BODA" (y=35.78%) */}
-            <div
-              className="absolute left-[10%] w-[80%] text-center pointer-events-none will-change-transform"
-              style={{
-                top: '36.2%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(11px, 3.6cqw, 19px)',
-                letterSpacing: '0.03em',
-                opacity: s1Subtitle,
-                transform: `translate3d(0, ${(1 - s1Subtitle) * 45}px, 0) scale(${0.88 + 0.12 * s1Subtitle})`,
-              }}
-            >
-              TE INVITAMOS A NUESTRA BODA
-            </div>
-
-            {/* Versículo Mateo 19:6 (y=43.05%) */}
-            <div
-              className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.38]"
-              style={{
-                top: '43.1%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
-                opacity: s1Verse,
-                transform: `translate3d(0, ${(1 - s1Verse) * 55}px, 0)`,
-              }}
-            >
-              <p>Así que ya no son dos, sino uno solo. Por tanto, lo</p>
-              <p>que Dios ha unido, que no lo separe el hombre.</p>
-              <p className="mt-[0.5cqw]">Mateo 19:6</p>
-            </div>
-
-            {/* FECHA EN 3 PIEZAS QUE SE UNEN DESDE LOS COSTADOS: NOV | 21 | 4:30 P.M. */}
-            {/* "NOV" (entra desde la izquierda) */}
-            <div
-              className="absolute text-center pointer-events-none will-change-transform"
-              style={{
-                left: '25.5%',
-                top: '56.8%',
-                width: '18%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(11px, 3.6cqw, 19px)',
-                opacity: s1Date,
-                transform: `translate3d(${(1 - s1Date) * -120}px, 0, 0)`,
-              }}
-            >
-              NOV
-            </div>
-
-            {/* "21" (emerge en el centro con escala) */}
-            <div
-              className="absolute text-center pointer-events-none will-change-transform leading-none"
-              style={{
-                left: '35.23%',
-                top: '52.2%',
-                width: '29.54%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(34px, 11.4cqw, 58px)',
-                opacity: s1Date,
-                transform: `translate3d(0, ${(1 - s1Date) * 35}px, 0) scale(${0.4 + 0.6 * s1Date})`,
-              }}
-            >
-              21
-            </div>
-
-            {/* "4:30 P.M." (entra desde la derecha) */}
-            <div
-              className="absolute text-center pointer-events-none will-change-transform"
-              style={{
-                left: '56.5%',
-                top: '56.8%',
-                width: '24%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(11px, 3.6cqw, 19px)',
-                opacity: s1Date,
-                transform: `translate3d(${(1 - s1Date) * 120}px, 0, 0)`,
-              }}
-            >
-              4:30 P.M.
-            </div>
-
-            {/* Dirección: CALAN PARK, VILLANUEVA (y=65.51%) */}
-            <div
-              className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.35]"
-              style={{
-                top: '65.6%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(9.5px, 2.85cqw, 15px)',
-                opacity: s1Venue,
-                transform: `translate3d(0, ${(1 - s1Venue) * 60}px, 0)`,
-              }}
-            >
-              <p>CALAN PARK, A 1.5 KM DEL DESVÍO A EL</p>
-              <p>CALÁN (ZONA ZIP BÚFALO), VILLANUEVA</p>
-            </div>
-
-            {/* CONFIRMAR ASISTENCIA: +504 8778-8207 (y=73.67%) */}
-            <div
-              className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
-              style={{
-                top: '73.7%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(8.5px, 2.25cqw, 12px)',
-                opacity: s1Venue,
-                transform: `translate3d(0, ${(1 - s1Venue) * 65}px, 0)`,
-              }}
-            >
-              <p>CONFIRMAR ASISTENCIA:</p>
-              <p>+504 8778-8207</p>
-            </div>
-
-            {/* CODIGO VESTIMENTA: FORMAL (y=80.26%) */}
-            <div
-              className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
-              style={{
-                top: '80.4%',
-                fontFamily: "'Simonetta', serif",
-                color: '#3A3D36',
-                fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
-                opacity: s1Dress,
-                transform: `translate3d(0, ${(1 - s1Dress) * 65}px, 0)`,
-              }}
-            >
-              <p>CODIGO VESTIMENTA:</p>
-              <p>FORMAL</p>
-            </div>
-
-            {/* 6. FIRMA CALIGRÁFICA TRANSPARENTE "Te esperamos" (Eyesome Script) */}
-            <img
-              src="/invitacion/layers/text-te-esperamos.png"
-              alt="Te esperamos"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '22.0%',
-                top: '87.0%',
-                width: '56.0%',
-                height: '10.0%',
-                opacity: s1Sign,
-                transform: `translate3d(0, ${(1 - s1Sign) * 55}px, 0) scale(${0.78 + 0.22 * s1Sign})`,
-              }}
-            />
+            TE INVITAMOS A NUESTRA BODA
           </div>
+
+          <div
+            className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.38]"
+            style={{
+              top: '43.1%',
+              fontFamily: "'Simonetta', serif",
+              color: '#3A3D36',
+              fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
+              opacity: s1Verse,
+              transform: `translate3d(0, ${(1 - s1Verse) * 55}px, 0)`,
+            }}
+          >
+            <p>Así que ya no son dos, sino uno solo. Por tanto, lo</p>
+            <p>que Dios ha unido, que no lo separe el hombre.</p>
+            <p className="mt-[0.5cqw]">Mateo 19:6</p>
+          </div>
+
+          {/* FECHA EN 3 PIEZAS QUE SE UNEN DESDE LOS COSTADOS: NOV | 21 | 4:30 P.M. */}
+          <div
+            className="absolute text-center pointer-events-none will-change-transform"
+            style={{
+              left: '25.5%',
+              top: '56.8%',
+              width: '18%',
+              fontFamily: "'Simonetta', serif",
+              color: '#3A3D36',
+              fontSize: 'clamp(11px, 3.6cqw, 19px)',
+              opacity: s1Date,
+              transform: `translate3d(${(1 - s1Date) * -120}px, 0, 0)`,
+            }}
+          >
+            NOV
+          </div>
+
+          <div
+            className="absolute text-center pointer-events-none will-change-transform leading-none"
+            style={{
+              left: '35.23%',
+              top: '52.2%',
+              width: '29.54%',
+              fontFamily: "'Simonetta', serif",
+              color: '#3A3D36',
+              fontSize: 'clamp(34px, 11.4cqw, 58px)',
+              opacity: s1Date,
+              transform: `translate3d(0, ${(1 - s1Date) * 35}px, 0) scale(${0.4 + 0.6 * s1Date})`,
+            }}
+          >
+            21
+          </div>
+
+          <div
+            className="absolute text-center pointer-events-none will-change-transform"
+            style={{
+              left: '56.5%',
+              top: '56.8%',
+              width: '24%',
+              fontFamily: "'Simonetta', serif",
+              color: '#3A3D36',
+              fontSize: 'clamp(11px, 3.6cqw, 19px)',
+              opacity: s1Date,
+              transform: `translate3d(${(1 - s1Date) * 120}px, 0, 0)`,
+            }}
+          >
+            4:30 P.M.
+          </div>
+
+          <div
+            className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.35]"
+            style={{
+              top: '65.6%',
+              fontFamily: "'Simonetta', serif",
+              color: '#3A3D36',
+              fontSize: 'clamp(9.5px, 2.85cqw, 15px)',
+              opacity: s1Venue,
+              transform: `translate3d(0, ${(1 - s1Venue) * 60}px, 0)`,
+            }}
+          >
+            <p>CALAN PARK, A 1.5 KM DEL DESVÍO A EL</p>
+            <p>CALÁN (ZONA ZIP BÚFALO), VILLANUEVA</p>
+          </div>
+
+          <div
+            className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
+            style={{
+              top: '73.7%',
+              fontFamily: "'Simonetta', serif",
+              color: '#3A3D36',
+              fontSize: 'clamp(8.5px, 2.25cqw, 12px)',
+              opacity: s1Venue,
+              transform: `translate3d(0, ${(1 - s1Venue) * 65}px, 0)`,
+            }}
+          >
+            <p>CONFIRMAR ASISTENCIA:</p>
+            <p>+504 8778-8207</p>
+          </div>
+
+          <div
+            className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
+            style={{
+              top: '80.4%',
+              fontFamily: "'Simonetta', serif",
+              color: '#3A3D36',
+              fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
+              opacity: s1Dress,
+              transform: `translate3d(0, ${(1 - s1Dress) * 65}px, 0)`,
+            }}
+          >
+            <p>CODIGO VESTIMENTA:</p>
+            <p>FORMAL</p>
+          </div>
+
+          {/* 6. FIRMA CALIGRÁFICA TRANSPARENTE "Te esperamos" */}
+          <img
+            src="/invitacion/layers/text-te-esperamos.png"
+            alt="Te esperamos"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '22.0%',
+              top: '87.0%',
+              width: '56.0%',
+              height: '10.0%',
+              opacity: s1Sign,
+              transform: `translate3d(0, ${(1 - s1Sign) * 55}px, 0) scale(${0.78 + 0.22 * s1Sign})`,
+            }}
+          />
         </div>
       </section>
 
@@ -720,123 +686,121 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
       ===================================================================== */}
       <section
         ref={stage2Ref}
-        className="relative min-h-[135vh] py-8 sm:py-12 px-3 sm:px-6 max-w-4xl mx-auto"
+        className="relative py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto flex flex-col items-center"
       >
-        <div className="sticky top-16 sm:top-20 flex flex-col items-center">
-          <div className="text-center mb-4 space-y-1">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#4C8B54]/25 text-[#3B6E42] text-[11px] font-bold uppercase tracking-widest shadow-2xs">
-              <Ticket size={13} />
-              Tus Pases Reservados
-            </span>
-            <h2 className="font-serif text-xl sm:text-2xl text-[#2D332B] font-semibold">
-              {displaySalutation}
-            </h2>
-          </div>
-
-          {/* Lienzo de Pases Reservados (1600 x 889) con ramas transparentes y cuadro verde dinámico */}
-          <div
-            className="relative w-full max-w-[620px] aspect-[1600/889] rounded-2xl sm:rounded-3xl shadow-[0_22px_55px_-12px_rgba(31,58,46,0.18)] border border-[#4C8B54]/25 bg-white overflow-hidden select-none"
-            style={{ containerType: 'inline-size' }}
-          >
-            {/* Rama de Eucalipto Transparente Superior Izquierda */}
-            <img
-              src="/invitacion/leaf-top-left.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute top-0 left-0 w-[28.1%] h-[46.1%] object-contain object-top-left pointer-events-none will-change-transform"
-              style={{
-                opacity: s2LeafTL,
-                transform: `translate3d(${(1 - s2LeafTL) * -110}px, ${(1 - s2LeafTL) * -80}px, 0) rotate(${(1 - s2LeafTL) * -20}deg) scale(${0.75 + 0.25 * s2LeafTL})`,
-              }}
-            />
-
-            {/* Rama de Eucalipto Transparente Inferior Derecha */}
-            <img
-              src="/invitacion/leaf-bottom-right.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute bottom-0 right-0 w-[28.75%] h-[49.3%] object-contain object-bottom-right pointer-events-none will-change-transform"
-              style={{
-                opacity: s2LeafBR,
-                transform: `translate3d(${(1 - s2LeafBR) * 110}px, ${(1 - s2LeafBR) * 80}px, 0) rotate(${(1 - s2LeafBR) * 20}deg) scale(${0.75 + 0.25 * s2LeafBR})`,
-              }}
-            />
-
-            {/* Encabezado "PASES RESERVADOS" */}
-            <div
-              className="absolute left-[12%] w-[76%] text-center pointer-events-none will-change-transform font-sans font-normal tracking-[0.22em]"
-              style={{
-                top: '12.2%',
-                color: '#4C8B54',
-                fontSize: 'clamp(13px, 4.4cqw, 28px)',
-                opacity: s2Header,
-                transform: `translate3d(0, ${(1 - s2Header) * -50}px, 0)`,
-              }}
-            >
-              PASES RESERVADOS
-            </div>
-
-            {/* Cuadro Verde Central + Número Dinámico de Pases */}
-            <div
-              className="absolute flex items-center justify-center pointer-events-none will-change-transform border-[2.5px] sm:border-[3px] border-[#4C8B54] bg-white/90"
-              style={{
-                left: '44.3%',
-                top: '24.8%',
-                width: '11.4%',
-                height: '17.2%',
-                opacity: s2Box,
-                transform: `scale(${0.35 + 0.65 * s2Box})`,
-              }}
-            >
-              <span
-                className="font-sans font-semibold leading-none"
-                style={{
-                  color: '#4C8B54',
-                  fontSize: 'clamp(20px, 6.2cqw, 40px)',
-                }}
-              >
-                {displaySeats}
-              </span>
-            </div>
-
-            {/* Texto de agradecimiento inferior */}
-            <div
-              className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform font-sans font-normal leading-[1.52]"
-              style={{
-                top: '48.5%',
-                color: '#4C8B54',
-                fontSize: 'clamp(11px, 3.55cqw, 22px)',
-                opacity: s2Body,
-                transform: `translate3d(0, ${(1 - s2Body) * 60}px, 0)`,
-              }}
-            >
-              <p>Nos encanta tenerte en nuestra boda.</p>
-              <p>Para que todos disfrutemos de este día,</p>
-              <p>te agradecemos respetar la cantidad</p>
-              <p>de invitados indicada en este pase.</p>
-            </div>
-          </div>
-
-          {/* Listado de integrantes contemplados */}
-          {activeCard && activeCard.members && activeCard.members.length > 0 && (
-            <div className="mt-4 w-full max-w-[620px] bg-white/90 rounded-2xl p-4 border border-[#4C8B54]/25 shadow-sm text-center space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-[#4C8B54]">
-                Personas contempladas en esta invitación ({activeCard.seats} {activeCard.seats === 1 ? 'pase' : 'pases'})
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                {activeCard.members.map((m, idx) => (
-                  <span
-                    key={m.id || idx}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3F6F1] border border-[#4C8B54]/25 text-xs font-semibold text-[#243B2B]"
-                  >
-                    <Heart size={11} className="text-[#4C8B54] fill-[#4C8B54]" />
-                    {m.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="text-center mb-4 space-y-1">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#4C8B54]/25 text-[#3B6E42] text-[11px] font-bold uppercase tracking-widest shadow-2xs">
+            <Ticket size={13} />
+            Tus Pases Reservados
+          </span>
+          <h2 className="font-serif text-xl sm:text-2xl text-[#2D332B] font-semibold">
+            {displaySalutation}
+          </h2>
         </div>
+
+        {/* Lienzo de Pases Reservados (1600 x 889) con ramas transparentes impecables y cuadro verde dinámico */}
+        <div
+          className="relative w-full max-w-[620px] aspect-[1600/889] rounded-2xl sm:rounded-3xl shadow-[0_22px_55px_-12px_rgba(31,58,46,0.18)] border border-[#4C8B54]/25 bg-white overflow-hidden select-none"
+          style={{ containerType: 'inline-size' }}
+        >
+          {/* Rama de Eucalipto Transparente Superior Izquierda */}
+          <img
+            src="/invitacion/leaf-top-left.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute top-0 left-0 w-[28.1%] h-[46.1%] object-contain object-top-left pointer-events-none will-change-transform"
+            style={{
+              opacity: s2LeafTL,
+              transform: `translate3d(${(1 - s2LeafTL) * -110}px, ${(1 - s2LeafTL) * -80}px, 0) rotate(${(1 - s2LeafTL) * -20}deg) scale(${0.75 + 0.25 * s2LeafTL})`,
+            }}
+          />
+
+          {/* Rama de Eucalipto Transparente Inferior Derecha (100% limpia sin texto) */}
+          <img
+            src="/invitacion/leaf-bottom-right.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute bottom-0 right-0 w-[28.1%] h-[46.1%] object-contain object-bottom-right pointer-events-none will-change-transform"
+            style={{
+              opacity: s2LeafBR,
+              transform: `translate3d(${(1 - s2LeafBR) * 110}px, ${(1 - s2LeafBR) * 80}px, 0) rotate(${(1 - s2LeafBR) * 20}deg) scale(${0.75 + 0.25 * s2LeafBR})`,
+            }}
+          />
+
+          {/* Encabezado "PASES RESERVADOS" */}
+          <div
+            className="absolute left-[12%] w-[76%] text-center pointer-events-none will-change-transform font-sans font-normal tracking-[0.22em]"
+            style={{
+              top: '12.2%',
+              color: '#4C8B54',
+              fontSize: 'clamp(13px, 4.4cqw, 28px)',
+              opacity: s2Header,
+              transform: `translate3d(0, ${(1 - s2Header) * -50}px, 0)`,
+            }}
+          >
+            PASES RESERVADOS
+          </div>
+
+          {/* Cuadro Verde Central + Número Dinámico de Pases */}
+          <div
+            className="absolute flex items-center justify-center pointer-events-none will-change-transform border-[2.5px] sm:border-[3px] border-[#4C8B54] bg-white/90"
+            style={{
+              left: '44.3%',
+              top: '24.8%',
+              width: '11.4%',
+              height: '17.2%',
+              opacity: s2Box,
+              transform: `scale(${0.35 + 0.65 * s2Box})`,
+            }}
+          >
+            <span
+              className="font-sans font-semibold leading-none"
+              style={{
+                color: '#4C8B54',
+                fontSize: 'clamp(20px, 6.2cqw, 40px)',
+              }}
+            >
+              {displaySeats}
+            </span>
+          </div>
+
+          {/* Texto de agradecimiento inferior */}
+          <div
+            className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform font-sans font-normal leading-[1.52]"
+            style={{
+              top: '48.5%',
+              color: '#4C8B54',
+              fontSize: 'clamp(11px, 3.55cqw, 22px)',
+              opacity: s2Body,
+              transform: `translate3d(0, ${(1 - s2Body) * 60}px, 0)`,
+            }}
+          >
+            <p>Nos encanta tenerte en nuestra boda.</p>
+            <p>Para que todos disfrutemos de este día,</p>
+            <p>te agradecemos respetar la cantidad</p>
+            <p>de invitados indicada en este pase.</p>
+          </div>
+        </div>
+
+        {/* Listado de integrantes contemplados */}
+        {activeCard && activeCard.members && activeCard.members.length > 0 && (
+          <div className="mt-4 w-full max-w-[620px] bg-white/90 rounded-2xl p-4 border border-[#4C8B54]/25 shadow-sm text-center space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[#4C8B54]">
+              Personas contempladas en esta invitación ({activeCard.seats} {activeCard.seats === 1 ? 'pase' : 'pases'})
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {activeCard.members.map((m, idx) => (
+                <span
+                  key={m.id || idx}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3F6F1] border border-[#4C8B54]/25 text-xs font-semibold text-[#243B2B]"
+                >
+                  <Heart size={11} className="text-[#4C8B54] fill-[#4C8B54]" />
+                  {m.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* =====================================================================
@@ -844,156 +808,154 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
       ===================================================================== */}
       <section
         ref={stage3Ref}
-        className="relative min-h-[145vh] py-8 sm:py-12 px-3 sm:px-6 max-w-4xl mx-auto"
+        className="relative py-6 sm:py-10 px-3 sm:px-6 max-w-4xl mx-auto flex flex-col items-center"
       >
-        <div className="sticky top-14 sm:top-16 flex flex-col items-center">
-          <div className="text-center mb-4 space-y-1">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#4C8B54]/25 text-[#3B6E42] text-[11px] font-bold uppercase tracking-widest shadow-2xs">
-              <Mail size={13} />
-              Muestras de Cariño
-            </span>
-            <h2 className="font-serif text-xl sm:text-2xl text-[#2D332B] font-semibold">
-              Detalle de Boda
-            </h2>
-          </div>
+        <div className="text-center mb-4 space-y-1">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#4C8B54]/25 text-[#3B6E42] text-[11px] font-bold uppercase tracking-widest shadow-2xs">
+            <Mail size={13} />
+            Muestras de Cariño
+          </span>
+          <h2 className="font-serif text-xl sm:text-2xl text-[#2D332B] font-semibold">
+            Detalle de Boda
+          </h2>
+        </div>
 
-          {/* Lienzo de Tarjeta de Regalo (1875 x 3281) armado con las mismas capas reales de Canva */}
-          <div
-            className="relative w-full max-w-[420px] aspect-[1875/3281] rounded-2xl sm:rounded-3xl shadow-[0_25px_65px_-15px_rgba(31,58,46,0.22)] border border-[#7A8F76]/30 bg-white overflow-hidden select-none"
-            style={{ containerType: 'inline-size' }}
-          >
-            {/* Manchas de Acuarela */}
-            <img
-              src="/invitacion/layers/watercolor-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '-46%',
-                top: '5%',
-                width: '94%',
-                height: '55%',
-                opacity: 0.45 * s3Watercolors,
-                transform: `translate3d(${(1 - s3Watercolors) * -55}px, 0, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
-              }}
-            />
-            <img
-              src="/invitacion/layers/watercolor-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '42%',
-                top: '-8%',
-                width: '92%',
-                height: '50%',
-                opacity: 0.32 * s3Watercolors,
-                transform: `translate3d(${(1 - s3Watercolors) * 55}px, 0, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
-              }}
-            />
-            <img
-              src="/invitacion/layers/watercolor-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '48%',
-                top: '65%',
-                width: '90%',
-                height: '50%',
-                opacity: 0.38 * s3Watercolors,
-                transform: `translate3d(${(1 - s3Watercolors) * 55}px, ${(1 - s3Watercolors) * 45}px, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
-              }}
-            />
+        {/* Lienzo de Tarjeta de Regalo (1875 x 3281) armado con las mismas capas reales de Canva */}
+        <div
+          className="relative w-full max-w-[420px] aspect-[1875/3281] rounded-2xl sm:rounded-3xl shadow-[0_25px_65px_-15px_rgba(31,58,46,0.22)] border border-[#7A8F76]/30 bg-white overflow-hidden select-none"
+          style={{ containerType: 'inline-size' }}
+        >
+          {/* Manchas de Acuarela */}
+          <img
+            src="/invitacion/layers/watercolor-splash.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '-46%',
+              top: '5%',
+              width: '94%',
+              height: '55%',
+              opacity: 0.45 * s3Watercolors,
+              transform: `translate3d(${(1 - s3Watercolors) * -55}px, 0, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
+            }}
+          />
+          <img
+            src="/invitacion/layers/watercolor-splash.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '42%',
+              top: '-8%',
+              width: '92%',
+              height: '50%',
+              opacity: 0.32 * s3Watercolors,
+              transform: `translate3d(${(1 - s3Watercolors) * 55}px, 0, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
+            }}
+          />
+          <img
+            src="/invitacion/layers/watercolor-splash.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '48%',
+              top: '65%',
+              width: '90%',
+              height: '50%',
+              opacity: 0.38 * s3Watercolors,
+              transform: `translate3d(${(1 - s3Watercolors) * 55}px, ${(1 - s3Watercolors) * 45}px, 0) scale(${0.7 + 0.3 * s3Watercolors})`,
+            }}
+          />
 
-            {/* Ramas de Olivo y Rosas Blancas Transparentes */}
-            <img
-              src="/invitacion/layers/olive-branch.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '-19%',
-                top: '8%',
-                width: '40%',
-                height: '32%',
-                opacity: s3Botanicals,
-                transform: `translate3d(${(1 - s3Botanicals) * -120}px, ${(1 - s3Botanicals) * -60}px, 0) rotate(${(1 - s3Botanicals) * -22}deg)`,
-              }}
-            />
-            <img
-              src="/invitacion/layers/roses-top-right.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '76%',
-                top: '6%',
-                width: '40%',
-                height: '38%',
-                opacity: s3Botanicals,
-                transform: `translate3d(${(1 - s3Botanicals) * 120}px, ${(1 - s3Botanicals) * -60}px, 0) rotate(${-23.9 + (1 - s3Botanicals) * 24}deg)`,
-              }}
-            />
-            <img
-              src="/invitacion/layers/roses-left.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '-22%',
-                top: '41%',
-                width: '54%',
-                height: '54%',
-                opacity: s3Botanicals,
-                transform: `translate3d(${(1 - s3Botanicals) * -130}px, ${(1 - s3Botanicals) * 55}px, 0) rotate(${14.96 - (1 - s3Botanicals) * 20}deg)`,
-              }}
-            />
-            <img
-              src="/invitacion/layers/olive-branch.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '68%',
-                top: '67%',
-                width: '38%',
-                height: '30%',
-                opacity: s3Botanicals,
-                transform: `translate3d(${(1 - s3Botanicals) * 120}px, ${(1 - s3Botanicals) * 70}px, 0) rotate(${(1 - s3Botanicals) * 22}deg)`,
-              }}
-            />
+          {/* Ramas de Olivo y Rosas Blancas Transparentes */}
+          <img
+            src="/invitacion/layers/olive-branch.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '-19%',
+              top: '8%',
+              width: '40%',
+              height: '32%',
+              opacity: s3Botanicals,
+              transform: `translate3d(${(1 - s3Botanicals) * -120}px, ${(1 - s3Botanicals) * -60}px, 0) rotate(${(1 - s3Botanicals) * -22}deg)`,
+            }}
+          />
+          <img
+            src="/invitacion/layers/roses-top-right.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '76%',
+              top: '6%',
+              width: '40%',
+              height: '38%',
+              opacity: s3Botanicals,
+              transform: `translate3d(${(1 - s3Botanicals) * 120}px, ${(1 - s3Botanicals) * -60}px, 0) rotate(${-23.9 + (1 - s3Botanicals) * 24}deg)`,
+            }}
+          />
+          <img
+            src="/invitacion/layers/roses-left.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '-22%',
+              top: '41%',
+              width: '54%',
+              height: '54%',
+              opacity: s3Botanicals,
+              transform: `translate3d(${(1 - s3Botanicals) * -130}px, ${(1 - s3Botanicals) * 55}px, 0) rotate(${14.96 - (1 - s3Botanicals) * 20}deg)`,
+            }}
+          />
+          <img
+            src="/invitacion/layers/olive-branch.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '68%',
+              top: '67%',
+              width: '38%',
+              height: '30%',
+              opacity: s3Botanicals,
+              transform: `translate3d(${(1 - s3Botanicals) * 120}px, ${(1 - s3Botanicals) * 70}px, 0) rotate(${(1 - s3Botanicals) * 22}deg)`,
+            }}
+          />
 
-            {/* Mensaje Central en Fuente Simonetta (y capa transparente exacta) */}
-            <img
-              src="/invitacion/layers/text-regalo-quote.png"
-              alt="Nuestro mejor regalo es tu presencia, pero si tu deseo es tener un detalle con nosotros puedes hacerlo dentro de un sobre"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '10%',
-                top: '37.5%',
-                width: '80%',
-                height: '24.5%',
-                opacity: s3Quote,
-                transform: `translate3d(0, ${(1 - s3Quote) * 65}px, 0) scale(${0.86 + 0.14 * s3Quote})`,
-              }}
-            />
+          {/* Mensaje Central */}
+          <img
+            src="/invitacion/layers/text-regalo-quote.png"
+            alt="Nuestro mejor regalo es tu presencia, pero si tu deseo es tener un detalle con nosotros puedes hacerlo dentro de un sobre"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '10%',
+              top: '37.5%',
+              width: '80%',
+              height: '24.5%',
+              opacity: s3Quote,
+              transform: `translate3d(0, ${(1 - s3Quote) * 65}px, 0) scale(${0.86 + 0.14 * s3Quote})`,
+            }}
+          />
 
-            {/* Ícono del Sobre (✉) que sube flotando al centro */}
-            <img
-              src="/invitacion/layers/icon-regalo-envelope.png"
-              alt="Sobre de regalo"
-              className="absolute pointer-events-none will-change-transform"
-              style={{
-                left: '40%',
-                top: '62.5%',
-                width: '20%',
-                height: '8.5%',
-                opacity: s3Envelope,
-                transform: `translate3d(0, ${(1 - s3Envelope) * 75}px, 0) scale(${0.45 + 0.55 * s3Envelope})`,
-              }}
-            />
-          </div>
+          {/* Ícono del Sobre (✉) que sube flotando al centro */}
+          <img
+            src="/invitacion/layers/icon-regalo-envelope.png"
+            alt="Sobre de regalo"
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: '40%',
+              top: '62.5%',
+              width: '20%',
+              height: '8.5%',
+              opacity: s3Envelope,
+              transform: `translate3d(0, ${(1 - s3Envelope) * 75}px, 0) scale(${0.45 + 0.55 * s3Envelope})`,
+            }}
+          />
         </div>
       </section>
 
@@ -1002,7 +964,7 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
       ===================================================================== */}
       <section
         id="confirmar-asistencia"
-        className="relative py-12 sm:py-16 px-4 sm:px-6 max-w-3xl mx-auto space-y-8"
+        className="relative py-8 sm:py-12 px-4 sm:px-6 max-w-3xl mx-auto space-y-6"
       >
         {/* 1. Cuenta Regresiva y Ubicación */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_18px_50px_-15px_rgba(31,58,46,0.14)] border border-[#7A8F76]/25 text-center space-y-6">
@@ -1211,7 +1173,7 @@ export function DigitalInvitationLanding({ onBackToAdmin }) {
           </div>
         </div>
 
-        <footer className="text-center pt-6 pb-12 space-y-2 text-stone-500">
+        <footer className="text-center pt-4 pb-10 space-y-2 text-stone-500">
           <img
             src="/invitacion/layers/text-te-esperamos.png"
             alt="Te esperamos"
