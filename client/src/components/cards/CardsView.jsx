@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useWedding } from '../../context/WeddingContext';
-import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown, Ticket, FileText, Tag, UserCheck, UserX } from 'lucide-react';
+import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown, Ticket, FileText, Tag, UserCheck, UserX, Link2, ExternalLink } from 'lucide-react';
 import { openWhatsApp } from '../../utils/whatsapp';
 import { generateInvitationCardsPDF } from '../../utils/pdfGenerator';
 import { LabelsPrintModal } from './LabelsPrintModal';
@@ -97,13 +97,38 @@ export function CardsView() {
     window.print();
   };
 
+  // Construye el enlace personalizado de la Landing Page de invitación digital para esta tarjeta
+  const getCardInvitationUrl = (card) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://wedding-ed.vercel.app';
+    if (!card) {
+      return `${origin}/invitacion`;
+    }
+    const params = new URLSearchParams({
+      card: String(card.id),
+      para: card.salutation || card.title || 'Invitado Especial',
+      pases: String(card.seats || 1),
+    });
+    return `${origin}/invitacion?${params.toString()}`;
+  };
+
+  const handleCopyCardLink = async (card) => {
+    const url = getCardInvitationUrl(card);
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast(`Enlace digital copiado para ${card.salutation} (${card.seats} ${card.seats === 1 ? 'pase' : 'pases'})`);
+    } catch {
+      showToast('No se pudo copiar automáticamente', 'error');
+    }
+  };
+
   const handleWhatsAppDelivery = (card) => {
     if (!card.phone) {
       alert('Esta tarjeta no tiene un número telefónico asignado.');
       return;
     }
 
-    const message = `¡Hola ${card.title}! Con mucha alegría les compartimos que ya tenemos lista su tarjeta de invitación para nuestra boda. Tienen asignados ${card.seats} ${card.seats === 1 ? 'pase' : 'pases'}. ¡Nos encantará contar con su presencia!`;
+    const inviteUrl = getCardInvitationUrl(card);
+    const message = `¡Hola ${card.salutation}! 💍✨ Con mucha alegría les compartimos su invitación digital a nuestra boda (Edis & Dania), con ${card.seats} ${card.seats === 1 ? 'pase reservado' : 'pases reservados'}.\n\nPueden abrir su invitación interactiva y confirmar su asistencia en este enlace:\n${inviteUrl}\n\n¡Nos encantará contar con su presencia!`;
     openWhatsApp(card.phone, message);
   };
 
@@ -126,8 +151,20 @@ export function CardsView() {
           </p>
         </div>
 
-        {/* Action Buttons: Etiquetas + PDF Download (Carta) + Print */}
+        {/* Action Buttons: Landing Digital + Etiquetas + PDF Download (Carta) + Print */}
         <div className="flex items-center flex-wrap gap-2 no-print shrink-0">
+          <a
+            href="/invitacion?preview=true"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#2F4838] to-[#4C8B54] hover:brightness-105 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-sm transition-all duration-150 active:scale-95 cursor-pointer"
+            title="Abrir la Landing Page de la Invitación Digital interactiva en una pestaña nueva"
+          >
+            <Sparkles size={16} className="text-[#E8D3B0]" />
+            <span>Ver Landing Invitación Digital</span>
+            <ExternalLink size={14} />
+          </a>
+
           <button
             onClick={() => setIsLabelsModalOpen(true)}
             disabled={all.length === 0}
@@ -496,7 +533,30 @@ export function CardsView() {
                     </button>
                   </div>
 
-                  {/* Fila 2: Control de Entrega de Tarjeta Física + Contacto */}
+                  {/* Fila 2: Enlace de Invitación Digital Personalizada (con nombre y pases exactos) */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyCardLink(card)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold bg-[#F3F6F1] hover:bg-[#E4ECE0] text-[#243B2B] border border-[#4C8B54]/30 transition-all duration-150 active:scale-95 cursor-pointer"
+                      title="Copiar el link personalizado de la invitación digital con el nombre y número de pases de esta tarjeta"
+                    >
+                      <Link2 size={14} className="text-[#4C8B54]" />
+                      <span>Copiar Link Invitación ({card.seats} {card.seats === 1 ? 'Pase' : 'Pases'})</span>
+                    </button>
+
+                    <a
+                      href={`${getCardInvitationUrl(card)}&preview=true`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-xl bg-white hover:bg-stone-100 text-stone-600 hover:text-wedding-primaryDark border border-stone-300 transition-colors shrink-0"
+                      title="Abrir y previsualizar cómo verá esta familia su invitación digital"
+                    >
+                      <ExternalLink size={14} />
+                    </a>
+                  </div>
+
+                  {/* Fila 3: Control de Entrega de Tarjeta Física + Contacto */}
                   <div className="flex items-center justify-between gap-2">
                     {/* Delivery Checklist Toggle Button */}
                     <button

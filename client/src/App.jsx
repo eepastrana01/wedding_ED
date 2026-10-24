@@ -11,6 +11,7 @@ import { CountdownView } from './components/countdown/CountdownView';
 import { PhotoWallView } from './components/photos/PhotoWallView';
 import { TablesView } from './components/tables/TablesView';
 import { FloorPlanStudio } from './components/tables/FloorPlanStudio';
+import { DigitalInvitationLanding } from './components/invitation/DigitalInvitationLanding';
 import { CsvUploader } from './components/importer/CsvUploader';
 import { Toast } from './components/common/Toast';
 import { ChangelogModal } from './components/common/ChangelogModal';
@@ -23,6 +24,11 @@ function WeddingAppContent() {
     window.location.pathname === '/tables-studio'
   );
 
+  const isDigitalInvitation = typeof window !== 'undefined' && (
+    window.location.pathname.startsWith('/invitacion') ||
+    new URLSearchParams(window.location.search).has('invitacion')
+  );
+
   // Soporte para enlaces directos por código QR (ej. ?tab=photos)
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -31,6 +37,16 @@ function WeddingAppContent() {
       setActiveTab(tabParam);
     }
   }, [setActiveTab]);
+
+  // Landing Page pública de Invitación Digital (estilo Canva con ensamblaje por scroll)
+  if (isDigitalInvitation) {
+    return (
+      <>
+        <DigitalInvitationLanding />
+        <Toast />
+      </>
+    );
+  }
 
   // Si se abre en una pestaña independiente para diseño de mesas, ocupa el 100% de la ventana del navegador
   if (isStandalone) {
