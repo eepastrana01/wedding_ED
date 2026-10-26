@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useWedding } from '../../context/WeddingContext';
-import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown, Ticket, FileText, Tag, UserCheck, UserX, Link2, ExternalLink } from 'lucide-react';
-import { openWhatsApp } from '../../utils/whatsapp';
+import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown, Ticket, FileText, Tag, UserCheck, UserX, Link2, ExternalLink, Copy, Check } from 'lucide-react';
+import { openWhatsApp, buildInvitationShareMessage } from '../../utils/whatsapp';
 import { generateInvitationCardsPDF } from '../../utils/pdfGenerator';
 import { LabelsPrintModal } from './LabelsPrintModal';
 import { matchesSearch } from '../../utils/textUtils';
@@ -13,6 +13,7 @@ export function CardsView() {
   const [search, setSearch] = useState('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isLabelsModalOpen, setIsLabelsModalOpen] = useState(false);
+  const [copiedCardId, setCopiedCardId] = useState(null);
 
   const { all = [], summary = {} } = invitationCards || {};
 
@@ -108,13 +109,30 @@ export function CardsView() {
     return `${origin}/invitacion?k=${encodeURIComponent(token)}`;
   };
 
-  const handleCopyCardLink = async (card) => {
+  // Copia el mensaje completo con formato bonito de WhatsApp + enlace firmado de los pases
+  const handleCopyCardMessage = async (card) => {
+    const url = getCardInvitationUrl(card);
+    const fullMessage = buildInvitationShareMessage(card, url);
+    try {
+      await navigator.clipboard.writeText(fullMessage);
+      setCopiedCardId(card.id);
+      setTimeout(() => {
+        setCopiedCardId((prev) => (prev === card.id ? null : prev));
+      }, 2400);
+      showToast(`Mensaje + invitación copiados para ${card.salutation} (${card.seats} ${card.seats === 1 ? 'pase' : 'pases'})`);
+    } catch {
+      showToast('No se pudo copiar automáticamente', 'error');
+    }
+  };
+
+  // Copia únicamente el enlace directo (por si alguna vez solo necesitan el URL limpio)
+  const handleCopyOnlyLink = async (card) => {
     const url = getCardInvitationUrl(card);
     try {
       await navigator.clipboard.writeText(url);
-      showToast(`Enlace digital copiado para ${card.salutation} (${card.seats} ${card.seats === 1 ? 'pase' : 'pases'})`);
+      showToast(`Solo enlace copiado para ${card.salutation}`);
     } catch {
-      showToast('No se pudo copiar automáticamente', 'error');
+      showToast('No se pudo copiar el enlace', 'error');
     }
   };
 
@@ -125,7 +143,7 @@ export function CardsView() {
     }
 
     const inviteUrl = getCardInvitationUrl(card);
-    const message = `¡Hola ${card.salutation}! 💍✨ Con mucha alegría les compartimos su invitación digital a nuestra boda (Edis & Dania), con ${card.seats} ${card.seats === 1 ? 'pase reservado' : 'pases reservados'}.\n\nPueden abrir su invitación interactiva y confirmar su asistencia en este enlace:\n${inviteUrl}\n\n¡Nos encantará contar con su presencia!`;
+    const message = buildInvitationShareMessage(card, inviteUrl);
     openWhatsApp(card.phone, message);
   };
 
@@ -530,16 +548,38 @@ export function CardsView() {
                     </button>
                   </div>
 
-                  {/* Fila 2: Enlace de Invitación Digital Personalizada (con nombre y pases exactos) */}
+                  {/* Fila 2: Copiar Mensaje Bonito para WhatsApp + Link Personalizado */}
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => handleCopyCardLink(card)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold bg-[#F3F6F1] hover:bg-[#E4ECE0] text-[#243B2B] border border-[#4C8B54]/30 transition-all duration-150 active:scale-95 cursor-pointer"
-                      title="Copiar el link personalizado de la invitación digital con el nombre y número de pases de esta tarjeta"
+                      onClick={() => handleCopyCardMessage(card)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold border transition-all duration-150 active:scale-95 cursor-pointer ${
+                        copiedCardId === card.id
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                          : 'bg-[#F3F6F1] hover:bg-[#E4ECE0] text-[#243B2B] border-[#4C8B54]/30'
+                      }`}
+                      title="Copiar mensaje bonito con nombre, pases y link listo para pegar y enviar en WhatsApp"
                     >
-                      <Link2 size={14} className="text-[#4C8B54]" />
-                      <span>Copiar Link Invitación ({card.seats} {card.seats === 1 ? 'Pase' : 'Pases'})</span>
+                      {copiedCardId === card.id ? (
+                        <>
+                          <Check size={14} className="text-white shrink-0" />
+                          <span>¡Mensaje Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={13} className="text-[#4C8B54] shrink-0" />
+                          <span>Copiar Invitación ({card.seats} {card.seats === 1 ? 'Pase' : 'Pases'})</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopyOnlyLink(card)}
+                      className="p-1.5 rounded-xl bg-white hover:bg-stone-100 text-stone-600 hover:text-wedding-primaryDark border border-stone-300 transition-colors shrink-0 cursor-pointer"
+                      title="Copiar únicamente el link sin texto"
+                    >
+                      <Link2 size={14} />
                     </button>
 
                     <a
