@@ -19,6 +19,7 @@ import {
   Volume2,
   VolumeX,
   Music,
+  Sparkles,
 } from 'lucide-react';
 
 // Curva suave estilo Canva para interpolar el ensamblaje con el scroll
@@ -1463,7 +1464,7 @@ export function DigitalInvitationLanding({
             <div
               className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
               style={{
-                top: '73.7%',
+                top: '72.9%',
                 fontFamily: "'Simonetta', serif",
                 color: '#3A3D36',
                 fontSize: 'clamp(8.5px, 2.25cqw, 12px)',
@@ -1476,18 +1477,23 @@ export function DigitalInvitationLanding({
             </div>
 
             <div
-              className="absolute left-[20%] w-[60%] text-center pointer-events-none will-change-transform leading-[1.35]"
+              className="absolute left-[14%] w-[72%] text-center pointer-events-none will-change-transform leading-[1.32]"
               style={{
-                top: '80.4%',
+                top: '79.2%',
                 fontFamily: "'Simonetta', serif",
                 color: '#3A3D36',
-                fontSize: 'clamp(9.5px, 2.75cqw, 14.5px)',
+                fontSize: 'clamp(9px, 2.6cqw, 14px)',
                 opacity: s1Dress,
                 transform: `translate3d(0, ${(1 - s1Dress) * 65}px, 0)`,
               }}
             >
-              <p>CODIGO VESTIMENTA:</p>
-              <p>FORMAL</p>
+              <p>CÓDIGO DE VESTIMENTA: FORMAL</p>
+              <p
+                className="italic mt-[0.4cqw]"
+                style={{ fontSize: 'clamp(8px, 2.2cqw, 12px)', color: '#4E5349' }}
+              >
+                Mujeres: cualquier color, menos blanco
+              </p>
             </div>
 
             {/* 6. FIRMA CALIGRÁFICA TRANSPARENTE "Te esperamos" */}
@@ -1497,7 +1503,7 @@ export function DigitalInvitationLanding({
               className="absolute pointer-events-none will-change-transform"
               style={{
                 left: '22.0%',
-                top: '87.0%',
+                top: '87.4%',
                 width: '56.0%',
                 height: '10.0%',
                 opacity: s1Sign,
@@ -1891,6 +1897,16 @@ export function DigitalInvitationLanding({
               </a>
             </div>
           </div>
+
+          <div className="pt-4 border-t border-[#C5A880]/30 space-y-1.5">
+            <div className="flex items-center justify-center gap-1.5 text-[#3B6E42] font-bold text-xs uppercase tracking-wider">
+              <Sparkles size={14} className="text-[#B38E5D]" />
+              <span>Código de Vestimenta: Formal</span>
+            </div>
+            <p className="text-xs sm:text-sm text-stone-700 font-medium max-w-md mx-auto">
+              Mujeres: pueden usar <strong className="text-[#243B2B]">cualquier color, menos blanco</strong> <span className="text-stone-500 italic">(reservado para la novia)</span>.
+            </p>
+          </div>
         </div>
 
         {/* 2. Tarjeta de Confirmación de Asistencia con Marco Dorado */}
@@ -1962,7 +1978,7 @@ export function DigitalInvitationLanding({
               <span>Confirmar por WhatsApp (+504 8778-8207)</span>
             </button>
             <p className="text-center text-[11px] text-stone-500">
-              Código de Vestimenta: <strong className="text-[#243B2B]">FORMAL</strong> • Teléfono Oficial: <strong className="text-[#243B2B]">+504 8778-8207</strong>
+              Código de Vestimenta: <strong className="text-[#243B2B]">FORMAL</strong> (Mujeres: cualquier color, menos blanco) • Teléfono: <strong className="text-[#243B2B]">+504 8778-8207</strong>
             </p>
           </div>
         </div>
