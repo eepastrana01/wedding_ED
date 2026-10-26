@@ -1871,7 +1871,7 @@ export function DigitalInvitationLanding({
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-1 relative z-30">
               <a
-                href="https://www.google.com/maps/search/?api=1&query=Calan+Park+El+Calan+Villanueva+Honduras"
+                href="https://www.google.com/maps/search/?api=1&query=15.3963411,-88.0259901&query_place_id=ChIJz-ALtkNnZo8R1gEw4uzkS9k"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#243B2B] to-[#34543E] hover:brightness-110 text-white text-xs font-semibold shadow-sm border border-[#C5A880]/45 transition-all"
@@ -1881,7 +1881,7 @@ export function DigitalInvitationLanding({
                 <ExternalLink size={12} />
               </a>
               <a
-                href="https://waze.com/ul?q=Calan%20Park%20Villanueva"
+                href="https://ul.waze.com/ul?place=ChIJz-ALtkNnZo8R1gEw4uzkS9k&ll=15.39634110%2C-88.02599010&navigate=yes&utm_campaign=live_map&utm_source=waze_website&utm_medium=lm_share_location"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#FAF8F4] hover:bg-[#F0ECE2] text-[#243B2B] border border-[#C5A880]/55 text-xs font-semibold transition-all"
