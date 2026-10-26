@@ -281,6 +281,7 @@ export function WeddingProvider({ children }) {
     const isPublicInvitationView =
       typeof window !== 'undefined' &&
       (window.location.pathname.startsWith('/invitacion') ||
+        window.location.pathname.startsWith('/i/') ||
         new URLSearchParams(window.location.search).has('k') ||
         new URLSearchParams(window.location.search).has('invitacion') ||
         !checkAndPersistAdminAccess());

@@ -28,6 +28,7 @@ function WeddingAppContent() {
 
   const isDigitalInvitationRoute = typeof window !== 'undefined' && (
     window.location.pathname.startsWith('/invitacion') ||
+    window.location.pathname.startsWith('/i/') ||
     new URLSearchParams(window.location.search).has('invitacion') ||
     new URLSearchParams(window.location.search).has('k') ||
     new URLSearchParams(window.location.search).has('card')

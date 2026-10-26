@@ -3,7 +3,10 @@ import confetti from 'canvas-confetti';
 import { useWedding } from '../../context/WeddingContext';
 import { useWeddingCountdown } from '../../hooks/useWeddingCountdown';
 import { openWhatsApp } from '../../utils/whatsapp';
-import { decodeInvitationToken } from '../../utils/invitationToken';
+import {
+  decodeInvitationToken,
+  extractInvitationTokenFromWindow,
+} from '../../utils/invitationToken';
 import {
   Heart,
   MapPin,
@@ -187,11 +190,10 @@ export function DigitalInvitationLanding({
     setGuestStatus,
   } = useWedding();
 
-  // Decodificación segura del enlace (?k=TOKEN_FIRMADO o compatibilidad con enlaces previos ?card=...)
+  // Decodificación segura del enlace corto (/i/TOKEN) o enlaces previos (?k=TOKEN / ?card=...)
   const urlData = useMemo(() => {
     if (typeof window === 'undefined') return {};
-    const p = new URLSearchParams(window.location.search);
-    const token = p.get('k');
+    const token = extractInvitationTokenFromWindow();
     const verified = token ? decodeInvitationToken(token) : null;
 
     if (verified) {
@@ -201,6 +203,8 @@ export function DigitalInvitationLanding({
         seats: verified.seats,
       };
     }
+
+    const p = new URLSearchParams(window.location.search);
 
     const legacyCardId = p.get('card') || p.get('invitacion') || '';
     return {

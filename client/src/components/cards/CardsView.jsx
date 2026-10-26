@@ -99,14 +99,14 @@ export function CardsView() {
     window.print();
   };
 
-  // Construye el enlace firmado y protegido de la Landing Page de invitación digital para esta tarjeta
+  // Construye el enlace corto, firmado y protegido (/i/...) de la invitación digital para esta tarjeta
   const getCardInvitationUrl = (card) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://wedding-ed.vercel.app';
     if (!card) {
       return `${origin}/invitacion`;
     }
     const token = encodeInvitationToken(card);
-    return `${origin}/invitacion?k=${encodeURIComponent(token)}`;
+    return `${origin}/i/${token}`;
   };
 
   // Copia el mensaje completo con formato bonito de WhatsApp + enlace firmado de los pases
@@ -583,7 +583,7 @@ export function CardsView() {
                     </button>
 
                     <a
-                      href={`${getCardInvitationUrl(card)}&preview=true`}
+                      href={getCardInvitationUrl(card)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-1.5 rounded-xl bg-white hover:bg-stone-100 text-stone-600 hover:text-wedding-primaryDark border border-stone-300 transition-colors shrink-0"
