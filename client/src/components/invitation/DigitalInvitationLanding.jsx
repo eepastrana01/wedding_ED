@@ -3,6 +3,8 @@ import confetti from 'canvas-confetti';
 import { useWedding } from '../../context/WeddingContext';
 import { useWeddingCountdown } from '../../hooks/useWeddingCountdown';
 import { openWhatsApp } from '../../utils/whatsapp';
+import { familyApi } from '../../services/familyApi';
+import { guestApi } from '../../services/guestApi';
 import {
   decodeInvitationToken,
   extractInvitationTokenFromWindow,
@@ -18,12 +20,35 @@ import {
   Mail,
   ExternalLink,
   UserCheck,
+  UserX,
+  Users,
+  Check,
+  X,
   ArrowLeft,
   Volume2,
   VolumeX,
   Music,
   Sparkles,
 } from 'lucide-react';
+
+const INVALID_PARTNER_VALUES = new Set([
+  'novio',
+  'novia',
+  'comun',
+  'general',
+  'ninguno',
+  'ninguna',
+  'no',
+  'sin pareja',
+]);
+
+function formatSpanishList(names = []) {
+  const clean = names.map((n) => String(n || '').trim()).filter(Boolean);
+  if (clean.length === 0) return '';
+  if (clean.length === 1) return clean[0];
+  if (clean.length === 2) return `${clean[0]} y ${clean[1]}`;
+  return `${clean.slice(0, -1).join(', ')} y ${clean[clean.length - 1]}`;
+}
 
 // Curva suave estilo Canva para interpolar el ensamblaje con el scroll
 function easeOutCubic(t) {
@@ -188,6 +213,7 @@ export function DigitalInvitationLanding({
     invitationCards,
     setFamilyStatus,
     setGuestStatus,
+    refreshAll,
   } = useWedding();
 
   // Decodificación segura del enlace corto (/i/TOKEN) o enlaces previos (?k=TOKEN / ?card=...)
@@ -234,16 +260,48 @@ export function DigitalInvitationLanding({
     urlData.seats ||
     2;
 
+  const targetCardId = activeCard?.id || urlData.cardId || '';
+
+  const [rsvpSummary, setRsvpSummary] = useState(() => {
+    if (typeof window === 'undefined' || !urlData.cardId) return null;
+    try {
+      const raw = localStorage.getItem(`wedding_rsvp_summary_${urlData.cardId}`);
+      if (raw) return JSON.parse(raw);
+      if (localStorage.getItem(`wedding_rsvp_done_${urlData.cardId}`) === 'true') {
+        return {
+          mode: 'all',
+          confirmedCount: urlData.seats || 2,
+          totalCount: urlData.seats || 2,
+          attendingNames: [],
+          declinedNames: [],
+          allDeclined: false,
+        };
+      }
+    } catch {}
+    return null;
+  });
+
   const [rsvpSubmitted, setRsvpSubmitted] = useState(() => {
     if (typeof window === 'undefined') return false;
     const id = urlData.cardId;
     if (!id) return false;
     try {
-      return localStorage.getItem(`wedding_rsvp_done_${id}`) === 'true';
+      return (
+        localStorage.getItem(`wedding_rsvp_done_${id}`) === 'true' ||
+        Boolean(localStorage.getItem(`wedding_rsvp_summary_${id}`))
+      );
     } catch {
       return false;
     }
   });
+
+  const [isEditingRsvp, setIsEditingRsvp] = useState(false);
+  const [isOneByOneOpen, setIsOneByOneOpen] = useState(false);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [isSubmittingRsvp, setIsSubmittingRsvp] = useState(false);
+  const [rsvpError, setRsvpError] = useState(null);
+  const [memberSelections, setMemberSelections] = useState([]);
+  const guestCardMetaRef = useRef(null);
 
   // =========================================================================
   // ESTADO DEL SOBRE 3D + EXTRACCIÓN CON SCROLL DE LA TARJETA DE BIENVENIDA
@@ -474,40 +532,346 @@ export function DigitalInvitationLanding({
     }
   };
 
-  const handleDirectConfirmCard = async () => {
-    const targetId = activeCard?.id || urlData.cardId;
-    if (!targetId) return;
+  const persistRsvpSummary = useCallback((cardId, summaryObj) => {
+    setRsvpSummary(summaryObj);
+    setRsvpSubmitted(true);
+    setIsEditingRsvp(false);
+    setIsOneByOneOpen(false);
+    if (!cardId) return;
     try {
-      if (String(targetId).startsWith('fam-')) {
-        const famId = Number(String(targetId).replace('fam-', ''));
-        await setFamilyStatus(famId, 'confirmed');
-      } else if (String(targetId).startsWith('guest-')) {
-        const gId = Number(String(targetId).replace('guest-', ''));
-        await setGuestStatus(gId, 'confirmed');
+      localStorage.setItem(`wedding_rsvp_done_${cardId}`, 'true');
+      localStorage.setItem(`wedding_rsvp_summary_${cardId}`, JSON.stringify(summaryObj));
+    } catch {}
+  }, []);
+
+  const triggerRsvpConfetti = useCallback(() => {
+    confetti({
+      particleCount: 110,
+      spread: 85,
+      origin: { y: 0.65 },
+      colors: ['#4C8B54', '#C5A880', '#1F3A2E', '#FAF8F5'],
+    });
+  }, []);
+
+  // Confirmar TODOS los pases de la tarjeta en 1 solo clic (1 consulta SQL)
+  const handleDirectConfirmCard = async () => {
+    if (!targetCardId || isSubmittingRsvp) return;
+    setIsSubmittingRsvp(true);
+    setRsvpError(null);
+    try {
+      if (String(targetCardId).startsWith('fam-')) {
+        const famId = Number(String(targetCardId).replace('fam-', ''));
+        if (isAdminUnlocked) {
+          await setFamilyStatus(famId, 'confirmed');
+        } else {
+          await familyApi.updateBulkStatus(famId, 'confirmed');
+        }
+      } else if (String(targetCardId).startsWith('guest-')) {
+        const gId = Number(String(targetCardId).replace('guest-', ''));
+        if (isAdminUnlocked && displaySeats <= 1) {
+          await setGuestStatus(gId, 'confirmed');
+        } else if (displaySeats > 1) {
+          await guestApi.update(gId, {
+            status: 'confirmed',
+            confirmed_seats: displaySeats,
+          });
+          if (isAdminUnlocked && refreshAll) refreshAll(true);
+        } else {
+          await guestApi.updateStatus(gId, 'confirmed');
+        }
       }
-      setRsvpSubmitted(true);
-      try {
-        localStorage.setItem(`wedding_rsvp_done_${targetId}`, 'true');
-      } catch {}
-      confetti({
-        particleCount: 110,
-        spread: 85,
-        origin: { y: 0.65 },
-        colors: ['#4C8B54', '#C5A880', '#1F3A2E', '#FAF8F5'],
+
+      if (memberSelections.length > 0) {
+        setMemberSelections((prev) => prev.map((m) => ({ ...m, attending: true })));
+      }
+
+      persistRsvpSummary(targetCardId, {
+        mode: 'all',
+        confirmedCount: displaySeats,
+        totalCount: displaySeats,
+        attendingNames: memberSelections.map((m) => m.name),
+        declinedNames: [],
+        allDeclined: false,
+      });
+      triggerRsvpConfetti();
+    } catch (err) {
+      console.error(err);
+      setRsvpError('No se pudo guardar en este momento. Intenta de nuevo o confirma por WhatsApp.');
+    } finally {
+      setIsSubmittingRsvp(false);
+    }
+  };
+
+  // Indicar cortésmente que ningún integrante podrá asistir
+  const handleDeclineCardAll = async () => {
+    if (!targetCardId || isSubmittingRsvp) return;
+    setIsSubmittingRsvp(true);
+    setRsvpError(null);
+    try {
+      if (String(targetCardId).startsWith('fam-')) {
+        const famId = Number(String(targetCardId).replace('fam-', ''));
+        if (isAdminUnlocked) {
+          await setFamilyStatus(famId, 'declined');
+        } else {
+          await familyApi.updateBulkStatus(famId, 'declined');
+        }
+      } else if (String(targetCardId).startsWith('guest-')) {
+        const gId = Number(String(targetCardId).replace('guest-', ''));
+        if (isAdminUnlocked) {
+          await setGuestStatus(gId, 'declined');
+        } else {
+          await guestApi.updateStatus(gId, 'declined');
+        }
+      }
+
+      if (memberSelections.length > 0) {
+        setMemberSelections((prev) => prev.map((m) => ({ ...m, attending: false })));
+      }
+
+      persistRsvpSummary(targetCardId, {
+        mode: 'decline',
+        confirmedCount: 0,
+        totalCount: displaySeats,
+        attendingNames: [],
+        declinedNames: memberSelections.map((m) => m.name),
+        allDeclined: true,
       });
     } catch (err) {
       console.error(err);
+      setRsvpError('No se pudo registrar la respuesta. Intenta nuevamente.');
+    } finally {
+      setIsSubmittingRsvp(false);
+    }
+  };
+
+  // Carga BAJO DEMANDA de los integrantes reales (0 consultas a Neon hasta abrir el modo 1x1)
+  const handleToggleOneByOne = async () => {
+    if (isOneByOneOpen) {
+      setIsOneByOneOpen(false);
+      return;
+    }
+
+    setIsOneByOneOpen(true);
+    setRsvpError(null);
+
+    if (memberSelections.length > 0 || !targetCardId) {
+      return;
+    }
+
+    setIsLoadingMembers(true);
+    try {
+      if (String(targetCardId).startsWith('fam-')) {
+        const famId = Number(String(targetCardId).replace('fam-', ''));
+        const res = await familyApi.getById(famId);
+        const fam = res?.data;
+        const dbMembers = Array.isArray(fam?.members) ? fam.members : [];
+
+        if (dbMembers.length > 0) {
+          const mapped = dbMembers.map((m, idx) => {
+            const rawPartner = String(m.partner_name || '').trim();
+            const hasPartner =
+              Boolean(rawPartner) && !INVALID_PARTNER_VALUES.has(rawPartner.toLowerCase());
+            const fullLabel = hasPartner
+              ? `${m.name} & ${rawPartner}`
+              : m.name || `Integrante ${idx + 1}`;
+            return {
+              key: String(m.id),
+              guestId: m.id,
+              name: fullLabel,
+              seats: Math.max(1, parseInt(m.confirmed_seats, 10) || (hasPartner ? 2 : 1)),
+              attending: m.status !== 'declined',
+            };
+          });
+          setMemberSelections(mapped);
+        } else {
+          setMemberSelections(
+            Array.from({ length: displaySeats }, (_, idx) => ({
+              key: `fallback-${idx + 1}`,
+              guestId: null,
+              name: `Integrante ${idx + 1}`,
+              seats: 1,
+              attending: true,
+            }))
+          );
+        }
+      } else if (String(targetCardId).startsWith('guest-')) {
+        const gId = Number(String(targetCardId).replace('guest-', ''));
+        const res = await guestApi.getById(gId);
+        const guest = res?.data;
+
+        if (guest) {
+          const rawPartner = String(guest.partner_name || '').trim();
+          const hasPartner =
+            Boolean(rawPartner) && !INVALID_PARTNER_VALUES.has(rawPartner.toLowerCase());
+          const savedConfirmedSeats = parseInt(guest.confirmed_seats, 10) || displaySeats;
+          const totalPasses = Math.max(displaySeats, hasPartner ? 2 : 1);
+
+          guestCardMetaRef.current = {
+            id: guest.id,
+            notes: guest.notes || '',
+            totalPasses,
+          };
+
+          const items = [
+            {
+              key: 'main',
+              guestId: null,
+              name: guest.name || displaySalutation,
+              seats: 1,
+              attending: guest.status !== 'declined',
+            },
+          ];
+
+          if (hasPartner) {
+            items.push({
+              key: 'partner',
+              guestId: null,
+              name: rawPartner,
+              seats: 1,
+              attending: guest.status !== 'declined' && savedConfirmedSeats >= 2,
+            });
+          }
+
+          for (let i = items.length; i < totalPasses; i += 1) {
+            items.push({
+              key: `extra-${i}`,
+              guestId: null,
+              name: `Acompañante ${i}`,
+              seats: 1,
+              attending: guest.status !== 'declined' && i < savedConfirmedSeats,
+            });
+          }
+
+          setMemberSelections(items);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setRsvpError('No pudimos cargar la lista de integrantes. Revisa tu conexión e intenta de nuevo.');
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  };
+
+  const handleSetMemberAttending = (memberKey, isAttending) => {
+    setMemberSelections((prev) =>
+      prev.map((m) => (m.key === memberKey ? { ...m, attending: isAttending } : m))
+    );
+  };
+
+  const handleSetAllMembersLocal = (isAttending) => {
+    setMemberSelections((prev) => prev.map((m) => ({ ...m, attending: isAttending })));
+  };
+
+  // Guardar selección 1x1 en 1 sola consulta SQL hacia Neon
+  const handleSaveOneByOneRsvp = async () => {
+    if (!targetCardId || memberSelections.length === 0 || isSubmittingRsvp) return;
+    setIsSubmittingRsvp(true);
+    setRsvpError(null);
+
+    const attendingItems = memberSelections.filter((m) => m.attending);
+    const declinedItems = memberSelections.filter((m) => !m.attending);
+    const confirmedSeatsCount = attendingItems.reduce((sum, m) => sum + (m.seats || 1), 0);
+    const totalSeatsCount = memberSelections.reduce((sum, m) => sum + (m.seats || 1), 0);
+
+    try {
+      if (String(targetCardId).startsWith('fam-')) {
+        const famId = Number(String(targetCardId).replace('fam-', ''));
+        const payload = memberSelections
+          .filter((m) => m.guestId)
+          .map((m) => ({
+            id: m.guestId,
+            status: m.attending ? 'confirmed' : 'declined',
+          }));
+
+        if (payload.length > 0) {
+          await familyApi.updateMembersStatus(famId, payload);
+        } else {
+          await familyApi.updateBulkStatus(
+            famId,
+            confirmedSeatsCount > 0 ? 'confirmed' : 'declined'
+          );
+        }
+
+        if (isAdminUnlocked && refreshAll) {
+          refreshAll(true);
+        }
+      } else if (String(targetCardId).startsWith('guest-')) {
+        const gId = Number(String(targetCardId).replace('guest-', ''));
+        const baseNotes = String(guestCardMetaRef.current?.notes || '')
+          .replace(/\s*\[RSVP Web:[^\]]*\]/g, '')
+          .trim();
+
+        let rsvpTag = '';
+        if (confirmedSeatsCount > 0 && declinedItems.length > 0) {
+          rsvpTag = `[RSVP Web: Asiste ${attendingItems.map((i) => i.name).join(', ')}; No asiste ${declinedItems.map((i) => i.name).join(', ')}]`;
+        }
+        const combinedNotes = [baseNotes, rsvpTag].filter(Boolean).join(' ');
+
+        await guestApi.update(gId, {
+          status: confirmedSeatsCount > 0 ? 'confirmed' : 'declined',
+          confirmed_seats: confirmedSeatsCount > 0 ? confirmedSeatsCount : totalSeatsCount,
+          notes: combinedNotes || null,
+        });
+
+        if (guestCardMetaRef.current) {
+          guestCardMetaRef.current.notes = combinedNotes;
+        }
+        if (isAdminUnlocked && refreshAll) {
+          refreshAll(true);
+        }
+      }
+
+      persistRsvpSummary(targetCardId, {
+        mode: '1x1',
+        confirmedCount: confirmedSeatsCount,
+        totalCount: totalSeatsCount,
+        attendingNames: attendingItems.map((m) => m.name),
+        declinedNames: declinedItems.map((m) => m.name),
+        allDeclined: confirmedSeatsCount === 0,
+      });
+
+      if (confirmedSeatsCount > 0) {
+        triggerRsvpConfetti();
+      }
+    } catch (err) {
+      console.error(err);
+      setRsvpError('No se pudo guardar la selección. Intenta de nuevo o envíanos un WhatsApp.');
+    } finally {
+      setIsSubmittingRsvp(false);
     }
   };
 
   const handleWhatsAppRsvp = () => {
-    const seatsText = `${displaySeats} ${displaySeats === 1 ? 'pase' : 'pases'}`;
-    const namePart =
-      displaySalutation && displaySalutation !== 'Invitado Especial'
-        ? `Somos *${displaySalutation}* (${seatsText}) y confirmamos`
-        : `Hola Edis y Dania, confirmo`;
+    let msg;
 
-    const msg = `¡Hola Edis y Dania! 💍✨ ${namePart} con mucha alegría nuestra asistencia a su boda el 21 de Noviembre en Calan Park. ¡Muchas gracias por la invitación!`;
+    if (rsvpSummary?.allDeclined) {
+      const sender =
+        displaySalutation && displaySalutation !== 'Invitado Especial'
+          ? `de parte de *${displaySalutation}*`
+          : '';
+      msg = `¡Hola Edis y Dania! 🤍 Les saludamos ${sender}. Lamentablemente en esta ocasión no podremos acompañarlos el 21 de Noviembre, pero les enviamos un fuerte abrazo y nuestros mejores deseos en su matrimonio.`;
+    } else if (
+      rsvpSummary?.mode === '1x1' &&
+      rsvpSummary.attendingNames?.length > 0 &&
+      rsvpSummary.confirmedCount < rsvpSummary.totalCount
+    ) {
+      const namesStr = formatSpanishList(rsvpSummary.attendingNames);
+      msg = `¡Hola Edis y Dania! 💍✨ De parte de *${displaySalutation}*, confirmamos con mucha alegría la asistencia de *${rsvpSummary.confirmedCount} de ${rsvpSummary.totalCount} pases* (*${namesStr}*) a su boda el 21 de Noviembre en Calan Park. ¡Muchas gracias por la invitación!`;
+    } else {
+      const seatsText = `${displaySeats} ${displaySeats === 1 ? 'pase' : 'pases'}`;
+      const namePart =
+        displaySalutation && displaySalutation !== 'Invitado Especial'
+          ? displaySeats === 1
+            ? `Soy *${displaySalutation}* (${seatsText}) y confirmo`
+            : `Somos *${displaySalutation}* (${seatsText}) y confirmamos`
+          : `Hola Edis y Dania, confirmo`;
+
+      msg = `¡Hola Edis y Dania! 💍✨ ${namePart} con mucha alegría ${
+        displaySeats === 1 ? 'mi' : 'nuestra'
+      } asistencia a su boda el 21 de Noviembre en Calan Park. ¡Muchas gracias por la invitación!`;
+    }
+
     openWhatsApp('+50487788207', msg);
   };
 
@@ -1931,7 +2295,9 @@ export function DigitalInvitationLanding({
               Confirmar Asistencia
             </h3>
             <p className="text-xs sm:text-sm text-stone-600 max-w-md mx-auto">
-              Para nosotros es muy importante contar contigo. Confirma tu asistencia aquí mismo en 1 clic o envíanos un mensaje por WhatsApp.
+              {displaySeats > 1
+                ? 'Para nosotros es muy importante contar con ustedes. Pueden confirmar todos los pases a la vez o elegir integrante por integrante (1 por 1).'
+                : 'Para nosotros es muy importante contar contigo. Confirma tu asistencia aquí mismo en 1 clic o envíanos un mensaje por WhatsApp.'}
             </p>
           </div>
 
@@ -1952,23 +2318,344 @@ export function DigitalInvitationLanding({
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={handleDirectConfirmCard}
-                className={`relative overflow-hidden w-full py-3.5 px-5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md border border-[#C5A880]/45 transition-all cursor-pointer ${
-                  activeCard?.statusSummary?.isAllConfirmed || rsvpSubmitted
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    : 'bg-gradient-to-r from-[#243B2B] via-[#32513C] to-[#243B2B] hover:brightness-110 text-white'
-                }`}
-              >
-                <span className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-golden-shimmer pointer-events-none" />
-                <CheckCircle2 size={18} className="text-[#E0C59B]" />
-                <span>
-                  {activeCard?.statusSummary?.isAllConfirmed || rsvpSubmitted
-                    ? `¡Asistencia Confirmada para ${displaySalutation}!`
-                    : `Confirmar Asistencia de ${displaySalutation} (${displaySeats} ${displaySeats === 1 ? 'Pase' : 'Pases'})`}
-                </span>
-              </button>
+              {rsvpError && (
+                <div className="rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 text-xs text-rose-700 font-medium text-center">
+                  {rsvpError}
+                </div>
+              )}
+
+              {/* VISTA RESUMEN CUANDO YA CONFIRMÓ (Y NO ESTÁ EDITANDO) */}
+              {(rsvpSubmitted || activeCard?.statusSummary?.isAllConfirmed) && !isEditingRsvp ? (
+                <div className="space-y-3">
+                  {rsvpSummary?.allDeclined ? (
+                    <div className="rounded-2xl bg-white/95 border border-stone-300/80 p-4 text-center space-y-1.5 shadow-sm">
+                      <p className="font-serif text-base sm:text-lg font-bold text-stone-800">
+                        Respuesta registrada para {displaySalutation}
+                      </p>
+                      <p className="text-xs text-stone-600">
+                        Nos indicaron que no podrán acompañarnos en esta ocasión. ¡Muchas gracias por avisarnos, los llevamos en nuestro corazón!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl bg-gradient-to-b from-emerald-50/90 to-white border border-emerald-300/80 p-4 space-y-3 shadow-sm">
+                      <div className="flex items-center justify-center gap-2 text-emerald-800">
+                        <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
+                        <p className="font-serif text-base sm:text-lg font-bold text-[#243B2B]">
+                          {rsvpSummary?.mode === '1x1' &&
+                          rsvpSummary.confirmedCount < rsvpSummary.totalCount
+                            ? `¡Asistencia Confirmada! (${rsvpSummary.confirmedCount} de ${rsvpSummary.totalCount} pases)`
+                            : `¡Asistencia Confirmada para ${displaySalutation}!`}
+                        </p>
+                      </div>
+
+                      {rsvpSummary?.attendingNames?.length > 0 && (
+                        <div className="space-y-1.5 pt-1">
+                          <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-800 text-center">
+                            Integrantes confirmados
+                          </p>
+                          <div className="flex flex-wrap items-center justify-center gap-1.5">
+                            {rsvpSummary.attendingNames.map((name, idx) => (
+                              <span
+                                key={`att-${idx}`}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100/80 border border-emerald-300 text-emerald-900 text-[11px] font-semibold"
+                              >
+                                <Check size={11} className="text-emerald-700" />
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {rsvpSummary?.declinedNames?.length > 0 && (
+                        <div className="space-y-1 pt-1">
+                          <p className="text-[10px] uppercase tracking-wider font-semibold text-stone-400 text-center">
+                            No podrán asistir
+                          </p>
+                          <div className="flex flex-wrap items-center justify-center gap-1.5">
+                            {rsvpSummary.declinedNames.map((name, idx) => (
+                              <span
+                                key={`dec-${idx}`}
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-500 text-[11px]"
+                              >
+                                <X size={10} />
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingRsvp(true)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-[#FAF8F4] text-[#5C5343] hover:text-[#243B2B] border border-[#C5A880]/55 text-[11px] font-semibold transition-all cursor-pointer"
+                    >
+                      <span>Modificar confirmación</span>
+                    </button>
+                  </div>
+                </div>
+              ) : displaySeats > 1 ? (
+                /* MODO MÚLTIPLES PASES (PAREJA O FAMILIA, EJ. 5 INTEGRANTES): TODOS A LA VEZ O 1x1 */
+                <div className="space-y-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7A6B53] text-center">
+                    ¿Cómo desean confirmar su asistencia?
+                  </p>
+
+                  {/* OPCIÓN 1: Confirmar a TODOS en 1 clic */}
+                  <button
+                    type="button"
+                    disabled={isSubmittingRsvp}
+                    onClick={handleDirectConfirmCard}
+                    className="relative overflow-hidden w-full py-3.5 px-5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md border border-[#C5A880]/45 bg-gradient-to-r from-[#243B2B] via-[#32513C] to-[#243B2B] hover:brightness-110 disabled:opacity-60 text-white transition-all cursor-pointer"
+                  >
+                    <span className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-golden-shimmer pointer-events-none" />
+                    <CheckCircle2 size={18} className="text-[#E0C59B] shrink-0" />
+                    <span>
+                      {isSubmittingRsvp && !isOneByOneOpen
+                        ? 'Guardando confirmación...'
+                        : `Confirmar Todos a la vez (${displaySeats} Pases)`}
+                    </span>
+                  </button>
+
+                  {/* OPCIÓN 2: Confirmar 1 por 1 (Desplegable bajo demanda) */}
+                  <button
+                    type="button"
+                    disabled={isSubmittingRsvp}
+                    onClick={handleToggleOneByOne}
+                    className={`w-full py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-between gap-2 border transition-all cursor-pointer ${
+                      isOneByOneOpen
+                        ? 'bg-[#FAF8F4] border-[#B38E5D] text-[#243B2B] shadow-sm'
+                        : 'bg-white/95 hover:bg-[#FAF8F4] border-[#C5A880]/65 text-[#243B2B] shadow-sm'
+                    }`}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Users size={16} className="text-[#B38E5D] shrink-0" />
+                      <span>Confirmar 1 por 1 (Elegir quiénes asisten)</span>
+                    </span>
+                    {isOneByOneOpen ? (
+                      <ChevronUp size={17} className="text-[#8C7756] shrink-0" />
+                    ) : (
+                      <ChevronDown size={17} className="text-[#8C7756] shrink-0" />
+                    )}
+                  </button>
+
+                  {/* PANEL INTERACTIVO 1x1 */}
+                  {isOneByOneOpen && (
+                    <div className="rounded-2xl bg-white/95 border border-[#C5A880]/60 p-3.5 sm:p-4 space-y-3.5 shadow-sm">
+                      {isLoadingMembers ? (
+                        <div className="py-6 flex flex-col items-center justify-center gap-2.5 text-stone-600">
+                          <span className="w-6 h-6 rounded-full border-2 border-[#C5A880]/40 border-t-[#243B2B] animate-spin" />
+                          <span className="text-xs font-medium">
+                            Cargando integrantes de {displaySalutation}...
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          {(() => {
+                            const selectedSeats = memberSelections
+                              .filter((m) => m.attending)
+                              .reduce((sum, m) => sum + (m.seats || 1), 0);
+                            const totalLoadedSeats =
+                              memberSelections.reduce((sum, m) => sum + (m.seats || 1), 0) ||
+                              displaySeats;
+
+                            return (
+                              <>
+                                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-stone-200/80">
+                                  <span className="text-[11px] font-bold text-[#243B2B]">
+                                    Seleccionados:{' '}
+                                    <span className="text-emerald-700">
+                                      {selectedSeats} de {totalLoadedSeats}
+                                    </span>{' '}
+                                    {totalLoadedSeats === 1 ? 'pase' : 'pases'}
+                                  </span>
+
+                                  <div className="flex items-center gap-1.5 text-[11px]">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSetAllMembersLocal(true)}
+                                      className="px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold transition-colors cursor-pointer"
+                                    >
+                                      Todos
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSetAllMembersLocal(false)}
+                                      className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600 border border-stone-200 font-semibold transition-colors cursor-pointer"
+                                    >
+                                      Ninguno
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                  {memberSelections.map((member, idx) => (
+                                    <div
+                                      key={member.key}
+                                      className={`rounded-xl p-2.5 sm:px-3 sm:py-2.5 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                                        member.attending
+                                          ? 'bg-emerald-50/45 border-emerald-200/90'
+                                          : 'bg-stone-50/90 border-stone-200/80'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <span
+                                          className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${
+                                            member.attending
+                                              ? 'bg-emerald-600 text-white'
+                                              : 'bg-stone-300 text-stone-700'
+                                          }`}
+                                        >
+                                          {idx + 1}
+                                        </span>
+                                        <span
+                                          className={`text-xs sm:text-sm font-semibold leading-snug ${
+                                            member.attending
+                                              ? 'text-[#243B2B]'
+                                              : 'text-stone-500 line-through'
+                                          }`}
+                                        >
+                                          {member.name}
+                                        </span>
+                                      </div>
+
+                                      <div className="grid grid-cols-2 sm:flex items-center gap-1.5 shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleSetMemberAttending(member.key, true)
+                                          }
+                                          className={`inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                                            member.attending
+                                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                              : 'bg-white text-stone-600 border-stone-200 hover:border-emerald-300 hover:text-emerald-700'
+                                          }`}
+                                        >
+                                          <Check size={12} />
+                                          <span>Asiste</span>
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleSetMemberAttending(member.key, false)
+                                          }
+                                          className={`inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                                            !member.attending
+                                              ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                                              : 'bg-white text-stone-600 border-stone-200 hover:border-rose-300 hover:text-rose-700'
+                                          }`}
+                                        >
+                                          <X size={12} />
+                                          <span>No asiste</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <button
+                                  type="button"
+                                  disabled={isSubmittingRsvp}
+                                  onClick={handleSaveOneByOneRsvp}
+                                  className={`w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer disabled:opacity-60 ${
+                                    selectedSeats > 0
+                                      ? 'bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-600'
+                                      : 'bg-stone-700 hover:bg-stone-800 text-white border border-stone-600'
+                                  }`}
+                                >
+                                  {selectedSeats > 0 ? (
+                                    <CheckCircle2 size={16} className="text-emerald-200 shrink-0" />
+                                  ) : (
+                                    <UserX size={16} className="text-stone-300 shrink-0" />
+                                  )}
+                                  <span>
+                                    {isSubmittingRsvp
+                                      ? 'Guardando selección...'
+                                      : selectedSeats === 0
+                                        ? 'Confirmar que ninguno podrá asistir'
+                                        : selectedSeats === totalLoadedSeats
+                                          ? `Guardar Confirmación (Todos asisten • ${selectedSeats})`
+                                          : `Guardar Confirmación (${selectedSeats} de ${totalLoadedSeats} asisten)`}
+                                  </span>
+                                </button>
+                              </>
+                            );
+                          })()}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Opción discreta para declinar todos o cancelar edición */}
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-0.5">
+                    {!isOneByOneOpen && (
+                      <button
+                        type="button"
+                        disabled={isSubmittingRsvp}
+                        onClick={handleDeclineCardAll}
+                        className="text-[11px] font-medium text-stone-500 hover:text-rose-700 underline underline-offset-2 transition-colors cursor-pointer"
+                      >
+                        No podremos asistir en esta ocasión
+                      </button>
+                    )}
+                    {isEditingRsvp && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingRsvp(false);
+                          setIsOneByOneOpen(false);
+                        }}
+                        className="text-[11px] font-semibold text-[#7A6B53] hover:text-[#243B2B] underline underline-offset-2 transition-colors cursor-pointer"
+                      >
+                        Cancelar cambios
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* MODO INDIVIDUAL (1 PASE) */
+                <div className="space-y-2.5">
+                  <button
+                    type="button"
+                    disabled={isSubmittingRsvp}
+                    onClick={handleDirectConfirmCard}
+                    className="relative overflow-hidden w-full py-3.5 px-5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md border border-[#C5A880]/45 bg-gradient-to-r from-[#243B2B] via-[#32513C] to-[#243B2B] hover:brightness-110 disabled:opacity-60 text-white transition-all cursor-pointer"
+                  >
+                    <span className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-golden-shimmer pointer-events-none" />
+                    <CheckCircle2 size={18} className="text-[#E0C59B]" />
+                    <span>
+                      {isSubmittingRsvp
+                        ? 'Guardando confirmación...'
+                        : `Confirmar mi Asistencia (1 Pase)`}
+                    </span>
+                  </button>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      disabled={isSubmittingRsvp}
+                      onClick={handleDeclineCardAll}
+                      className="text-[11px] font-medium text-stone-500 hover:text-rose-700 underline underline-offset-2 transition-colors cursor-pointer"
+                    >
+                      No podré asistir en esta ocasión
+                    </button>
+                    {isEditingRsvp && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingRsvp(false)}
+                        className="text-[11px] font-semibold text-[#7A6B53] hover:text-[#243B2B] underline underline-offset-2 transition-colors cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

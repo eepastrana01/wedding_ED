@@ -9,6 +9,7 @@ router.get('/:id', familyController.getById);
 router.post('/', familyController.create);
 router.put('/:id', familyController.update);
 router.patch('/:id/status', familyController.updateBulkStatus);
+router.patch('/:id/members-status', familyController.updateMembersStatus);
 router.patch('/:id/delivery', familyController.updateDelivery);
 router.post('/:id/members', familyController.assignMembers);
 router.delete('/:id/members/:guestId', familyController.removeMember);

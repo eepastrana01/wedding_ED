@@ -64,6 +64,23 @@ export const familyController = {
     }
   },
 
+  async updateMembersStatus(req, res, next) {
+    try {
+      const { members } = req.body;
+      if (!Array.isArray(members) || members.length === 0) {
+        return res.status(400).json({ success: false, message: 'Lista de integrantes no válida' });
+      }
+      const updatedMembers = await familyService.updateMembersStatus(req.params.id, members);
+      res.json({
+        success: true,
+        data: updatedMembers,
+        message: `Confirmación individual guardada (${updatedMembers.length} integrantes)`
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async updateDelivery(req, res, next) {
     try {
       const { delivered } = req.body;

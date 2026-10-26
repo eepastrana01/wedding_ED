@@ -37,6 +37,13 @@ export const familyApi = {
     });
   },
 
+  updateMembersStatus(id, members) {
+    return request(`/families/${id}/members-status`, {
+      method: 'PATCH',
+      body: { members },
+    });
+  },
+
   updateDelivery(id, delivered) {
     return request(`/families/${id}/delivery`, {
       method: 'PATCH',

@@ -26,6 +26,7 @@ export const familyService = {
               'guest_type', g.guest_type,
               'priority', g.priority,
               'status', g.status,
+              'confirmed_seats', COALESCE(g.confirmed_seats, 1),
               'dietary_notes', g.dietary_notes,
               'phone', g.phone,
               'invitation_delivered', g.invitation_delivered
@@ -74,6 +75,7 @@ export const familyService = {
               'guest_type', g.guest_type,
               'priority', g.priority,
               'status', g.status,
+              'confirmed_seats', COALESCE(g.confirmed_seats, 1),
               'dietary_notes', g.dietary_notes,
               'phone', g.phone,
               'invitation_delivered', g.invitation_delivered
@@ -161,6 +163,36 @@ export const familyService = {
       RETURNING *
     `;
     const result = await pool.query(query, [status, familyId]);
+    return result.rows;
+  },
+
+  async updateMembersStatus(familyId, members = []) {
+    if (!Array.isArray(members) || members.length === 0) return [];
+    const validStatuses = new Set(['pending', 'confirmed', 'declined']);
+    const ids = [];
+    const statuses = [];
+
+    for (const item of members) {
+      const guestId = parseInt(item?.id, 10);
+      const st = item?.status;
+      if (Number.isInteger(guestId) && guestId > 0 && validStatuses.has(st)) {
+        ids.push(guestId);
+        statuses.push(st);
+      }
+    }
+
+    if (ids.length === 0) return [];
+
+    const query = `
+      UPDATE guests AS g
+      SET status = v.status, updated_at = CURRENT_TIMESTAMP
+      FROM (
+        SELECT unnest($2::int[]) AS id, unnest($3::varchar[]) AS status
+      ) AS v
+      WHERE g.id = v.id AND g.family_id = $1
+      RETURNING g.*
+    `;
+    const result = await pool.query(query, [parseInt(familyId, 10), ids, statuses]);
     return result.rows;
   },
 
