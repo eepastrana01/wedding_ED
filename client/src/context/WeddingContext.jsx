@@ -472,7 +472,13 @@ export function WeddingProvider({ children }) {
     // Immediate optimistic local update (0ms perceived latency!)
     setGuests((prev) => {
       const updated = prev.map((g) => (g.id === guestId ? { ...g, status: newStatus } : g));
-      try { localStorage.setItem('wedding_guests_cache', JSON.stringify(updated)); } catch (e) {}
+      try {
+        localStorage.setItem('wedding_guests_cache', JSON.stringify(updated));
+        localStorage.removeItem(`wedding_rsvp_summary_guest-${guestId}`);
+        if (newStatus === 'pending') {
+          localStorage.removeItem(`wedding_rsvp_done_guest-${guestId}`);
+        }
+      } catch (e) {}
       return updated;
     });
 
@@ -484,6 +490,12 @@ export function WeddingProvider({ children }) {
           const confirmed = updatedMembers.filter((m) => m.status === 'confirmed').length;
           const declined = updatedMembers.filter((m) => m.status === 'declined').length;
           const pending = updatedMembers.filter((m) => m.status === 'pending').length;
+          try {
+            localStorage.removeItem(`wedding_rsvp_summary_fam-${f.id}`);
+            if (confirmed === 0 && declined === 0) {
+              localStorage.removeItem(`wedding_rsvp_done_fam-${f.id}`);
+            }
+          } catch (e) {}
           return {
             ...f,
             members: updatedMembers,
@@ -541,7 +553,13 @@ export function WeddingProvider({ children }) {
         }
         return f;
       });
-      try { localStorage.setItem('wedding_families_cache', JSON.stringify(updated)); } catch (e) {}
+      try {
+        localStorage.setItem('wedding_families_cache', JSON.stringify(updated));
+        localStorage.removeItem(`wedding_rsvp_summary_fam-${familyId}`);
+        if (newStatus === 'pending') {
+          localStorage.removeItem(`wedding_rsvp_done_fam-${familyId}`);
+        }
+      } catch (e) {}
       return updated;
     });
 

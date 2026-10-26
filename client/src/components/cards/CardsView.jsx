@@ -70,6 +70,15 @@ export function CardsView() {
     }
   };
 
+  // Restablecer todos los integrantes de una tarjeta directamente a "Pendiente"
+  const handleResetCardPending = (card) => {
+    if (card.type === 'family') {
+      setFamilyStatus(card.familyId, 'pending');
+    } else {
+      setGuestStatus(card.guestId, 'pending');
+    }
+  };
+
   // Cambiar estado de un integrante individual dentro de la tarjeta
   const handleToggleMemberStatus = (card, member) => {
     const realGuestId = String(member.id).startsWith('p-') ? card.guestId : member.id;
@@ -546,6 +555,17 @@ export function CardsView() {
                     >
                       <UserX size={15} />
                     </button>
+
+                    {((card.statusSummary?.confirmed || 0) > 0 || (card.statusSummary?.declined || 0) > 0) && (
+                      <button
+                        type="button"
+                        onClick={() => handleResetCardPending(card)}
+                        className="p-2 rounded-xl text-xs font-semibold border bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 transition-all duration-150 active:scale-95 cursor-pointer shrink-0"
+                        title="Volver a poner toda la tarjeta en Pendiente"
+                      >
+                        <Clock size={15} />
+                      </button>
+                    )}
                   </div>
 
                   {/* Fila 2: Copiar Mensaje Bonito para WhatsApp + Link Personalizado */}

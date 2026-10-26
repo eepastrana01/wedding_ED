@@ -24,6 +24,7 @@ import {
   Users,
   Check,
   X,
+  Clock,
   ArrowLeft,
   Volume2,
   VolumeX,
@@ -544,6 +545,28 @@ export function DigitalInvitationLanding({
     } catch {}
   }, []);
 
+  const clearLocalRsvpState = useCallback((cardId) => {
+    setRsvpSummary(null);
+    setRsvpSubmitted(false);
+    setIsEditingRsvp(false);
+    setIsOneByOneOpen(false);
+    if (!cardId) return;
+    try {
+      localStorage.removeItem(`wedding_rsvp_done_${cardId}`);
+      localStorage.removeItem(`wedding_rsvp_summary_${cardId}`);
+    } catch {}
+  }, []);
+
+  // Sincronización automática: si desde el Panel se volvió a poner la tarjeta en "Pendiente", limpiar caché local
+  useEffect(() => {
+    if (!activeCard) return;
+    const confirmedInDb = activeCard.statusSummary?.confirmed || 0;
+    const declinedInDb = activeCard.statusSummary?.declined || 0;
+    if (confirmedInDb === 0 && declinedInDb === 0 && rsvpSubmitted) {
+      clearLocalRsvpState(activeCard.id);
+    }
+  }, [activeCard, rsvpSubmitted, clearLocalRsvpState]);
+
   const triggerRsvpConfetti = useCallback(() => {
     confetti({
       particleCount: 110,
@@ -552,6 +575,50 @@ export function DigitalInvitationLanding({
       colors: ['#4C8B54', '#C5A880', '#1F3A2E', '#FAF8F5'],
     });
   }, []);
+
+  // Restablecer toda la tarjeta a estado PENDIENTE (por si confirmaron por accidente o al hacer pruebas)
+  const handleResetCardToPending = async () => {
+    if (!targetCardId || isSubmittingRsvp) return;
+    setIsSubmittingRsvp(true);
+    setRsvpError(null);
+    try {
+      if (String(targetCardId).startsWith('fam-')) {
+        const famId = Number(String(targetCardId).replace('fam-', ''));
+        if (isAdminUnlocked) {
+          await setFamilyStatus(famId, 'pending');
+        } else {
+          await familyApi.updateBulkStatus(famId, 'pending');
+        }
+      } else if (String(targetCardId).startsWith('guest-')) {
+        const gId = Number(String(targetCardId).replace('guest-', ''));
+        if (isAdminUnlocked && displaySeats <= 1) {
+          await setGuestStatus(gId, 'pending');
+        } else if (displaySeats > 1) {
+          const cleanNotes = String(guestCardMetaRef.current?.notes || '')
+            .replace(/\s*\[RSVP Web:[^\]]*\]/g, '')
+            .trim();
+          await guestApi.update(gId, {
+            status: 'pending',
+            confirmed_seats: displaySeats,
+            notes: cleanNotes || null,
+          });
+          if (isAdminUnlocked && refreshAll) refreshAll(true);
+        } else {
+          await guestApi.updateStatus(gId, 'pending');
+        }
+      }
+
+      if (memberSelections.length > 0) {
+        setMemberSelections((prev) => prev.map((m) => ({ ...m, status: 'pending' })));
+      }
+      clearLocalRsvpState(targetCardId);
+    } catch (err) {
+      console.error(err);
+      setRsvpError('No se pudo restablecer a pendiente. Intenta de nuevo.');
+    } finally {
+      setIsSubmittingRsvp(false);
+    }
+  };
 
   // Confirmar TODOS los pases de la tarjeta en 1 solo clic (1 consulta SQL)
   const handleDirectConfirmCard = async () => {
@@ -582,7 +649,7 @@ export function DigitalInvitationLanding({
       }
 
       if (memberSelections.length > 0) {
-        setMemberSelections((prev) => prev.map((m) => ({ ...m, attending: true })));
+        setMemberSelections((prev) => prev.map((m) => ({ ...m, status: 'confirmed' })));
       }
 
       persistRsvpSummary(targetCardId, {
@@ -625,7 +692,7 @@ export function DigitalInvitationLanding({
       }
 
       if (memberSelections.length > 0) {
-        setMemberSelections((prev) => prev.map((m) => ({ ...m, attending: false })));
+        setMemberSelections((prev) => prev.map((m) => ({ ...m, status: 'declined' })));
       }
 
       persistRsvpSummary(targetCardId, {
@@ -654,7 +721,7 @@ export function DigitalInvitationLanding({
     setIsOneByOneOpen(true);
     setRsvpError(null);
 
-    if (memberSelections.length > 0 || !targetCardId) {
+    if (!targetCardId) {
       return;
     }
 
@@ -667,6 +734,17 @@ export function DigitalInvitationLanding({
         const dbMembers = Array.isArray(fam?.members) ? fam.members : [];
 
         if (dbMembers.length > 0) {
+          const allPendingInDb = dbMembers.every((m) => !m.status || m.status === 'pending');
+          if (allPendingInDb && rsvpSubmitted) {
+            setRsvpSummary(null);
+            setRsvpSubmitted(false);
+            setIsEditingRsvp(false);
+            try {
+              localStorage.removeItem(`wedding_rsvp_done_${targetCardId}`);
+              localStorage.removeItem(`wedding_rsvp_summary_${targetCardId}`);
+            } catch {}
+          }
+
           const mapped = dbMembers.map((m, idx) => {
             const rawPartner = String(m.partner_name || '').trim();
             const hasPartner =
@@ -674,12 +752,14 @@ export function DigitalInvitationLanding({
             const fullLabel = hasPartner
               ? `${m.name} & ${rawPartner}`
               : m.name || `Integrante ${idx + 1}`;
+            const normalizedStatus =
+              m.status === 'confirmed' || m.status === 'declined' ? m.status : 'pending';
             return {
               key: String(m.id),
               guestId: m.id,
               name: fullLabel,
               seats: Math.max(1, parseInt(m.confirmed_seats, 10) || (hasPartner ? 2 : 1)),
-              attending: m.status !== 'declined',
+              status: normalizedStatus,
             };
           });
           setMemberSelections(mapped);
@@ -690,7 +770,7 @@ export function DigitalInvitationLanding({
               guestId: null,
               name: `Integrante ${idx + 1}`,
               seats: 1,
-              attending: true,
+              status: 'pending',
             }))
           );
         }
@@ -700,6 +780,16 @@ export function DigitalInvitationLanding({
         const guest = res?.data;
 
         if (guest) {
+          if ((!guest.status || guest.status === 'pending') && rsvpSubmitted) {
+            setRsvpSummary(null);
+            setRsvpSubmitted(false);
+            setIsEditingRsvp(false);
+            try {
+              localStorage.removeItem(`wedding_rsvp_done_${targetCardId}`);
+              localStorage.removeItem(`wedding_rsvp_summary_${targetCardId}`);
+            } catch {}
+          }
+
           const rawPartner = String(guest.partner_name || '').trim();
           const hasPartner =
             Boolean(rawPartner) && !INVALID_PARTNER_VALUES.has(rawPartner.toLowerCase());
@@ -712,13 +802,18 @@ export function DigitalInvitationLanding({
             totalPasses,
           };
 
+          const baseStatus =
+            guest.status === 'confirmed' || guest.status === 'declined'
+              ? guest.status
+              : 'pending';
+
           const items = [
             {
               key: 'main',
               guestId: null,
               name: guest.name || displaySalutation,
               seats: 1,
-              attending: guest.status !== 'declined',
+              status: baseStatus,
             },
           ];
 
@@ -728,7 +823,12 @@ export function DigitalInvitationLanding({
               guestId: null,
               name: rawPartner,
               seats: 1,
-              attending: guest.status !== 'declined' && savedConfirmedSeats >= 2,
+              status:
+                baseStatus === 'pending'
+                  ? 'pending'
+                  : baseStatus === 'confirmed' && savedConfirmedSeats >= 2
+                    ? 'confirmed'
+                    : 'declined',
             });
           }
 
@@ -738,7 +838,12 @@ export function DigitalInvitationLanding({
               guestId: null,
               name: `Acompañante ${i}`,
               seats: 1,
-              attending: guest.status !== 'declined' && i < savedConfirmedSeats,
+              status:
+                baseStatus === 'pending'
+                  ? 'pending'
+                  : baseStatus === 'confirmed' && i < savedConfirmedSeats
+                    ? 'confirmed'
+                    : 'declined',
             });
           }
 
@@ -753,24 +858,40 @@ export function DigitalInvitationLanding({
     }
   };
 
-  const handleSetMemberAttending = (memberKey, isAttending) => {
+  // Tocar el mismo botón una segunda vez devuelve al integrante a estado "pending" (sin marcar)
+  const handleSetMemberStatus = (memberKey, targetStatus) => {
     setMemberSelections((prev) =>
-      prev.map((m) => (m.key === memberKey ? { ...m, attending: isAttending } : m))
+      prev.map((m) => {
+        if (m.key !== memberKey) return m;
+        return {
+          ...m,
+          status: m.status === targetStatus ? 'pending' : targetStatus,
+        };
+      })
     );
   };
 
-  const handleSetAllMembersLocal = (isAttending) => {
-    setMemberSelections((prev) => prev.map((m) => ({ ...m, attending: isAttending })));
+  const handleSetAllMembersLocal = (targetStatus) => {
+    setMemberSelections((prev) => prev.map((m) => ({ ...m, status: targetStatus })));
   };
 
   // Guardar selección 1x1 en 1 sola consulta SQL hacia Neon
   const handleSaveOneByOneRsvp = async () => {
     if (!targetCardId || memberSelections.length === 0 || isSubmittingRsvp) return;
+
+    const attendingItems = memberSelections.filter((m) => m.status === 'confirmed');
+    const declinedItems = memberSelections.filter((m) => m.status === 'declined');
+    const pendingItems = memberSelections.filter((m) => m.status === 'pending');
+
+    // Si todos quedaron en "pending", restablecer toda la tarjeta a Pendiente
+    if (attendingItems.length === 0 && declinedItems.length === 0) {
+      await handleResetCardToPending();
+      return;
+    }
+
     setIsSubmittingRsvp(true);
     setRsvpError(null);
 
-    const attendingItems = memberSelections.filter((m) => m.attending);
-    const declinedItems = memberSelections.filter((m) => !m.attending);
     const confirmedSeatsCount = attendingItems.reduce((sum, m) => sum + (m.seats || 1), 0);
     const totalSeatsCount = memberSelections.reduce((sum, m) => sum + (m.seats || 1), 0);
 
@@ -781,7 +902,7 @@ export function DigitalInvitationLanding({
           .filter((m) => m.guestId)
           .map((m) => ({
             id: m.guestId,
-            status: m.attending ? 'confirmed' : 'declined',
+            status: m.status || 'pending',
           }));
 
         if (payload.length > 0) {
@@ -803,8 +924,12 @@ export function DigitalInvitationLanding({
           .trim();
 
         let rsvpTag = '';
-        if (confirmedSeatsCount > 0 && declinedItems.length > 0) {
-          rsvpTag = `[RSVP Web: Asiste ${attendingItems.map((i) => i.name).join(', ')}; No asiste ${declinedItems.map((i) => i.name).join(', ')}]`;
+        if (confirmedSeatsCount > 0 && (declinedItems.length > 0 || pendingItems.length > 0)) {
+          rsvpTag = `[RSVP Web: Asiste ${attendingItems.map((i) => i.name).join(', ')}${
+            declinedItems.length > 0
+              ? `; No asiste ${declinedItems.map((i) => i.name).join(', ')}`
+              : ''
+          }]`;
         }
         const combinedNotes = [baseNotes, rsvpTag].filter(Boolean).join(' ');
 
@@ -828,7 +953,7 @@ export function DigitalInvitationLanding({
         totalCount: totalSeatsCount,
         attendingNames: attendingItems.map((m) => m.name),
         declinedNames: declinedItems.map((m) => m.name),
-        allDeclined: confirmedSeatsCount === 0,
+        allDeclined: confirmedSeatsCount === 0 && declinedItems.length > 0,
       });
 
       if (confirmedSeatsCount > 0) {
@@ -2388,13 +2513,23 @@ export function DigitalInvitationLanding({
                     </div>
                   )}
 
-                  <div className="text-center">
+                  <div className="flex flex-wrap items-center justify-center gap-2">
                     <button
                       type="button"
                       onClick={() => setIsEditingRsvp(true)}
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-[#FAF8F4] text-[#5C5343] hover:text-[#243B2B] border border-[#C5A880]/55 text-[11px] font-semibold transition-all cursor-pointer"
                     >
                       <span>Modificar confirmación</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isSubmittingRsvp}
+                      onClick={handleResetCardToPending}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50/90 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[11px] font-semibold transition-all cursor-pointer disabled:opacity-60"
+                    >
+                      <Clock size={12} className="text-amber-700" />
+                      <span>Volver a dejar Pendiente</span>
                     </button>
                   </div>
                 </div>
@@ -2457,17 +2592,21 @@ export function DigitalInvitationLanding({
                         <>
                           {(() => {
                             const selectedSeats = memberSelections
-                              .filter((m) => m.attending)
+                              .filter((m) => m.status === 'confirmed')
+                              .reduce((sum, m) => sum + (m.seats || 1), 0);
+                            const declinedSeats = memberSelections
+                              .filter((m) => m.status === 'declined')
                               .reduce((sum, m) => sum + (m.seats || 1), 0);
                             const totalLoadedSeats =
                               memberSelections.reduce((sum, m) => sum + (m.seats || 1), 0) ||
                               displaySeats;
+                            const allArePending = selectedSeats === 0 && declinedSeats === 0;
 
                             return (
                               <>
                                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-stone-200/80">
                                   <span className="text-[11px] font-bold text-[#243B2B]">
-                                    Seleccionados:{' '}
+                                    Confirmados:{' '}
                                     <span className="text-emerald-700">
                                       {selectedSeats} de {totalLoadedSeats}
                                     </span>{' '}
@@ -2477,85 +2616,103 @@ export function DigitalInvitationLanding({
                                   <div className="flex items-center gap-1.5 text-[11px]">
                                     <button
                                       type="button"
-                                      onClick={() => handleSetAllMembersLocal(true)}
+                                      onClick={() => handleSetAllMembersLocal('confirmed')}
                                       className="px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold transition-colors cursor-pointer"
                                     >
                                       Todos
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => handleSetAllMembersLocal(false)}
-                                      className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600 border border-stone-200 font-semibold transition-colors cursor-pointer"
+                                      onClick={() => handleSetAllMembersLocal('declined')}
+                                      className="px-2 py-0.5 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold transition-colors cursor-pointer"
                                     >
                                       Ninguno
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSetAllMembersLocal('pending')}
+                                      className="px-2 py-0.5 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold transition-colors cursor-pointer"
+                                    >
+                                      Pendiente
                                     </button>
                                   </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                  {memberSelections.map((member, idx) => (
-                                    <div
-                                      key={member.key}
-                                      className={`rounded-xl p-2.5 sm:px-3 sm:py-2.5 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                                        member.attending
-                                          ? 'bg-emerald-50/45 border-emerald-200/90'
-                                          : 'bg-stone-50/90 border-stone-200/80'
-                                      }`}
-                                    >
-                                      <div className="flex items-center gap-2 min-w-0">
-                                        <span
-                                          className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${
-                                            member.attending
-                                              ? 'bg-emerald-600 text-white'
-                                              : 'bg-stone-300 text-stone-700'
-                                          }`}
-                                        >
-                                          {idx + 1}
-                                        </span>
-                                        <span
-                                          className={`text-xs sm:text-sm font-semibold leading-snug ${
-                                            member.attending
-                                              ? 'text-[#243B2B]'
-                                              : 'text-stone-500 line-through'
-                                          }`}
-                                        >
-                                          {member.name}
-                                        </span>
-                                      </div>
+                                  {memberSelections.map((member, idx) => {
+                                    const isConfirmed = member.status === 'confirmed';
+                                    const isDeclined = member.status === 'declined';
 
-                                      <div className="grid grid-cols-2 sm:flex items-center gap-1.5 shrink-0">
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleSetMemberAttending(member.key, true)
-                                          }
-                                          className={`inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
-                                            member.attending
-                                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                                              : 'bg-white text-stone-600 border-stone-200 hover:border-emerald-300 hover:text-emerald-700'
-                                          }`}
-                                        >
-                                          <Check size={12} />
-                                          <span>Asiste</span>
-                                        </button>
+                                    return (
+                                      <div
+                                        key={member.key}
+                                        className={`rounded-xl p-2.5 sm:px-3 sm:py-2.5 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                                          isConfirmed
+                                            ? 'bg-emerald-50/55 border-emerald-200/95'
+                                            : isDeclined
+                                              ? 'bg-rose-50/40 border-rose-200/80'
+                                              : 'bg-[#FAF9F6] border-stone-200/90'
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <span
+                                            className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${
+                                              isConfirmed
+                                                ? 'bg-emerald-600 text-white'
+                                                : isDeclined
+                                                  ? 'bg-rose-500 text-white'
+                                                  : 'bg-amber-100 text-amber-900 border border-amber-300'
+                                            }`}
+                                          >
+                                            {idx + 1}
+                                          </span>
+                                          <span
+                                            className={`text-xs sm:text-sm font-semibold leading-snug ${
+                                              isConfirmed
+                                                ? 'text-[#243B2B]'
+                                                : isDeclined
+                                                  ? 'text-stone-500 line-through'
+                                                  : 'text-stone-800'
+                                            }`}
+                                          >
+                                            {member.name}
+                                          </span>
+                                        </div>
 
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleSetMemberAttending(member.key, false)
-                                          }
-                                          className={`inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
-                                            !member.attending
-                                              ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
-                                              : 'bg-white text-stone-600 border-stone-200 hover:border-rose-300 hover:text-rose-700'
-                                          }`}
-                                        >
-                                          <X size={12} />
-                                          <span>No asiste</span>
-                                        </button>
+                                        <div className="grid grid-cols-2 sm:flex items-center gap-1.5 shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleSetMemberStatus(member.key, 'confirmed')
+                                            }
+                                            className={`inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                                              isConfirmed
+                                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                                : 'bg-white text-stone-600 border-stone-200 hover:border-emerald-300 hover:text-emerald-700'
+                                            }`}
+                                          >
+                                            <Check size={12} />
+                                            <span>Asiste</span>
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleSetMemberStatus(member.key, 'declined')
+                                            }
+                                            className={`inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                                              isDeclined
+                                                ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                                                : 'bg-white text-stone-600 border-stone-200 hover:border-rose-300 hover:text-rose-700'
+                                            }`}
+                                          >
+                                            <X size={12} />
+                                            <span>No asiste</span>
+                                          </button>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
 
                                 <button
@@ -2565,22 +2722,28 @@ export function DigitalInvitationLanding({
                                   className={`w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer disabled:opacity-60 ${
                                     selectedSeats > 0
                                       ? 'bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-600'
-                                      : 'bg-stone-700 hover:bg-stone-800 text-white border border-stone-600'
+                                      : allArePending
+                                        ? 'bg-amber-600 hover:bg-amber-700 text-white border border-amber-500'
+                                        : 'bg-stone-700 hover:bg-stone-800 text-white border border-stone-600'
                                   }`}
                                 >
                                   {selectedSeats > 0 ? (
                                     <CheckCircle2 size={16} className="text-emerald-200 shrink-0" />
+                                  ) : allArePending ? (
+                                    <Clock size={16} className="text-amber-100 shrink-0" />
                                   ) : (
                                     <UserX size={16} className="text-stone-300 shrink-0" />
                                   )}
                                   <span>
                                     {isSubmittingRsvp
                                       ? 'Guardando selección...'
-                                      : selectedSeats === 0
-                                        ? 'Confirmar que ninguno podrá asistir'
-                                        : selectedSeats === totalLoadedSeats
-                                          ? `Guardar Confirmación (Todos asisten • ${selectedSeats})`
-                                          : `Guardar Confirmación (${selectedSeats} de ${totalLoadedSeats} asisten)`}
+                                      : allArePending
+                                        ? 'Guardar todos como Pendiente'
+                                        : selectedSeats === 0
+                                          ? 'Confirmar que ninguno podrá asistir'
+                                          : selectedSeats === totalLoadedSeats
+                                            ? `Guardar Confirmación (Todos asisten • ${selectedSeats})`
+                                            : `Guardar Confirmación (${selectedSeats} de ${totalLoadedSeats} asisten)`}
                                   </span>
                                 </button>
                               </>
@@ -2591,7 +2754,7 @@ export function DigitalInvitationLanding({
                     </div>
                   )}
 
-                  {/* Opción discreta para declinar todos o cancelar edición */}
+                  {/* Opciones discretas para declinar, volver a dejar pendiente o cancelar edición */}
                   <div className="flex flex-wrap items-center justify-center gap-3 pt-0.5">
                     {!isOneByOneOpen && (
                       <button
@@ -2604,16 +2767,26 @@ export function DigitalInvitationLanding({
                       </button>
                     )}
                     {isEditingRsvp && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditingRsvp(false);
-                          setIsOneByOneOpen(false);
-                        }}
-                        className="text-[11px] font-semibold text-[#7A6B53] hover:text-[#243B2B] underline underline-offset-2 transition-colors cursor-pointer"
-                      >
-                        Cancelar cambios
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          disabled={isSubmittingRsvp}
+                          onClick={handleResetCardToPending}
+                          className="text-[11px] font-semibold text-amber-800 hover:text-amber-950 underline underline-offset-2 transition-colors cursor-pointer"
+                        >
+                          Volver a dejar Pendiente
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingRsvp(false);
+                            setIsOneByOneOpen(false);
+                          }}
+                          className="text-[11px] font-semibold text-[#7A6B53] hover:text-[#243B2B] underline underline-offset-2 transition-colors cursor-pointer"
+                        >
+                          Cancelar cambios
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -2645,13 +2818,23 @@ export function DigitalInvitationLanding({
                       No podré asistir en esta ocasión
                     </button>
                     {isEditingRsvp && (
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingRsvp(false)}
-                        className="text-[11px] font-semibold text-[#7A6B53] hover:text-[#243B2B] underline underline-offset-2 transition-colors cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          disabled={isSubmittingRsvp}
+                          onClick={handleResetCardToPending}
+                          className="text-[11px] font-semibold text-amber-800 hover:text-amber-950 underline underline-offset-2 transition-colors cursor-pointer"
+                        >
+                          Volver a dejar Pendiente
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingRsvp(false)}
+                          className="text-[11px] font-semibold text-[#7A6B53] hover:text-[#243B2B] underline underline-offset-2 transition-colors cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
