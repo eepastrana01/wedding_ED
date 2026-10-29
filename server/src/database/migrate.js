@@ -1,8 +1,46 @@
 import pool from '../config/database.js';
 
+const CURRENT_SCHEMA_VERSION = 1;
+const MIGRATION_ADVISORY_LOCK_KEY = 20261121;
+
 export async function runMigrations() {
+  // Fast-path sin bloqueos: si el esquema ya está en la versión actual, salir de inmediato (0 DDL / 0 locks)
+  try {
+    const versionCheck = await pool.query(
+      'SELECT version FROM app_schema_meta WHERE id = 1 LIMIT 1'
+    );
+    if ((versionCheck.rows[0]?.version || 0) >= CURRENT_SCHEMA_VERSION) {
+      return;
+    }
+  } catch (err) {
+    // 42P01 = relation "app_schema_meta" does not exist aún; continuamos a migración protegida
+    if (err.code !== '42P01') {
+      console.warn('Aviso verificando versión de esquema:', err.message);
+    }
+  }
+
   const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+    // Serializar cualquier instancia serverless concurrente (compatible con Neon PgBouncer transaction pooler)
+    await client.query('SELECT pg_advisory_xact_lock($1)', [MIGRATION_ADVISORY_LOCK_KEY]);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS app_schema_meta (
+        id INTEGER PRIMARY KEY,
+        version INTEGER NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    const lockedCheck = await client.query(
+      'SELECT version FROM app_schema_meta WHERE id = 1 LIMIT 1'
+    );
+    if ((lockedCheck.rows[0]?.version || 0) >= CURRENT_SCHEMA_VERSION) {
+      await client.query('COMMIT');
+      return;
+    }
+
     console.log('🔄 Ejecutando migraciones seguras en Neon PostgreSQL...');
 
     // 0. Habilitar extensión unaccent para búsquedas y filtros insensibles a tildes
@@ -193,8 +231,22 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_wedding_tables_number ON wedding_tables(table_number);
     `);
 
+    await client.query(
+      `
+        INSERT INTO app_schema_meta (id, version, updated_at)
+        VALUES (1, $1, CURRENT_TIMESTAMP)
+        ON CONFLICT (id)
+        DO UPDATE SET version = EXCLUDED.version, updated_at = CURRENT_TIMESTAMP;
+      `,
+      [CURRENT_SCHEMA_VERSION]
+    );
+
+    await client.query('COMMIT');
     console.log('✅ Migraciones completadas exitosamente en Neon PostgreSQL.');
   } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch {}
     console.error('❌ Error ejecutando migraciones:', error);
     throw error;
   } finally {

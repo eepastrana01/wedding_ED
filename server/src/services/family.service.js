@@ -169,19 +169,22 @@ export const familyService = {
   async updateMembersStatus(familyId, members = []) {
     if (!Array.isArray(members) || members.length === 0) return [];
     const validStatuses = new Set(['pending', 'confirmed', 'declined']);
-    const ids = [];
-    const statuses = [];
+    const normalized = [];
 
     for (const item of members) {
       const guestId = parseInt(item?.id, 10);
       const st = item?.status;
       if (Number.isInteger(guestId) && guestId > 0 && validStatuses.has(st)) {
-        ids.push(guestId);
-        statuses.push(st);
+        normalized.push({ id: guestId, status: st });
       }
     }
 
-    if (ids.length === 0) return [];
+    if (normalized.length === 0) return [];
+
+    // Ordenar por ID ascendente para adquirir bloqueos de fila en orden determinista y evitar deadlocks
+    normalized.sort((a, b) => a.id - b.id);
+    const ids = normalized.map((n) => n.id);
+    const statuses = normalized.map((n) => n.status);
 
     const query = `
       UPDATE guests AS g
