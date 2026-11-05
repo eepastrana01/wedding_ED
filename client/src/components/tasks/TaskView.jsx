@@ -3,6 +3,7 @@ import { useWedding } from '../../context/WeddingContext';
 import { TaskCard } from './TaskCard';
 import { TaskModal, TASK_CATEGORIES } from './TaskModal';
 import { matchesSearch } from '../../utils/textUtils';
+import { generateExpensesReportPDF } from '../../utils/pdfGenerator';
 import { 
   Plus, 
   Sparkles, 
@@ -14,6 +15,7 @@ import {
   Coins, 
   ListTodo, 
   Filter,
+  FileDown,
   User,
   Users
 } from 'lucide-react';
@@ -27,10 +29,12 @@ export function TaskView() {
     deleteTask, 
     toggleTaskStatus, 
     toggleSubtask, 
-    loadPresetTasks 
+    loadPresetTasks,
+    showToast
   } = useWedding();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'completed'
@@ -101,6 +105,32 @@ export function TaskView() {
     }
   };
 
+  const pendingExpenseBalance = useMemo(() => {
+    return tasks.reduce((sum, t) => {
+      if (t.status === 'completed') return sum;
+      const est = Math.max(0, parseFloat(t.estimated_cost) || 0);
+      const paid = Math.max(0, parseFloat(t.actual_cost) || 0);
+      return sum + Math.max(0, est - paid);
+    }, 0);
+  }, [tasks]);
+
+  const handleDownloadExpensesPdf = () => {
+    try {
+      setIsGeneratingPdf(true);
+      generateExpensesReportPDF(tasks);
+      if (showToast) {
+        showToast('Informe formal de gastos en PDF descargado');
+      }
+    } catch (err) {
+      console.error('Error generando informe de gastos PDF:', err);
+      if (showToast) {
+        showToast('Error al generar el informe PDF', 'error');
+      }
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 pb-28 md:pb-12 animate-in fade-in duration-300">
       
@@ -132,6 +162,19 @@ export function TaskView() {
             >
               <Sparkles size={15} className="text-wedding-accentDark" />
               <span>Cargar Tareas Sugeridas</span>
+            </button>
+          )}
+
+          {tasks.length > 0 && (
+            <button
+              type="button"
+              onClick={handleDownloadExpensesPdf}
+              disabled={isGeneratingPdf}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100/90 text-amber-950 border border-amber-300/80 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
+              title="Descargar Informe Formal de Presupuesto y Ejecución de Gastos en PDF (Tamaño Carta)"
+            >
+              <FileDown size={16} className="text-amber-700" />
+              <span>{isGeneratingPdf ? 'Generando PDF...' : 'Informe Gastos PDF'}</span>
             </button>
           )}
 
@@ -200,7 +243,7 @@ export function TaskView() {
             L. {taskMetrics.actualCost.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5">
-            Estimado: L. {taskMetrics.estimatedCost.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            Est: L. {taskMetrics.estimatedCost.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • <span className="text-amber-800 font-semibold">Saldo: L. {pendingExpenseBalance.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </p>
         </div>
 
