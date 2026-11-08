@@ -252,13 +252,13 @@ export function DigitalInvitationLanding({
   }, [allCards, urlData.cardId]);
 
   const displaySalutation =
-    activeCard?.salutation ||
     urlData.salutation ||
+    activeCard?.salutation ||
     'Invitado Especial';
 
   const displaySeats =
-    activeCard?.seats ||
     urlData.seats ||
+    activeCard?.seats ||
     2;
 
   const targetCardId = activeCard?.id || urlData.cardId || '';
@@ -267,7 +267,16 @@ export function DigitalInvitationLanding({
     if (typeof window === 'undefined' || !urlData.cardId) return null;
     try {
       const raw = localStorage.getItem(`wedding_rsvp_summary_${urlData.cardId}`);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Si el resumen guardado localmente pertenecía a otra persona con el mismo ID (ej. fue renombrado), invalidar caché local
+        if (parsed?.salutation && urlData.salutation && parsed.salutation !== urlData.salutation) {
+          localStorage.removeItem(`wedding_rsvp_summary_${urlData.cardId}`);
+          localStorage.removeItem(`wedding_rsvp_done_${urlData.cardId}`);
+          return null;
+        }
+        return parsed;
+      }
       if (localStorage.getItem(`wedding_rsvp_done_${urlData.cardId}`) === 'true') {
         return {
           mode: 'all',
@@ -534,16 +543,20 @@ export function DigitalInvitationLanding({
   };
 
   const persistRsvpSummary = useCallback((cardId, summaryObj) => {
-    setRsvpSummary(summaryObj);
+    const enrichedSummary = {
+      ...summaryObj,
+      salutation: displaySalutation,
+    };
+    setRsvpSummary(enrichedSummary);
     setRsvpSubmitted(true);
     setIsEditingRsvp(false);
     setIsOneByOneOpen(false);
     if (!cardId) return;
     try {
       localStorage.setItem(`wedding_rsvp_done_${cardId}`, 'true');
-      localStorage.setItem(`wedding_rsvp_summary_${cardId}`, JSON.stringify(summaryObj));
+      localStorage.setItem(`wedding_rsvp_summary_${cardId}`, JSON.stringify(enrichedSummary));
     } catch {}
-  }, []);
+  }, [displaySalutation]);
 
   const clearLocalRsvpState = useCallback((cardId) => {
     setRsvpSummary(null);

@@ -1,19 +1,57 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useWedding } from '../../context/WeddingContext';
-import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown, Ticket, FileText, Tag, UserCheck, UserX, Link2, ExternalLink, Copy, Check } from 'lucide-react';
+import { Mail, Users, User, Heart, CheckCircle2, Clock, Printer, Search, X, MessageCircle, Phone, Sparkles, Filter, FileDown, Ticket, FileText, Tag, UserCheck, UserX, Link2, ExternalLink, Copy, Check, RefreshCw } from 'lucide-react';
 import { openWhatsApp, buildInvitationShareMessage } from '../../utils/whatsapp';
 import { generateInvitationCardsPDF } from '../../utils/pdfGenerator';
 import { LabelsPrintModal } from './LabelsPrintModal';
 import { matchesSearch } from '../../utils/textUtils';
 import { encodeInvitationToken } from '../../utils/invitationToken';
 
+// Utilidad resiliente para portapapeles móvil (Chrome Android / iOS Safari / fallback execCommand)
+async function copyTextToClipboard(text) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (err) {
+      console.warn('navigator.clipboard.writeText threw, trying execCommand fallback:', err);
+    }
+  }
+
+  try {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    textArea.style.top = '0';
+    textArea.setAttribute('readonly', '');
+    document.body.appendChild(textArea);
+    textArea.select();
+    textArea.setSelectionRange(0, 99999);
+    const successful = document.execCommand('copy');
+    document.body.removeChild(textArea);
+    return successful;
+  } catch (e) {
+    console.error('execCommand copy fallback failed:', e);
+    return false;
+  }
+}
+
 export function CardsView() {
-  const { invitationCards, toggleDeliveryStatus, setFamilyStatus, setGuestStatus, showToast } = useWedding();
+  const { invitationCards, toggleDeliveryStatus, setFamilyStatus, setGuestStatus, showToast, refreshAll, isRefreshing } = useWedding();
   const [filterType, setFilterType] = useState('all'); // 'all', 'family', 'individual', 'pending', 'delivered', 'confirmed_rsvp', 'pending_rsvp'
   const [search, setSearch] = useState('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isLabelsModalOpen, setIsLabelsModalOpen] = useState(false);
   const [copiedCardId, setCopiedCardId] = useState(null);
+
+  // Sincronizar automáticamente en segundo plano al ingresar al módulo de tarjetas
+  // para reflejar de inmediato cualquier cambio reciente hecho desde Invitados u otro dispositivo
+  useEffect(() => {
+    if (typeof refreshAll === 'function') {
+      refreshAll(false);
+    }
+  }, [refreshAll]);
 
   const { all = [], summary = {} } = invitationCards || {};
 
@@ -122,26 +160,26 @@ export function CardsView() {
   const handleCopyCardMessage = async (card) => {
     const url = getCardInvitationUrl(card);
     const fullMessage = buildInvitationShareMessage(card, url);
-    try {
-      await navigator.clipboard.writeText(fullMessage);
+    const success = await copyTextToClipboard(fullMessage);
+    if (success) {
       setCopiedCardId(card.id);
       setTimeout(() => {
         setCopiedCardId((prev) => (prev === card.id ? null : prev));
       }, 2400);
       showToast(`Mensaje + invitación copiados para ${card.salutation} (${card.seats} ${card.seats === 1 ? 'pase' : 'pases'})`);
-    } catch {
-      showToast('No se pudo copiar automáticamente', 'error');
+    } else {
+      showToast('No se pudo copiar automáticamente al portapapeles', 'error');
     }
   };
 
   // Copia únicamente el enlace directo (por si alguna vez solo necesitan el URL limpio)
   const handleCopyOnlyLink = async (card) => {
     const url = getCardInvitationUrl(card);
-    try {
-      await navigator.clipboard.writeText(url);
+    const success = await copyTextToClipboard(url);
+    if (success) {
       showToast(`Solo enlace copiado para ${card.salutation}`);
-    } catch {
-      showToast('No se pudo copiar el enlace', 'error');
+    } else {
+      showToast('No se pudo copiar el enlace al portapapeles', 'error');
     }
   };
 
@@ -175,8 +213,19 @@ export function CardsView() {
           </p>
         </div>
 
-        {/* Action Buttons: Landing Digital + Etiquetas + PDF Download (Carta) + Print */}
+        {/* Action Buttons: Sincronizar + Landing Digital + Etiquetas + PDF Download (Carta) + Print */}
         <div className="flex items-center flex-wrap gap-2 no-print shrink-0">
+          <button
+            type="button"
+            onClick={() => refreshAll(false)}
+            disabled={isRefreshing}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-stone-100 hover:bg-stone-200/90 text-stone-700 rounded-xl text-xs sm:text-sm font-semibold transition-all border border-stone-200 active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs"
+            title="Sincronizar tarjetas con los últimos cambios de la base de datos"
+          >
+            <RefreshCw size={15} className={`text-stone-500 shrink-0 ${isRefreshing ? 'animate-spin text-wedding-primary' : ''}`} />
+            <span className="hidden sm:inline">{isRefreshing ? 'Sincronizando...' : 'Sincronizar'}</span>
+          </button>
+
           <a
             href="/invitacion?preview=true"
             target="_blank"

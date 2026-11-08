@@ -293,10 +293,10 @@ export function WeddingProvider({ children }) {
     refreshAll(true);
 
     // Sincronización inteligente entre dispositivos (PC <-> Celular)
-    // Se actualiza en silencio cuando el usuario vuelve a enfocar la ventana/pestaña (con límite de al menos 90 seg)
+    // Se actualiza en silencio cuando el usuario vuelve a enfocar la ventana/pestaña (con límite de al menos 15 seg)
     let lastRefreshTime = Date.now();
     const handleFocusOrVisible = () => {
-      if (!document.hidden && Date.now() - lastRefreshTime > 90000) {
+      if (!document.hidden && Date.now() - lastRefreshTime > 15000) {
         lastRefreshTime = Date.now();
         refreshAll(false);
       }
