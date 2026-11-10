@@ -369,5 +369,29 @@ export const taskService = {
       created.push(task);
     }
     return created;
+  },
+
+  async getCashOnHand() {
+    const res = await pool.query(
+      `SELECT value FROM app_settings WHERE key = 'budget_cash_on_hand' LIMIT 1`
+    );
+    const raw = res.rows[0]?.value;
+    const amount = raw !== undefined && raw !== null ? parseFloat(raw) : 0;
+    return isNaN(amount) ? 0 : amount;
+  },
+
+  async updateCashOnHand(amount) {
+    const num = Math.max(0, parseFloat(amount) || 0);
+    const res = await pool.query(
+      `
+        INSERT INTO app_settings (key, value, updated_at)
+        VALUES ('budget_cash_on_hand', $1, CURRENT_TIMESTAMP)
+        ON CONFLICT (key)
+        DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+        RETURNING value, updated_at
+      `,
+      [num.toFixed(2)]
+    );
+    return parseFloat(res.rows[0]?.value) || 0;
   }
 };

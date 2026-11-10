@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useWedding } from '../../context/WeddingContext';
 import { TaskCard } from './TaskCard';
 import { TaskModal, TASK_CATEGORIES } from './TaskModal';
+import { CashOnHandModal } from './CashOnHandModal';
 import { matchesSearch } from '../../utils/textUtils';
 import { generateExpensesReportPDF } from '../../utils/pdfGenerator';
 import { 
@@ -17,7 +18,13 @@ import {
   Filter,
   FileDown,
   User,
-  Users
+  Users,
+  Wallet,
+  AlertCircle,
+  Edit3,
+  TrendingUp,
+  Receipt,
+  ShieldCheck
 } from 'lucide-react';
 
 export function TaskView() {
@@ -30,10 +37,13 @@ export function TaskView() {
     toggleTaskStatus, 
     toggleSubtask, 
     loadPresetTasks,
-    showToast
+    showToast,
+    cashOnHand,
+    updateCashOnHand
   } = useWedding();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCashModalOpen, setIsCashModalOpen] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
   const [search, setSearch] = useState('');
@@ -114,10 +124,31 @@ export function TaskView() {
     }, 0);
   }, [tasks]);
 
+  const pendingExpenseItemsCount = useMemo(() => {
+    return tasks.filter((t) => {
+      if (t.status === 'completed') return false;
+      const est = Math.max(0, parseFloat(t.estimated_cost) || 0);
+      const paid = Math.max(0, parseFloat(t.actual_cost) || 0);
+      return Math.max(0, est - paid) > 0;
+    }).length;
+  }, [tasks]);
+
+  const projectedTotal = taskMetrics.actualCost + pendingExpenseBalance;
+
+  // Dinero en mano y cobertura financiera
+  const currentCash = Math.max(0, parseFloat(cashOnHand) || 0);
+  const cashDifference = currentCash - pendingExpenseBalance;
+  const isBudgetCovered = cashDifference >= 0;
+  const cashDeficit = Math.max(0, pendingExpenseBalance - currentCash);
+  const cashSurplus = Math.max(0, cashDifference);
+  const cashCoveragePercent = pendingExpenseBalance > 0
+    ? Math.min(100, Math.round((currentCash / pendingExpenseBalance) * 100))
+    : 100;
+
   const handleDownloadExpensesPdf = () => {
     try {
       setIsGeneratingPdf(true);
-      generateExpensesReportPDF(tasks);
+      generateExpensesReportPDF(tasks, { cashOnHand: currentCash });
       if (showToast) {
         showToast('Informe formal de gastos en PDF descargado');
       }
@@ -189,10 +220,189 @@ export function TaskView() {
         </div>
       </div>
 
-      {/* KPI Stats Grid */}
+      {/* =====================================================================
+          BLOQUE 1: FONDOS EN MANO & COBERTURA FINANCIERA (Tarjetitas Principales)
+      ===================================================================== */}
+      <div className="bg-white rounded-2xl border border-wedding-border p-4 sm:p-5 shadow-card space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200/60 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+              <Wallet size={18} />
+            </div>
+            <div>
+              <h3 className="font-editorial text-lg sm:text-xl font-bold text-stone-900 leading-tight">
+                Control de Fondos & Balance en Mano
+              </h3>
+              <p className="text-[11px] sm:text-xs text-stone-500">
+                Monitorea el dinero que tienen ahorrado vs lo que resta por pagar para la boda
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsCashModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-900 border border-emerald-300/80 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer self-start sm:self-auto shadow-2xs"
+            title="Ingresar o modificar la cantidad de dinero en mano que tienen actualmente"
+          >
+            <Edit3 size={13} className="text-emerald-700" />
+            <span>{currentCash > 0 ? 'Actualizar Balance en Mano' : 'Ingresar Dinero en Mano'}</span>
+          </button>
+        </div>
+
+        {/* Grid de 3 Tarjetas Clave de Fondos */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+          
+          {/* Tarjeta 1: Dinero en Mano */}
+          <div
+            onClick={() => setIsCashModalOpen(true)}
+            className="group relative bg-gradient-to-br from-emerald-50/50 via-white to-white rounded-2xl border border-emerald-200/90 p-4 shadow-2xs hover:shadow-sm hover:border-emerald-400 transition-all cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold uppercase tracking-wider text-[10px] sm:text-xs text-emerald-900 flex items-center gap-1">
+                  <Wallet size={13} className="text-emerald-700" />
+                  Dinero en Mano
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-700 group-hover:underline flex items-center gap-1">
+                  <Edit3 size={11} />
+                  Editar
+                </span>
+              </div>
+              <p className="font-editorial text-2xl sm:text-3xl font-bold text-emerald-950 mt-2">
+                L. {currentCash.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
+            <p className="text-[11px] text-stone-500 mt-2">
+              {currentCash > 0
+                ? 'Fondos disponibles y ahorros en mano'
+                : 'Toca aquí para ingresar su balance actual'}
+            </p>
+          </div>
+
+          {/* Tarjeta 2: Saldo Pendiente por Pagar */}
+          <div className="bg-gradient-to-br from-amber-50/50 via-white to-white rounded-2xl border border-amber-200/90 p-4 shadow-2xs flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold uppercase tracking-wider text-[10px] sm:text-xs text-amber-900 flex items-center gap-1">
+                  <Receipt size={13} className="text-amber-700" />
+                  Saldo Pendiente por Pagar
+                </span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+                  {pendingExpenseItemsCount} {pendingExpenseItemsCount === 1 ? 'rubro' : 'rubros'}
+                </span>
+              </div>
+              <p className="font-editorial text-2xl sm:text-3xl font-bold text-amber-950 mt-2">
+                L. {pendingExpenseBalance.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
+            <p className="text-[11px] text-stone-500 mt-2">
+              Compromisos y cotizaciones pendientes de liquidar
+            </p>
+          </div>
+
+          {/* Tarjeta 3: ¿Cuánto Nos Hace Falta? (Estado de Cobertura) */}
+          <div
+            className={`rounded-2xl border p-4 shadow-2xs flex flex-col justify-between transition-all ${
+              isBudgetCovered
+                ? 'bg-gradient-to-br from-emerald-500/10 via-white to-emerald-50 border-emerald-300'
+                : 'bg-gradient-to-br from-rose-50/60 via-white to-amber-50/40 border-amber-300'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between text-xs">
+                <span className={`font-bold uppercase tracking-wider text-[10px] sm:text-xs flex items-center gap-1 ${
+                  isBudgetCovered ? 'text-emerald-900' : 'text-amber-950'
+                }`}>
+                  {isBudgetCovered ? (
+                    <>
+                      <CheckCircle2 size={13} className="text-emerald-700" />
+                      Estado de Cobertura
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle size={13} className="text-amber-700" />
+                      ¿Cuánto Nos Hace Falta?
+                    </>
+                  )}
+                </span>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    isBudgetCovered
+                      ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                      : 'bg-rose-100 text-rose-900 border border-rose-200'
+                  }`}
+                >
+                  {isBudgetCovered ? '100% Cubierto' : `${cashCoveragePercent}% cubierto`}
+                </span>
+              </div>
+
+              <p
+                className={`font-editorial text-2xl sm:text-3xl font-bold mt-2 ${
+                  isBudgetCovered ? 'text-emerald-800' : 'text-rose-900'
+                }`}
+              >
+                {isBudgetCovered
+                  ? `+ L. ${cashSurplus.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : `Faltan L. ${cashDeficit.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </p>
+            </div>
+
+            {/* Subtexto y Barra de Progreso */}
+            <div className="mt-2 space-y-1">
+              <div className="w-full bg-stone-200/70 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    isBudgetCovered ? 'bg-emerald-600' : 'bg-amber-500'
+                  }`}
+                  style={{ width: `${cashCoveragePercent}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-stone-500 leading-tight">
+                {isBudgetCovered
+                  ? '¡Excelente! Los fondos en mano cubren el 100% de los compromisos restantes.'
+                  : `Restan L. ${cashDeficit.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} por ahorrar o reunir.`}
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* =====================================================================
+          BLOQUE 2: PRESUPUESTO GLOBAL & ESTADO DE ACTIVIDADES (Tarjetitas Complementarias)
+      ===================================================================== */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         
-        {/* Total Tareas */}
+        {/* Total Pagado a la Fecha */}
+        <div className="bg-white rounded-2xl border border-wedding-border p-3.5 sm:p-4 shadow-card">
+          <div className="flex items-center justify-between text-stone-500 text-xs">
+            <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Total Pagado</span>
+            <Coins size={16} className="text-emerald-700" />
+          </div>
+          <p className="font-editorial text-2xl sm:text-3xl font-bold text-stone-900 mt-1.5">
+            L. {taskMetrics.actualCost.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5">
+            Abonos liquidados a la fecha
+          </p>
+        </div>
+
+        {/* Costo Total Proyectado */}
+        <div className="bg-white rounded-2xl border border-wedding-border p-3.5 sm:p-4 shadow-card">
+          <div className="flex items-center justify-between text-stone-500 text-xs">
+            <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Presupuesto Proyectado</span>
+            <TrendingUp size={16} className="text-wedding-primary" />
+          </div>
+          <p className="font-editorial text-2xl sm:text-3xl font-bold text-stone-900 mt-1.5">
+            L. {projectedTotal.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5">
+            Est. inicial: L. {taskMetrics.estimatedCost.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+        </div>
+
+        {/* Total Actividades */}
         <div className="bg-white rounded-2xl border border-wedding-border p-3.5 sm:p-4 shadow-card">
           <div className="flex items-center justify-between text-stone-500 text-xs">
             <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Total Actividades</span>
@@ -219,32 +429,6 @@ export function TaskView() {
               style={{ width: `${taskMetrics.progress || 0}%` }}
             />
           </div>
-        </div>
-
-        {/* Por Resolver */}
-        <div className="bg-white rounded-2xl border border-amber-200 p-3.5 sm:p-4 shadow-card bg-gradient-to-b from-amber-50/40 to-white">
-          <div className="flex items-center justify-between text-amber-800 text-xs">
-            <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Por Resolver</span>
-            <Clock size={16} className="text-amber-600" />
-          </div>
-          <p className="font-editorial text-2xl sm:text-3xl font-bold text-amber-950 mt-1.5">
-            {taskMetrics.pending || 0}
-          </p>
-          <p className="text-[10px] sm:text-xs text-amber-700/80 mt-0.5">Actividades en curso</p>
-        </div>
-
-        {/* Presupuesto / Gastos en Lempiras */}
-        <div className="col-span-2 sm:col-span-2 lg:col-span-1 bg-white rounded-2xl border border-wedding-border p-3.5 sm:p-4 shadow-card">
-          <div className="flex items-center justify-between text-stone-500 text-xs">
-            <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Control de Gastos</span>
-            <Coins size={16} className="text-emerald-700" />
-          </div>
-          <p className="font-editorial text-xl sm:text-2xl font-bold text-stone-900 mt-1.5">
-            L. {taskMetrics.actualCost.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
-          <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5">
-            Est: L. {taskMetrics.estimatedCost.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • <span className="text-amber-800 font-semibold">Saldo: L. {pendingExpenseBalance.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-          </p>
         </div>
 
       </div>
@@ -399,12 +583,21 @@ export function TaskView() {
         </div>
       )}
 
-      {/* Modal para Crear / Editar */}
+      {/* Modal para Crear / Editar Tarea */}
       <TaskModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         taskToEdit={taskToEdit}
         onSave={handleSaveTask}
+      />
+
+      {/* Modal para Ingresar / Actualizar Dinero en Mano */}
+      <CashOnHandModal
+        isOpen={isCashModalOpen}
+        onClose={() => setIsCashModalOpen(false)}
+        initialAmount={currentCash}
+        pendingExpenseBalance={pendingExpenseBalance}
+        onSave={updateCashOnHand}
       />
 
     </div>

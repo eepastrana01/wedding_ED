@@ -58,4 +58,15 @@ export const taskApi = {
       method: 'POST',
     });
   },
+
+  getCashOnHand() {
+    return request('/tasks/budget/cash-on-hand');
+  },
+
+  updateCashOnHand(amount) {
+    return request('/tasks/budget/cash-on-hand', {
+      method: 'PUT',
+      body: { amount },
+    });
+  },
 };

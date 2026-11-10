@@ -45,6 +45,14 @@ export function WeddingProvider({ children }) {
       return [];
     }
   });
+  const [cashOnHand, setCashOnHand] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wedding_cash_on_hand');
+      return cached !== null && !isNaN(parseFloat(cached)) ? parseFloat(cached) : 0;
+    } catch {
+      return 0;
+    }
+  });
   const [photos, setPhotos] = useState(() => {
     try {
       const cached = localStorage.getItem('wedding_photos_cache');
@@ -157,11 +165,21 @@ export function WeddingProvider({ children }) {
 
   const fetchTasks = useCallback(async (silent = false) => {
     try {
-      const res = await taskApi.getAll();
-      if (res.success && res.data) {
-        setTasks(res.data);
+      const [resTasks, resCash] = await Promise.all([
+        taskApi.getAll(),
+        taskApi.getCashOnHand().catch(() => null)
+      ]);
+      if (resTasks.success && resTasks.data) {
+        setTasks(resTasks.data);
         try {
-          localStorage.setItem('wedding_tasks_cache', JSON.stringify(res.data));
+          localStorage.setItem('wedding_tasks_cache', JSON.stringify(resTasks.data));
+        } catch (e) {}
+      }
+      if (resCash?.success && resCash?.data?.amount !== undefined) {
+        const val = parseFloat(resCash.data.amount) || 0;
+        setCashOnHand(val);
+        try {
+          localStorage.setItem('wedding_cash_on_hand', String(val));
         } catch (e) {}
       }
     } catch (err) {
@@ -749,6 +767,36 @@ export function WeddingProvider({ children }) {
     }
   };
 
+  const updateCashOnHand = async (newAmount) => {
+    const val = Math.max(0, parseFloat(newAmount) || 0);
+    const previous = cashOnHand;
+    setCashOnHand(val);
+    try {
+      localStorage.setItem('wedding_cash_on_hand', String(val));
+    } catch (e) {}
+
+    try {
+      const res = await taskApi.updateCashOnHand(val);
+      if (res?.success && res?.data?.amount !== undefined) {
+        const serverVal = parseFloat(res.data.amount) || 0;
+        setCashOnHand(serverVal);
+        try {
+          localStorage.setItem('wedding_cash_on_hand', String(serverVal));
+        } catch (e) {}
+      }
+      showToast('Dinero en mano actualizado');
+      return val;
+    } catch (err) {
+      console.error('Error actualizando dinero en mano:', err);
+      setCashOnHand(previous);
+      try {
+        localStorage.setItem('wedding_cash_on_hand', String(previous));
+      } catch (e) {}
+      showToast(err.message || 'Error al guardar balance en mano', 'error');
+      throw err;
+    }
+  };
+
   const createTable = async (tableData) => {
     try {
       const res = await tableApi.create(tableData);
@@ -891,6 +939,8 @@ export function WeddingProvider({ children }) {
         toggleTaskStatus,
         toggleSubtask,
         loadPresetTasks,
+        cashOnHand,
+        updateCashOnHand,
         isChangelogOpen,
         setIsChangelogOpen,
         openChangelog,

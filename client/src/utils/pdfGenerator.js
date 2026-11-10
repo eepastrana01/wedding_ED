@@ -779,9 +779,11 @@ export function generateExpensesReportPDF(tasks = [], options = {}) {
     doc.text(kpi.sub, bx + kpiW / 2, kpiY + 16.5, { align: 'center' });
   });
 
-  // Barra visual ejecutiva de progreso de pagos
+  // Barra visual ejecutiva de progreso de pagos y balance en mano
+  const cashOnHandNum = Math.max(0, parseFloat(options.cashOnHand) || 0);
+  const hasCashOnHand = cashOnHandNum > 0;
   const barBoxY = kpiY + kpiH + 3.5;
-  const barBoxH = 14.5;
+  const barBoxH = hasCashOnHand ? 18.5 : 14.5;
 
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(borderSoft[0], borderSoft[1], borderSoft[2]);
@@ -816,6 +818,23 @@ export function generateExpensesReportPDF(tasks = [], options = {}) {
     const fillW = Math.max(3, (trackW * paidPercentage) / 100);
     doc.setFillColor(emeraldAccent[0], emeraldAccent[1], emeraldAccent[2]);
     doc.roundedRect(trackX, trackY, fillW, trackH, 1.5, 1.5, 'F');
+  }
+
+  // Si hay dinero en mano registrado, mostrar cálculo de cobertura en la barra ejecutiva
+  if (hasCashOnHand) {
+    const cashDiff = cashOnHandNum - totalPendingBalance;
+    const isCovered = cashDiff >= 0;
+    const deficit = Math.max(0, totalPendingBalance - cashOnHandNum);
+    const surplus = Math.max(0, cashDiff);
+    const covPct = totalPendingBalance > 0 ? Math.min(100, Math.round((cashOnHandNum / totalPendingBalance) * 100)) : 100;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.8);
+    doc.setTextColor(isCovered ? emeraldAccent[0] : amberDark[0], isCovered ? emeraldAccent[1] : amberDark[1], isCovered ? emeraldAccent[2] : amberDark[2]);
+    const statusText = isCovered
+      ? `DINERO EN MANO: ${formatHNL(cashOnHandNum)}  •  ¡META 100% CUBIERTA! (Superávit de +${formatHNL(surplus)})`
+      : `DINERO EN MANO: ${formatHNL(cashOnHandNum)}  •  FALTAN POR CUBRIR: ${formatHNL(deficit)} (${covPct}% cubierto con fondos en mano)`;
+    doc.text(statusText, margin + 4, barBoxY + 15.5);
   }
 
   // Helper para dibujar subtítulos de sección con estilo editorial

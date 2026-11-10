@@ -91,4 +91,23 @@ export const taskController = {
       next(error);
     }
   },
+
+  async getCashOnHand(req, res, next) {
+    try {
+      const amount = await taskService.getCashOnHand();
+      res.json({ success: true, data: { amount } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateCashOnHand(req, res, next) {
+    try {
+      const raw = req.body?.amount !== undefined ? req.body.amount : req.body?.cash_on_hand;
+      const amount = await taskService.updateCashOnHand(raw);
+      res.json({ success: true, data: { amount }, message: 'Balance en mano actualizado con éxito' });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

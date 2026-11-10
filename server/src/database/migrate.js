@@ -1,6 +1,6 @@
 import pool from '../config/database.js';
 
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
 const MIGRATION_ADVISORY_LOCK_KEY = 20261121;
 
 export async function runMigrations() {
@@ -229,6 +229,15 @@ export async function runMigrations() {
       
       CREATE INDEX IF NOT EXISTS idx_guests_table_id ON guests(table_id);
       CREATE INDEX IF NOT EXISTS idx_wedding_tables_number ON wedding_tables(table_number);
+    `);
+
+    // 9. Crear tabla app_settings para configuración global compartida (balance en mano, etc.)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     await client.query(

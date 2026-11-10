@@ -5,6 +5,8 @@ const router = Router();
 
 router.get('/', taskController.getAll);
 router.get('/stats', taskController.getStats);
+router.get('/budget/cash-on-hand', taskController.getCashOnHand);
+router.put('/budget/cash-on-hand', taskController.updateCashOnHand);
 router.post('/presets', taskController.loadPresets);
 router.get('/:id', taskController.getById);
 router.post('/', taskController.create);
